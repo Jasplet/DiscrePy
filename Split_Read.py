@@ -92,7 +92,7 @@ def trace_download(dates,times,evla,evlo,stla,stlo,station, n_events):
                         hour = str(t.hour).zfill(2) # Converts Hour to string. zfill ensures it is 2 characters by adding a leading zero if required
                         minute = str(t.minute).zfill(2)
 
-                        tr_id = stat + "_" + str(i) +"_" + ch + ".sac"
+                        tr_id = "/Users/ja17375/Scripts/Python/SKS_Splitting/Data" + /stat + "_" + str(i) +"_" + ch + ".sac"
 
 
                         st[0].write('holder.sac', format='SAC') # Writes traces as SAC files

@@ -32,7 +32,7 @@ for i in range(99,100):
     filename = "NEW_Splitting_" + str(95).zfill(2) + ".eigm"
 
     try:
-        st = obspy.core.stream.read(st_id) # Reads all traces that match st_id
+        st = obspy.core.stream.read('/Users/ja17375/Scripts/Python/SKS_Splitting/Data/' + st_id) # Reads all traces that match st_id
         work = True
 
     except Exception:
