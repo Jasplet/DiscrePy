@@ -14,7 +14,7 @@ from obspy.taup import TauPyModel
 
 #### Reading downloaded traces and Windowing data
 # Generate Travel time model for SKS phase for all events prior to Windowing
-model = obspy.taup.tau.TauPyModel(model="iasp91")
+
 
 # arrival = model.get_travel_times(depth,dist,["SKS"])
 # no_N = int(os.popen("ls *BHN.sac | wc -l").read())
@@ -28,34 +28,75 @@ output_file.write('ID YEAR MON DAY HOUR MIN SEC STAT FAST DFAST TLAG DTLAG WBEG 
 def read_sac(st_id):
     try:
         st = obspy.core.stream.read('./Data/' + st_id) # Reads all traces that match st_id
-        work = True
+        if len(st) == 3: #Check is there are 3 traces in the stream (East,North and Vertical)
+            return True
+        else:
+            return False
     except Exception:
-        print("Exception Encountered for event", i)
-        row = str(i)+' N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A \n'
-        work = False
-#def Split_Measure(no_events):
+        return False
+
+def model_SKS(tr):
+    model = obspy.taup.tau.TauPyModel(model="iasp91")
+    SKS = model.get_travel_times(tr.stats.sac.evdp,tr.stats.sac.gcarc,["SKS"])[0].time
+    t0 = st[0].stats.starttime # Start time of stream for event. This should be the event origin time.
+    UTC = obspy.core.utcdatetime.UTCDateTime(t0 + SKS)# SKS arrival time relative to trace start as a UTCDateTime object
+    return SKS,t0,UTC
+    #def Split_Measure(no_events):
+
+def st_prep(st,trim_beg,trim_end,f_min,f_max):
+    """
+    Prepares Stream for spltting analysis and creates the Pair object
+    """
+    st.filter("bandpass",freqmin= f_min, freqmax= f_max,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
+    return st.trim(starttime = SKS_UTC - trim_beg, endtime = SKS_UTC + trim_end)
+
+def window_trace(pair,ext,*args):
+    """
+    window_trace(pair,ext,st,f_min,_f_max,SKS)
+    Constructs Pair Object for a Given stream and the generates the splitwavepy window Picker
+    If Pair does not exists then pass 'pair = None' and st,f_min,f_max
+    st = stream , f_min/max are the min/max filter frequencies.
+    ext refers to the trim size and also the position of the SKS marker
+    Up to 3 arguements accepted. If pair = none then a stream MUST also be provided.
+    The SKS marker is hard coded in as 150 seconds from the start of the trimmed trace. This is the default value.
+
+    """
+    if pair is None:
+        st.filter("bandpass",freqmin= f_min, freqmax= f_max,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
+        st.trim(starttime = SKS - trim, endtime = SKS + trim) #Trims Stream cenetered around the predicited SKS arrival
+        pair = sw.Pair(st[0].data,st[1].data,delta = st[0].stats.delta) # Creates the Pair object (East compenent,North compenent,sample_interval)
+
+    pair.plot(pick=True,marker = 150) # Plots the window picker.
+    return pair
+
+    if len(args) > 6:
+        raise Exception('Too Many Arguements Provided')
+
 for i in range(0,101):
     st_id = "NEW_" + str(i).zfill(2) + "_" + "*.sac" # Generate expected file names. Wildcard used to catch all 3 channels
     filename = "./Splitting/NEW_" + str(i).zfill(2) + ".eigm"
-    read_sac(st_id)
-    if (work == True and len(st) == 3 ): #Traces for event have been succesfully read so lets try to measure splittiing!
-        SKS = model.get_travel_times(st[0].stats.sac.evdp,st[0].stats.sac.gcarc,["SKS"])[0].time # Calculates expected SKS arrival for the current event
-        t0 = st[0].stats.starttime # Start time of stream for event. This should be the event origin time.        st.filter("bandpass",freqmin=0.01, freqmax= 0.5,corners=2,zerophase=True)
-        SKS_arr = obspy.core.utcdatetime.UTCDateTime(st[0].stats.starttime + SKS)# SKS arrival time relative to trace start as a UTCDateTime object
-        st.filter("bandpass",freqmin=0.01, freqmax= 0.5,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
-        st.trim(starttime = SKS_arr - 120, endtime = SKS_arr +180)
-        east = st[0].data
-        north = st[1].data
-        split_pair = sw.Pair(east,north,delta = st[0].stats.delta) # Creates the Pair object (East compenent,North compenent,sample_interval)
-        #split_pair.set_window(SKS_arr - 30,SKS_arr + 30)
-        split_pair.plot(pick=True ,marker =  120) # Plots traces and particle motion, with a marker for the SKS arrival. Plot window also allows manual picking of the window.
-        split = sw.EigenM(split_pair,lags=(4,) )
-        split.save(filename) # Saves splitting measurements
-        window1 = split_pair.wbeg()
-        window2 = split_pair.wend()
-        date = str(t0.year)+" "+ str(t0.month).zfill(2)+" "+str(t0.day).zfill(2) +" " # Format date information so that is inteligible when output
-        t = str(t0.hour).zfill(2)+" "+str(t0.minute).zfill(2)+" "+str(t0.second).zfill(2) # Formating time infomation for printing
-        row = str(i)+' '+date+' '+t+' NEW '+str(split.fast)+' '+str(split.dfast)+' '+str(split.lag)+' '+str(split.dlag)+ ' '+ str(window1) + ' '+ str(window2) +'\n' #Row of data to be written to output textfile
+    isread = read_sac(st_id)
+
+    if isread == True:
+        #Traces for event have been succesfully read so lets try to measure splittiing!
+        (SKS, origin, SKS_UTC) = model_SKS(st[0])
+        pair = window_trace(pair = None,150,st = st, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
+
+        split = sw.EigenM(pair,lags=(4,) )
+        split.plot()
+        ## Callback key entries for estimated quality of splitting measurements
+            #if key is (A,B,C):
+            #   split.save(filename) # Saves splitting measurements
+                window1 = split_pair.wbeg()
+                window2 = split_pair.wend()
+                date = str(t0.year)+" "+ str(t0.month).zfill(2)+" "+str(t0.day).zfill(2) +" " # Format date information so that is inteligible when output
+                t = str(t0.hour).zfill(2)+" "+str(t0.minute).zfill(2)+" "+str(t0.second).zfill(2) # Formating time infomation for printing
+                row = str(i)+' '+date+' '+t+' NEW '+str(split.fast)+' '+str(split.dfast)+' '+str(split.lag)+' '+str(split.dlag)+ ' '+ str(window1) + ' '+ str(window2) +'\n' #Row of data to be written to output textfile
+            #elif key is X:
+                #window_trace(pair, 150)
+                #measure splitting again 
+
+    row = str(i)+' N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A \n'
     output_file.write(row)
 
 output_file.close()
