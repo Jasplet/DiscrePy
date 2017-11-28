@@ -25,47 +25,37 @@ model = obspy.taup.tau.TauPyModel(model="iasp91")
 output_file = open('NEW_Splitting.txt','w')
 output_file.write('ID YEAR MON DAY HOUR MIN SEC STAT FAST DFAST TLAG DTLAG WBEG WEND \n')
 
-
-for i in range(99,100):
-    st_id = "NEW_" + str(i).zfill(2) + "_" + "*.sac" # Generate expected file names. Wildcard used to catch all 3 channels
-
-    filename = "NEW_Splitting_" + str(95).zfill(2) + ".eigm"
-
+def read_sac(st_id):
     try:
-        st = obspy.core.stream.read('/Users/ja17375/Scripts/Python/SKS_Splitting/Data/' + st_id) # Reads all traces that match st_id
+        st = obspy.core.stream.read('./Data/' + st_id) # Reads all traces that match st_id
         work = True
-
     except Exception:
-        print("Exception Encountered for event")
+        print("Exception Encountered for event", i)
         row = str(i)+' N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A \n'
         work = False
-
-    if (work == True): #Traces for event have been succesfully read so lets try to measure splittiing!
-        arrival = model.get_travel_times(st[0].stats.sac.evdp,st[0].stats.sac.gcarc,["SKS"]) # Calculates expected SKS arrival for the current event
-        time = st[0].stats.starttime # Start time of stream for event. This should be the event origin time.
-        print(time) # Prints origin time.
-        st.filter("bandpass",freqmin=0.01, freqmax= 0.5,corners=2,zerophase=True)
-        SKS = arrival[0].time
-        t0 = obspy.core.utcdatetime.UTCDateTime(st[0].stats.starttime + SKS) # SKS arrival time relative to trace start as a UTCDateTime object
-        st.trim(0,t0+300)
-
-        east = st[0].data #East compenent seismogram, ready to be put into a Pair object.
-        north = st[1].data #North compenent seismogram, ready to be put into a Pair object.
-        sample_interval = st[0].stats.delta
-        split_pair = sw.Pair(north,east,delta = sample_interval) # Creates the Pair object
-        #split_pair.set_window(t0-30,t0+30)
-        print("SKS arrival time for event","is ",SKS)
-        split_pair.plot(pick=True,marker=SKS) # Plots traces and particle motion, with a marker for the SKS arrival. Plot window also allows manual picking of the window.
+#def Split_Measure(no_events):
+for i in range(0,101):
+    st_id = "NEW_" + str(i).zfill(2) + "_" + "*.sac" # Generate expected file names. Wildcard used to catch all 3 channels
+    filename = "./Splitting/NEW_" + str(i).zfill(2) + ".eigm"
+    read_sac(st_id)
+    if (work == True and len(st) == 3 ): #Traces for event have been succesfully read so lets try to measure splittiing!
+        SKS = model.get_travel_times(st[0].stats.sac.evdp,st[0].stats.sac.gcarc,["SKS"])[0].time # Calculates expected SKS arrival for the current event
+        t0 = st[0].stats.starttime # Start time of stream for event. This should be the event origin time.        st.filter("bandpass",freqmin=0.01, freqmax= 0.5,corners=2,zerophase=True)
+        SKS_arr = obspy.core.utcdatetime.UTCDateTime(st[0].stats.starttime + SKS)# SKS arrival time relative to trace start as a UTCDateTime object
+        st.filter("bandpass",freqmin=0.01, freqmax= 0.5,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
+        st.trim(starttime = SKS_arr - 120, endtime = SKS_arr +180)
+        east = st[0].data
+        north = st[1].data
+        split_pair = sw.Pair(east,north,delta = st[0].stats.delta) # Creates the Pair object (East compenent,North compenent,sample_interval)
+        #split_pair.set_window(SKS_arr - 30,SKS_arr + 30)
+        split_pair.plot(pick=True ,marker =  120) # Plots traces and particle motion, with a marker for the SKS arrival. Plot window also allows manual picking of the window.
+        split = sw.EigenM(split_pair,lags=(4,) )
+        split.save(filename) # Saves splitting measurements
         window1 = split_pair.wbeg()
         window2 = split_pair.wend()
-        print("Window Begins at",window1,"and ends at",window2)
-        split = sw.EigenM(split_pair,lags=(4,) )
-        split.save(filename)
-
-
-        date = str(time.year)+" "+ str(time.month).zfill(2)+" "+str(time.day).zfill(2) +" " # Format date information so that is inteligible when output
-        t = str(time.hour).zfill(2)+" "+str(time.minute).zfill(2)+" "+str(time.second).zfill(2) # Formating time infomation for printing
-        row = str(i)+' '+date+' '+t+' '+str(stat)+' '+str(split.fast)+' '+str(split.dfast)+' '+str(split.tlag)+' '+str(split.dtlag)+'\n' #Row of data to be written to output textfile
+        date = str(t0.year)+" "+ str(t0.month).zfill(2)+" "+str(t0.day).zfill(2) +" " # Format date information so that is inteligible when output
+        t = str(t0.hour).zfill(2)+" "+str(t0.minute).zfill(2)+" "+str(t0.second).zfill(2) # Formating time infomation for printing
+        row = str(i)+' '+date+' '+t+' NEW '+str(split.fast)+' '+str(split.dfast)+' '+str(split.lag)+' '+str(split.dlag)+ ' '+ str(window1) + ' '+ str(window2) +'\n' #Row of data to be written to output textfile
     output_file.write(row)
 
 output_file.close()
