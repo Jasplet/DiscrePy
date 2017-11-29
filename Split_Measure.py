@@ -22,9 +22,6 @@ from obspy.taup import TauPyModel
 # no_Z = int(os.popen("ls *BHZ.sac | wc -l").read())
 # num_s = max(no_N,no_E) # Find which channel has the max number of traces downloaded (i.e what is the maximum number of events we can measure splitting for)
 
-output_file = open('NEW_Splitting.txt','w')
-output_file.write('ID YEAR MON DAY HOUR MIN SEC STAT FAST DFAST TLAG DTLAG WBEG WEND \n')
-
 def read_sac(st_id):
     try:
         st = obspy.core.stream.read('./Data/' + st_id) # Reads all traces that match st_id
@@ -59,20 +56,24 @@ def measure(pair):
     """
     Function for Picking the window for a provded pair object and then measure the splitting
     """
-    pair.plot(pick=True,marker = ext) # Plots the window picker.
+    pair.plot(pick=True,marker = 150) # Plots the window picker.
     split = sw.EigenM(pair,lags=(4,) )
     figure = plt.figure()
-    split.plot(figure)
-    cid = figure.canvas.mpl_connect('key_press_event',measure_quality)
-    if repeat is True:
-        pair = window_trace(pair,150)
-        measure(pair)
+    split.plot(fig = figure)
 
-def measure_quality(event):
-    if event.key in ['A','B','C']:
+    cid = figure.canvas.mpl_connect('key_press_event',quality)
+    plt.show()
+
+
+def quality(event):
+    if event.key in ['a','b','c']:
         quality = event.key
-    elif event.key is 'X':
+    elif event.key == 'x':
+        print('Call function to remeasure')
+###################################################
 
+output_file = open('NEW_Splitting.txt','w')
+output_file.write('ID YEAR MON DAY HOUR MIN SEC STAT FAST DFAST TLAG DTLAG WBEG WEND \n')
 
 for i in range(100,101):
     st_id = "NEW_" + str(i).zfill(2) + "_" + "*.sac" # Generate expected file names. Wildcard used to catch all 3 channels
@@ -83,7 +84,7 @@ for i in range(100,101):
         #Traces for event have been succesfully read so lets try to measure splittiing!
         (SKS, origin, SKS_UTC) = model_SKS(st[0])
         pair = st_prep(st = st,trim = 150, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
-
+        measure(pair)
 
 
         ## Callback key entries for estimated quality of splitting measurements
