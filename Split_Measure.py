@@ -29,7 +29,7 @@ def read_sac(st_id):
     try:
         st = obspy.core.stream.read('./Data/' + st_id) # Reads all traces that match st_id
         if len(st) == 3: #Check is there are 3 traces in the stream (East,North and Vertical)
-            return True
+            return st
         else:
             return False
     except Exception:
@@ -43,14 +43,14 @@ def model_SKS(tr):
     return SKS,t0,UTC
     #def Split_Measure(no_events):
 
-def st_prep(st,trim_beg,trim_end,f_min,f_max):
+def st_prep(st,trim,f_min,f_max,SKS):
     """
     Prepares Stream for spltting analysis and creates the Pair object
     """
     st.filter("bandpass",freqmin= f_min, freqmax= f_max,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
-    return st.trim(starttime = SKS_UTC - trim_beg, endtime = SKS_UTC + trim_end)
+    return st.trim(starttime = SKS_UTC - trim, endtime = SKS_UTC + trim)
 
-def window_trace(pair,ext,*args):
+def window_trace(pair,ext,st,f_min,f_max,SKS):
     """
     window_trace(pair,ext,st,f_min,_f_max,SKS)
     Constructs Pair Object for a Given stream and the generates the splitwavepy window Picker
@@ -62,42 +62,58 @@ def window_trace(pair,ext,*args):
 
     """
     if pair is None:
-        st.filter("bandpass",freqmin= f_min, freqmax= f_max,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
-        st.trim(starttime = SKS - trim, endtime = SKS + trim) #Trims Stream cenetered around the predicited SKS arrival
+        st = st_prep(st,ext,f_min,f_max,SKS)
         pair = sw.Pair(st[0].data,st[1].data,delta = st[0].stats.delta) # Creates the Pair object (East compenent,North compenent,sample_interval)
+        pair.plot(pick=True,marker = ext) # Plots the window picker.
+    else:
+        pair.plot(pick=True,marker = ext) # Plots the window picker.
 
-    pair.plot(pick=True,marker = 150) # Plots the window picker.
     return pair
 
     if len(args) > 6:
         raise Exception('Too Many Arguements Provided')
 
-for i in range(0,101):
-    st_id = "NEW_" + str(i).zfill(2) + "_" + "*.sac" # Generate expected file names. Wildcard used to catch all 3 channels
-    filename = "./Splitting/NEW_" + str(i).zfill(2) + ".eigm"
-    isread = read_sac(st_id)
+def measure(pair):
+    split = sw.EigenM(pair,lags=(4,) )
+    figure = plt.figure()
+    split.plot(figure)
+    cid = figure.canvas.mpl_connect('key_press_event',measure_quality)
+    if repeat is True:
+        pair = window_trace(pair,150)
+        measure(pair)
 
-    if isread == True:
+def measure_quality(event):
+    if event.key in ['A','B','C']:
+        quality = event.key
+    elif event.key is 'X':
+
+
+for i in range(100,101):
+    st_id = "NEW_" + str(i).zfill(2) + "_" + "*.sac" # Generate expected file names. Wildcard used to catch all 3 channels
+    # filename = "./Splitting/NEW_" + str(i).zfill(2) + ".eigm"
+    st = read_sac(st_id)
+
+    if st != False:
         #Traces for event have been succesfully read so lets try to measure splittiing!
         (SKS, origin, SKS_UTC) = model_SKS(st[0])
-        pair = window_trace(pair = None,150,st = st, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
+        pair = window_trace(pair = None,ext = 150,st = st, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
 
-        split = sw.EigenM(pair,lags=(4,) )
-        split.plot()
+
+
         ## Callback key entries for estimated quality of splitting measurements
             #if key is (A,B,C):
             #   split.save(filename) # Saves splitting measurements
-                window1 = split_pair.wbeg()
-                window2 = split_pair.wend()
-                date = str(t0.year)+" "+ str(t0.month).zfill(2)+" "+str(t0.day).zfill(2) +" " # Format date information so that is inteligible when output
-                t = str(t0.hour).zfill(2)+" "+str(t0.minute).zfill(2)+" "+str(t0.second).zfill(2) # Formating time infomation for printing
-                row = str(i)+' '+date+' '+t+' NEW '+str(split.fast)+' '+str(split.dfast)+' '+str(split.lag)+' '+str(split.dlag)+ ' '+ str(window1) + ' '+ str(window2) +'\n' #Row of data to be written to output textfile
-            #elif key is X:
-                #window_trace(pair, 150)
-                #measure splitting again 
-
-    row = str(i)+' N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A \n'
-    output_file.write(row)
+    #     window1 = split_pair.wbeg()
+    #     window2 = split_pair.wend()
+    #     date = str(t0.year)+" "+ str(t0.month).zfill(2)+" "+str(t0.day).zfill(2) +" " # Format date information so that is inteligible when output
+    #     t = str(t0.hour).zfill(2)+" "+str(t0.minute).zfill(2)+" "+str(t0.second).zfill(2) # Formating time infomation for printing
+    #     row = str(i)+' '+date+' '+t+' NEW '+str(split.fast)+' '+str(split.dfast)+' '+str(split.lag)+' '+str(split.dlag)+ ' '+ str(window1) + ' '+ str(window2) +'\n' #Row of data to be written to output textfile
+    #         #elif key is X:
+    #             #window_trace(pair, 150)
+    #             #measure splitting again
+    #
+    # row = str(i)+' N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A \n'
+    # output_file.write(row)
 
 output_file.close()
 
