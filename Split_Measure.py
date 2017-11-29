@@ -36,6 +36,10 @@ def read_sac(st_id):
         return False
 
 def model_SKS(tr):
+    """
+    Function to run TauP traveltime models for the SKS phase.
+    Returns SKS predictided arrivals (seconds), origin time of the event (t0) as a UTCDateTime obejct and the SKS arrival as a UTCDateTime object
+    """
     model = obspy.taup.tau.TauPyModel(model="iasp91")
     SKS = model.get_travel_times(tr.stats.sac.evdp,tr.stats.sac.gcarc,["SKS"])[0].time
     t0 = st[0].stats.starttime # Start time of stream for event. This should be the event origin time.
@@ -45,35 +49,17 @@ def model_SKS(tr):
 
 def st_prep(st,trim,f_min,f_max,SKS):
     """
-    Prepares Stream for spltting analysis and creates the Pair object
+    Prepares Stream for spltting analysis (by bandpass filtering and trimming) and then creates the Pair object
     """
     st.filter("bandpass",freqmin= f_min, freqmax= f_max,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
-    return st.trim(starttime = SKS_UTC - trim, endtime = SKS_UTC + trim)
-
-def window_trace(pair,ext,st,f_min,f_max,SKS):
-    """
-    window_trace(pair,ext,st,f_min,_f_max,SKS)
-    Constructs Pair Object for a Given stream and the generates the splitwavepy window Picker
-    If Pair does not exists then pass 'pair = None' and st,f_min,f_max
-    st = stream , f_min/max are the min/max filter frequencies.
-    ext refers to the trim size and also the position of the SKS marker
-    Up to 3 arguements accepted. If pair = none then a stream MUST also be provided.
-    The SKS marker is hard coded in as 150 seconds from the start of the trimmed trace. This is the default value.
-
-    """
-    if pair is None:
-        st = st_prep(st,ext,f_min,f_max,SKS)
-        pair = sw.Pair(st[0].data,st[1].data,delta = st[0].stats.delta) # Creates the Pair object (East compenent,North compenent,sample_interval)
-        pair.plot(pick=True,marker = ext) # Plots the window picker.
-    else:
-        pair.plot(pick=True,marker = ext) # Plots the window picker.
-
-    return pair
-
-    if len(args) > 6:
-        raise Exception('Too Many Arguements Provided')
+    st.trim(starttime = SKS_UTC - trim, endtime = SKS_UTC + trim)
+    return sw.Pair(st[0].data,st[1].data,delta = st[0].stats.delta)
 
 def measure(pair):
+    """
+    Function for Picking the window for a provded pair object and then measure the splitting
+    """
+    pair.plot(pick=True,marker = ext) # Plots the window picker.
     split = sw.EigenM(pair,lags=(4,) )
     figure = plt.figure()
     split.plot(figure)
@@ -96,7 +82,7 @@ for i in range(100,101):
     if st != False:
         #Traces for event have been succesfully read so lets try to measure splittiing!
         (SKS, origin, SKS_UTC) = model_SKS(st[0])
-        pair = window_trace(pair = None,ext = 150,st = st, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
+        pair = st_prep(st = st,trim = 150, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
 
 
 
