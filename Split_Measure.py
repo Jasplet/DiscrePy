@@ -143,14 +143,14 @@ def interact(event):
 ###################################################
 
 
+output_file = open('NEW_Splitting.txt','w')
+output_file.write('ID YEAR MON DAY HOUR MIN SEC STAT FAST DFAST TLAG DTLAG WBEG WEND \n')
 
-
-for i in range(0,101):
+for i in range(70,101):
     st_id = "NEW_" + str(i).zfill(2) + "_" + "*.sac" # Generate expected file names. Wildcard used to catch all 3 channels
     filename = "./Splitting/NEW_" + str(i).zfill(2) + ".eigm"
-    output_file = open('NEW_Splitting.txt','w')
-    output_file.write('ID YEAR MON DAY HOUR MIN SEC STAT FAST DFAST TLAG DTLAG WBEG WEND \n')
 
+    print("Event", str(i).zfill(2))
     st = read_sac(st_id)
 
     if st != False: #i.e. if the stream is sufficiently populated and has been read.
@@ -181,7 +181,8 @@ for i in range(0,101):
     else:
         row = str(i)+' N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A No Stream\n'
         print('No stream for event',i)
-        output_file.write(row)
+
+    output_file.write(row)
 
 output_file.close()
 
