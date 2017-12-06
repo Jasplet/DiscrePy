@@ -24,7 +24,7 @@ import matplotlib.gridspec as gridspec
 
 def read_sac(st_id):
     try:
-        st = obspy.core.stream.read('./Data/' + st_id) # Reads all traces that match st_id
+        st = obspy.core.stream.read(st_id) # Reads all traces that match st_id
         if len(st) == 3: #Check is there are 3 traces in the stream (East,North and Vertical)
             return st
         else:
@@ -102,7 +102,7 @@ def measure(pair):
     """
     Function for Picking the window for a provded pair object and then measure the splitting
     """
-    pair.plot(pick=True,marker = 150) # Plots the window picker.
+    pair.plot(pick=True,marker = 100) # Plots the window picker.
     split = sw.EigenM(pair,lags=(4,) )
 
     fig = plt.figure(figsize=(12,6))
@@ -144,45 +144,64 @@ def interact(event):
 
 
 output_file = open('NEW_Splitting.txt','w')
-output_file.write('ID YEAR MON DAY HOUR MIN SEC STAT FAST DFAST TLAG DTLAG WBEG WEND \n')
-
-for i in range(70,101):
-    st_id = "NEW_" + str(i).zfill(2) + "_" + "*.sac" # Generate expected file names. Wildcard used to catch all 3 channels
-    filename = "./Splitting/NEW_" + str(i).zfill(2) + ".eigm"
-
-    print("Event", str(i).zfill(2))
-    st = read_sac(st_id)
-
-    if st != False: #i.e. if the stream is sufficiently populated and has been read.
-
-        SKS_UTC, t0 = model_SKS(st[0])
+output_file.write('ID STAT YEAR MON DAY HOUR MIN SEC FAST DFAST TLAG DTLAG WBEG WEND QUAL\n')
+st_id = []
+with open('NEW_read_stream.txt','r') as reader:
+    for line in reader.readlines():
+        if line[0:-7] == st_id: #If the sac file exists (and hasnt already been read)
+            st_id = line[0:-7]
+            st = read_sac(st_id+'*')
+            if st != False: #i.e. if the stream is sufficiently populated and has been read.
+                SKS_UTC, t0 = model_SKS(st[0])
+                yr = str(t0.year)
+                mon = str(t0.month).zfill(2)
+                day = str(t0.day).zfill(2)
+                hr = str(t0.hour).zfill(2)
+                mnt = str(t0.minute).zfill(2)
+                s = str(t0.second).zfill(2)
         # Intialise some global variables which I need to pass things between fucntions (this is probably not be best way to do things but it works!)
-        global pair_glob
-        global quality
+                global pair_glob
+                global quality
 
-        quality = []
-        pair = st_prep(st = st,trim = 150, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
-        pair_glob = pair
-        split, wbeg, wend = measure(pair)
+                quality = []
+                pair = st_prep(st = st,trim = 100, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
+                pair_glob = pair
+                split, wbeg, wend = measure(pair)
 
 
+                ## Callback key entries for estimated quality of splitting measurements
+                if quality is not ('x'):
+                    filename = './Splitting/NEW_'+yr+'_'+mon+'_'+day+'_'+hr+'_'+mnt+'_'+s+'.eigm'
+                    attributes = ['stla','stlo','evla','evlo','evdp','gcarc','baz']
+                    split.stla = st[0].stats.sac[attrib[0]]
+                    split.stlo = st[0].stats.sac[attrib[1]]
+                    split.evla = st[0].stats.sac[attrib[2]]
+                    split.evlo = st[0].stats.sac[attrib[3]]
+                    split.evdp = st[0].stats.sac[attrib[4]]
+                    split.gcarc = st[0].stats.sac[attrib[5]]
+                    split.baz = st[0].stats.sac[attrib[6]]
+                    split.save(filename) # Saves splitting measurements
 
-        ## Callback key entries for estimated quality of splitting measurements
-        if quality is not ('x'):
-            split.save(filename) # Saves splitting measurements
 
-            date = str(t0.year)+" "+ str(t0.month).zfill(2)+" "+str(t0.day).zfill(2) +" " # Format date information so that is inteligible when output
-            t = str(t0.hour).zfill(2)+" "+str(t0.minute).zfill(2)+" "+str(t0.second).zfill(2) # Formating time infomation for printing
-            meas = str(split.fast)+' '+str(split.dfast)+' '+str(split.lag)+' '+str(split.dlag)+' '+ str(wbeg())+' '+str(wend())+' '
-            row = str(i)+' '+date+' '+t+' NEW '+ meas + str(quality)+ '\n' #Row of data to be written to output textfile
-        else:
-            row = str(i)+' N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A Bad\n'
+                    meas = [split.i for i in ['fast','dfast','lag','dlag','wbeg','wend']]
+                    stats = [st[0].stats.sac[i] for i in attributes]
+                    org = [str(t0.i).zfill(2) for i in ['NEW','year','month','day','hour','minute','second']]
+                    row = org + stats + meas + [quality] #Row of data to be written to output textfile
+                    output_file.write('{} {:04d} {:02d} {:02d} {:02d} {:02d} {:02d} {:06.2f} {:06.2f} {:06.2f} {:06.2f} {:06.3f} {:06.2f} {:06.2f} {:4.1f} {:4.1f} {:4.2f} {:4.2f} {} {} {}'.format(row))
+                else:
+                    meas = ['N/A','N/A','N/A','N/A','N/A','N/A']
+                    stats = ['N/A','N/A','N/A','N/A','N/A','N/A','N/A']
+                    org = [str(t0.i).zfill(2) for i in ['NEW','year','month','day','hour','minute','second']]
+                    row = org + stats + meas + [quality]
+                    output_file.write('{} {:04d} {:02d} {:02d} {:02d} {:02d} {:02d} {} {} {} {} {} {} {} {} {} {} {} {} {} {} \n'.format(row))
+            else:
+                meas = ['N/A','N/A','N/A','N/A','N/A','N/A']
+                stats = ['N/A','N/A','N/A','N/A','N/A','N/A','N/A']
+                org = ['NEW','N/A','N/A','N/A','N/A','N/A','N/A']
+                row = org + stats + meas + ['NoStream']
+                print('No stream for event',i)
 
-    else:
-        row = str(i)+' N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A N/A No Stream\n'
-        print('No stream for event',i)
-
-    output_file.write(row)
+            output_file.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}'.format(row))
 
 output_file.close()
 
