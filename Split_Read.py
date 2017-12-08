@@ -23,15 +23,16 @@ def trace_download(dates,times,evla,evlo,stla,stlo,station, n_events):
     ## Function to download and save traces for a pre-determined set of events
     too_short = 0
     no_dat = 0
-    for i in range(0 n_events):
+    for i in range(0, n_events):
         # Test if trace is already downloaded and create a UTCDateTime object for the Starttime
         ps = str(dates[i]) + "T" + str(times[i]).zfill(4)
         start = obspy.core.UTCDateTime(ps) #iso8601=True
         yr = str(start.year)
-        mn_tst = str(start.month).zfill(2) # Converts Month to string. zfill ensures it is 2 characters by adding a leading zero if required
-        d_tst = str(start.day).zfill(2)   # Day of event, this is to contruct expected
-        h_tst = str(start.hour).zfill(2) # Converts Hour to string. zfill ensures it is 2 characters by adding a leading zero if required
-        min_tst = str(start.minute).zfill(2)
+        mon = str(start.month).zfill(2) # Converts Month to string. zfill ensures it is 2 characters by adding a leading zero if required
+        day = str(start.day).zfill(2)   # Day of event, this is to contruct expected
+
+        hr = str(start.hour).zfill(2) # Converts Hour to string. zfill ensures it is 2 characters by adding a leading zero if required
+        minu = str(start.minute).zfill(2)
 
         client = obspy.clients.fdsn.Client("IRIS")
         try:
@@ -43,13 +44,15 @@ def trace_download(dates,times,evla,evlo,stla,stlo,station, n_events):
             start.microsecond = cat[0].origins[0].time.microsecond
             start.second = cat[0].origins[0].time.second
             start.minute = cat[0].origins[0].time.minute
+            sec = str(start.second).zfill(2)
         except FDSNNoDataException:
             print("No Event Data Available")
         except FDSNException:
             print("FDSNException for get_events")
         channel = ["BHN","BHZ","BHE"]
         for ch in channel:
-            id_tst = "NEW_"  +  str(i) + "_" + ch + ".sac"
+            
+            id_tst = "./Data/" + stat + "_" + yr + "_" + mon + "_" + day+"_" + hr + "_" + minu + "_" + sec + "_" + ch + ".sac"
             print("Looking for :", id_tst)
             if os.path.isfile(id_tst) == True:
                 print("It exists. It was not downloaded") # File does not exist
@@ -75,14 +78,9 @@ def trace_download(dates,times,evla,evlo,stla,stlo,station, n_events):
                     if len(st) > 3:
                         print("WARNING: More than three traces downloaded for event ", i)
                     if ((st[0].stats.endtime - st[0].stats.starttime) >= 2999.0):
-                        t = obspy.core.UTCDateTime(st[0].stats.starttime, precision = 0)
-                        yr = str(t.year)
-                        mon = str(t.month).zfill(2) # Converts Month to string. zfill ensures it is 2 characters by adding a leading zero if required
-                        day = str(t.day).zfill(2)   # Day of event, this is to contruct expected
-                        hour = str(t.hour).zfill(2) # Converts Hour to string. zfill ensures it is 2 characters by adding a leading zero if required
-                        minute = str(t.minute).zfill(2)
-                        tr_id = "./Data/" + stat + "_" + str(i) +"_" + ch + ".sac"
-                        st[0].write('holder.sac', format='SAC') # Writes traces as SAC files
+
+                        tr_id = "./Data/" + stat + "_" + yr + "_" + mon +"_"+day+"_"+hr+"_"+minu+"_"+sec+"_"+ch + ".sac"
+                        st[0].write('holder.sac', format='SAC',) # Writes traces as SAC files
                         #st.plot()
                         st_2 = obspy.core.read('holder.sac')
                         #sac = AttribDict() # Creates a dictionary sacd to contain all the header information I want.
@@ -95,8 +93,10 @@ def trace_download(dates,times,evla,evlo,stla,stlo,station, n_events):
                         st_2[0].stats.sac.evdp = cat[0].origins[0].depth/1000 # Event depth
                         dist_client = iris.client.Client() # Creates client to calculate event - station distance
                         d = dist_client.distaz(stalat=stla,stalon=stlo,evtlat=evla[i],evtlon=evlo[i])
-                        st_2[0].stats.sac.gcarc = list(d.values())[1] # d.values returns the values from dictionary d produced by distaz. list converts this to a list attribute which can then be indexed to extract the great cricle distance in degrees
-                        st_2[0].stats.sac.dist = list(d.values())[2]/1000 # Distnace in kilometers
+                        st_2[0].stats.sac.gcarc = d['distance'] # d.values returns the values from dictionary d produced by distaz. list converts this to a list attribute which can then be indexed to extract the great cricle distance in degrees
+                        st_2[0].stats.sac.dist = d['distancemeters']/1000 # Distnace in kilometers
+                        st_2[0].stats.sac.baz = d['backazimuth'] # Backzimuth (Reciever - SOurce)
+                        st_2[0].stats.sac.az = d['azimuth'] # Azimuth (Source - Receiver)
                         ## File Type
                         #sacd.iftype = 1
                         #print(st_2[0].stats)
