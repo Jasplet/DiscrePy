@@ -148,60 +148,61 @@ output_file.write('ID STAT YEAR MON DAY HOUR MIN SEC FAST DFAST TLAG DTLAG WBEG 
 st_id = []
 with open('NEW_read_stream.txt','r') as reader:
     for line in reader.readlines():
-        if line[0:-7] == st_id: #If the sac file exists (and hasnt already been read)
-            st_id = line[0:-7]
-            st = read_sac(st_id+'*')
-            if st != False: #i.e. if the stream is sufficiently populated and has been read.
-                SKS_UTC, t0 = model_SKS(st[0])
-                yr = str(t0.year)
-                mon = str(t0.month).zfill(2)
-                day = str(t0.day).zfill(2)
-                hr = str(t0.hour).zfill(2)
-                mnt = str(t0.minute).zfill(2)
-                s = str(t0.second).zfill(2)
+        line.strip('\n')
+        st_id = line[0:-7]
+        st = read_sac(st_id+'*')
         # Intialise some global variables which I need to pass things between fucntions (this is probably not be best way to do things but it works!)
-                global pair_glob
-                global quality
+        global pair_glob
+        global quality
+        if st != False: #i.e. if the stream is sufficiently populated and has been read.
+            SKS_UTC, t0 = model_SKS(st[0])
+            yr = str(t0.year)
+            mon = str(t0.month).zfill(2)
+            day = str(t0.day).zfill(2)
+            hr = str(t0.hour).zfill(2)
+            mnt = str(t0.minute).zfill(2)
+            s = str(t0.second).zfill(2)
+            quality = []
+            pair = st_prep(st = st,trim = 100, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
+            pair_glob = pair
+            split, wbeg, wend = measure(pair)
+            ## Callback key entries for estimated quality of splitting measurements
+            if quality is not ('x'): #If the quality attribute is not bad (indicated by x)
+                filename = './Splitting/NEW_'+yr+'_'+mon+'_'+day+'_'+hr+'_'+mnt+'_'+s+'.eigm'
+                attributes = ['stla','stlo','evla','evlo','evdp','gcarc','baz']
+                split.stla = st[0].stats.sac[attrib[0]]
+                split.stlo = st[0].stats.sac[attrib[1]]
+                split.evla = st[0].stats.sac[attrib[2]]
+                split.evlo = st[0].stats.sac[attrib[3]]
+                split.evdp = st[0].stats.sac[attrib[4]]
+                split.gcarc = st[0].stats.sac[attrib[5]]
+                split.baz = st[0].stats.sac[attrib[6]]
+                split.save(filename) # Saves splitting measurements
 
-                quality = []
-                pair = st_prep(st = st,trim = 100, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
-                pair_glob = pair
-                split, wbeg, wend = measure(pair)
 
-
-                ## Callback key entries for estimated quality of splitting measurements
-                if quality is not ('x'):
-                    filename = './Splitting/NEW_'+yr+'_'+mon+'_'+day+'_'+hr+'_'+mnt+'_'+s+'.eigm'
-                    attributes = ['stla','stlo','evla','evlo','evdp','gcarc','baz']
-                    split.stla = st[0].stats.sac[attrib[0]]
-                    split.stlo = st[0].stats.sac[attrib[1]]
-                    split.evla = st[0].stats.sac[attrib[2]]
-                    split.evlo = st[0].stats.sac[attrib[3]]
-                    split.evdp = st[0].stats.sac[attrib[4]]
-                    split.gcarc = st[0].stats.sac[attrib[5]]
-                    split.baz = st[0].stats.sac[attrib[6]]
-                    split.save(filename) # Saves splitting measurements
-
-
-                    meas = [split.i for i in ['fast','dfast','lag','dlag','wbeg','wend']]
-                    stats = [st[0].stats.sac[i] for i in attributes]
-                    org = [str(t0.i).zfill(2) for i in ['NEW','year','month','day','hour','minute','second']]
-                    row = org + stats + meas + [quality] #Row of data to be written to output textfile
-                    output_file.write('{} {:04d} {:02d} {:02d} {:02d} {:02d} {:02d} {:06.2f} {:06.2f} {:06.2f} {:06.2f} {:06.3f} {:06.2f} {:06.2f} {:4.1f} {:4.1f} {:4.2f} {:4.2f} {} {} {}'.format(row))
-                else:
-                    meas = ['N/A','N/A','N/A','N/A','N/A','N/A']
-                    stats = ['N/A','N/A','N/A','N/A','N/A','N/A','N/A']
-                    org = [str(t0.i).zfill(2) for i in ['NEW','year','month','day','hour','minute','second']]
-                    row = org + stats + meas + [quality]
-                    output_file.write('{} {:04d} {:02d} {:02d} {:02d} {:02d} {:02d} {} {} {} {} {} {} {} {} {} {} {} {} {} {} \n'.format(row))
+                meas = [split.i for i in ['fast','dfast','lag','dlag','wbeg','wend']]
+                stats = [st[0].stats.sac[i] for i in attributes]
+                org = [str(t0.i).zfill(2) for i in ['NEW','year','month','day','hour','minute','second']]
+                row = org + stats + meas + [quality] #Row of data to be written to output textfile
+                output_file.write('{} {:04d} {:02d} {:02d} {:02d} {:02d} {:02d} {:06.2f} {:06.2f} {:06.2f} {:06.2f} {:06.3f} {:06.2f} {:06.2f} {:4.1f} {:4.1f} {:4.2f} {:4.2f} {} {} {}'.format(row))
             else:
                 meas = ['N/A','N/A','N/A','N/A','N/A','N/A']
                 stats = ['N/A','N/A','N/A','N/A','N/A','N/A','N/A']
-                org = ['NEW','N/A','N/A','N/A','N/A','N/A','N/A']
-                row = org + stats + meas + ['NoStream']
-                print('No stream for event',i)
+                org = [str(t0.i).zfill(2) for i in ['NEW','year','month','day','hour','minute','second']]
+                row = org + stats + meas + [quality]
+                out = tuple(row)
+                print(out)
+                output_file.write('{} {:04d} {:02d} {:02d} {:02d} {:02d} {:02d} {} {} {} {} {} {} {} {} {} {} {} {} {} {} \n'.format(out))
+        else:
+            meas = ['N/A','N/A','N/A','N/A','N/A','N/A']
+            stats = ['N/A','N/A','N/A','N/A','N/A','N/A','N/A']
+            org = ['NEW','N/A','N/A','N/A','N/A','N/A','N/A']
+            row = org + stats + meas + ['NoStream']
+            print('No stream for event',line[0:-7])
+            out = tuple(row)
+            print(out)
+            output_file.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}'.format(out))
 
-            output_file.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}'.format(row))
 
 output_file.close()
 
