@@ -36,6 +36,21 @@ def read_sac(st_id):
             return False
     except Exception:
         return False
+def save_sac(st,filename,wbeg,wend,qual):
+    """
+    Function to trim sac traces once they have been windowed and save these windowed traces for re-use. This is to add easy repeatability
+    Arguements:
+    st - the stream to process and save
+    file - the filename of the stream
+    wbeg - start of the window
+    wend - end of the window
+    qual - quaulitativr estimate of seismogram quilty (how clear the SKS arrival is)
+    """
+    for tr in st:
+        ch = tr.stats.channel
+        t0 = tr.stats.starttime
+        tr2 = tr.trim(t0 + wbeg, t0 + wend
+        tr2.write('{}/{}_{}_{}.sac'.format('/Users/ja17375/Scripts/Python/Splitting_Codes/SKS_Splitting/Data/Proccessed_Streams',filename,ch,qual), format='SAC')
 
 def model_SKS(tr):
     """
@@ -210,14 +225,14 @@ with open('NEW_read_stream.txt','r') as reader: # NEW_read_stream.txt is a textf
             pair = st_prep(st = st,trim = 100, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
             pair_glob = pair
             split, wbeg, wend = measure(pair)
-            print(wbeg,wend)
+            print('SAC Filename is {}.\n Window Starts at {}, window ends at {}. Predicted SKS arrival is at {} \n'.format(line,wbeg,wend,SKS_UTC))
 #           --------------
 #           Now lets find what splitting Jack Walpole measured for this event
 #           --------------
-            wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend = split_match(date,"NEW")
+            (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,"NEW")
 
             # if quality is not ('x'): #If the quality attribute is not bad (indicated by x)
-            filename = '{}_{:04d}_{:02d}_{:02d}_{:02d}_{:02d}_{:02d}.eigm'.format('./Eigm_Files/NEW',t0.year,t0.month,t0.day,t0.hour,t0.minute,t0.second)
+            filename = '{}_{:07d}_{:06d}.eigm'.format('./Eigm_Files/NEW',date,time)
             attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
             split.save(filename) # Saves splitting measurements
             meas = [wbeg, wend, split.fast, split.dfast, split.lag, split.dlag,wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend ]
@@ -225,6 +240,7 @@ with open('NEW_read_stream.txt','r') as reader: # NEW_read_stream.txt is a textf
             org = ['NEW',date,time]
 
             output_file.write('{} {:07d} {:06d} {:06.2f} {:06.2f} {:06.2f} {:06.2f} {:06.3f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {}\n'.format(*org,*stats,*meas,quality[0]))
+            save_sac(st,st_id[6:],wbeg,wend,quality[0])
             # else:
             #     meas = ['NaN','NaN','NaN','NaN','NaN','NaN']
             #     stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
