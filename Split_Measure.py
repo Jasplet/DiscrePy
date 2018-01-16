@@ -154,15 +154,46 @@ def interact(event):
     elif event.key == 'r':
         plt.close()
         measure(pair_glob)
-    else
+    else:
         print('Invalid key_press_event, please press a,b,c,n,r or x')
 
+def split_match(date,station):
+    """
+    Function to find and extract the measuremnt from Jack Walpoles splititng data for the same event.
+    This matching is done by finding an entry with the same date stamp. Inital testing has shown this to be a unique identifier.
+    station MUST be a string of a station code
+    date MUST be a int/float of with the format yyyyjjj where j is julian day
+    """
+#   -------
+#   First we need to read in the splitting observations made by Jack Walpole.
+#   We also slice out splitting observations just from the station of interest and then reset the indexing so WL_split's indicies start from [0]
+#   -------
+    raw = pd.read_csv("./Data/Jacks_SKS_RAW.txt",delim_whitespace=True)
+    WL_split = raw[(raw['STAT'] == station) & (raw['AUTOQC'] =="split") ]
+    WL_split = WL_split.reset_index()
+    del WL_split['index']
+#   -------
+#   Using a Pandas DataFrame we can slice out any rows that match out dare stamp
+#   The the iloc function is used to extract the requisite values (Here this is trivial as match should be a single row dataframe, but the values still need to be extracted this way)
+#
+    match = WL_split[(WL_split['DATE'] == date)] # slicies rows in WL_split that have the same datestamp as date. In theory this should return a single row DataFrame
+    if len(match) == 1:
+        (fast,dfast,tlag,dtlag,wbeg,wend) = (WL_split.iloc[0]['FAST'],WL_split.iloc[0]['DFAST'],WL_split.iloc[0]['TLAG'],WL_split.iloc[0]['DTLAG'],WL_split.iloc[0]['WBEG'],WL_split.iloc[0]['WEND'])
+
+    elif len(match) == 0:
+        Warning("The provided datestamp does not match any obervations made by JW")
+        (fast,dfast,tlag,dtlag,wbeg,wend) = ('NaN','NaN','NaN','NaN','NaN','NaN')
+    else:
+        Warning("There has been more than one match, this behaviour is not expected and needs to be reviewed")
+        (fast,dfast,tlag,dtlag,wbeg,wend) = ('NaN','NaN','NaN','NaN','NaN','NaN')
+
+    return fast,dfast,tlag,dtlag,wbeg,wend
 
 ###################################################
 
 
 output_file = open('NEW_Splitting.txt','w')
-output_file.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ FAST DFAST TLAG DTLAG WBEG WEND QUAL\n')
+output_file.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ WBEG WEND FAST DFAST TLAG DTLAG WL_FAST WL_DFAST WL_TLAG WL_DTLAG WL_WBEG WL_WEND QUAL\n')
 st_id = []
 with open('NEW_read_stream.txt','r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
     for line in reader.readlines():
@@ -174,44 +205,39 @@ with open('NEW_read_stream.txt','r') as reader: # NEW_read_stream.txt is a textf
         global quality
         if st != False: #i.e. if the stream is sufficiently populated and has been read.
             SKS_UTC, t0 = model_SKS(st[0])
-            quality = []
+            quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
+            date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
             pair = st_prep(st = st,trim = 100, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
             pair_glob = pair
             split, wbeg, wend = measure(pair)
             print(wbeg,wend)
-            ## Callback key entries for estimated quality of splitting measurements
-            if quality is not ('x'): #If the quality attribute is not bad (indicated by x)
-                filename = '{}_{:04d}_{:02d}_{:02d}_{:02d}_{:02d}_{:02d}.eigm'.format('./Splitting/NEW',t0.year,t0.month,t0.day,t0.hour,t0.minute,t0.second)
-                attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz']
-                split.stla = st[0].stats.sac[attrib[0]]
-                split.stlo = st[0].stats.sac[attrib[1]]
-                split.evla = st[0].stats.sac[attrib[2]]
-                split.evlo = st[0].stats.sac[attrib[3]]
-                split.evdp = st[0].stats.sac[attrib[4]]
-                split.gcarc = st[0].stats.sac[attrib[5]]
-                split.baz = st[0].stats.sac[attrib[6]]
-                split.save(filename) # Saves splitting measurements
-                meas = [split.fast, split.dfast, split.lag, split.dlag, wbeg, wend]
-                stats = [st[0].stats.sac[i] for i in attrib]
-                org = ['NEW',int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2))]
-                row = tuple(org + stats + meas) #Row of data to be written to output textfile
-                row = row + (quality,)
-                print(row)
-                output_file.write('{} {:07.0d} {:06.0d} {:06.2f} {:06.2f} {:06.2f} {:06.2f} {:06.3f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {:4.2f} {:4.2f} {}\n'.format(*org,*stats,*meas,quality[0]))
-            else:
-                meas = ['N/A','N/A','N/A','N/A','N/A','N/A']
-                stats = ['N/A','N/A','N/A','N/A','N/A','N/A','N/A']
-                org = ['NEW',int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2))]
-                row = tuple(org + stats + meas)
+#           --------------
+#           Now lets find what splitting Jack Walpole measured for this event
+#           --------------
+            wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend = split_match(date,"NEW")
 
-                output_file.write('{} {:07.0d} {:06.0d} {} {} {} {} {} {} {} {} {} {} {} {} {} {} \n'.format(*out))
+            # if quality is not ('x'): #If the quality attribute is not bad (indicated by x)
+            filename = '{}_{:04d}_{:02d}_{:02d}_{:02d}_{:02d}_{:02d}.eigm'.format('./Eigm_Files/NEW',t0.year,t0.month,t0.day,t0.hour,t0.minute,t0.second)
+            attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
+            split.save(filename) # Saves splitting measurements
+            meas = [wbeg, wend, split.fast, split.dfast, split.lag, split.dlag,wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend ]
+            stats = [st[0].stats.sac[i] for i in attrib]
+            org = ['NEW',date,time]
+
+            output_file.write('{} {:07d} {:06d} {:06.2f} {:06.2f} {:06.2f} {:06.2f} {:06.3f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {}\n'.format(*org,*stats,*meas,quality[0]))
+            # else:
+            #     meas = ['NaN','NaN','NaN','NaN','NaN','NaN']
+            #     stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
+            #     org = ['NEW',date, time]
+
+                # output_file.write('{} {:07.0d} {:06.0d} {} {} {} {} {} {} {} {} {} {} {} {} {} {} \n'.format(*org,*stats,*meas,quality[0])
         else:
-            meas = ['N/A','N/A','N/A','N/A','N/A','N/A']
-            stats = ['N/A','N/A','N/A','N/A','N/A','N/A','N/A']
-            org = ['NEW','N/A','N/A','N/A','N/A','N/A','N/A']
-            row = tuple(org + stats + meas + ['NoStream'])
+            meas = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN']
+            stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
+            org = ['NEW','NaN','NaN','NaN','NaN','NaN','NaN']
+            quality = ['NaN']
             print('No stream for event',line[0:-7])
-            output_file.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20}\n'.format(*row))
+            output_file.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22} {23} {24} {25} {26}\n'.format(*org,*stats,*meas,quality[0]))
 
 
 output_file.close()
