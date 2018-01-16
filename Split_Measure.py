@@ -23,6 +23,11 @@ import matplotlib.gridspec as gridspec
 # num_s = max(no_N,no_E) # Find which channel has the max number of traces downloaded (i.e what is the maximum number of events we can measure splitting for)
 
 def read_sac(st_id):
+    """
+    Function to read sac files based on an input of expected file names (minus the compentend extension).
+    It is expected that events will have a North, East and Vertical (BHN,BHE,BHZ) component. If there are not 3 files present then the event is treated as not being read properly.
+    Events that are not read properly or that return an exception return a value of False to indicate that there is not sufficient data.
+    """
     try:
         st = obspy.core.stream.read(st_id) # Reads all traces that match st_id
         if len(st) == 3: #Check is there are 3 traces in the stream (East,North and Vertical)
@@ -53,7 +58,10 @@ def st_prep(st,trim,f_min,f_max,SKS):
     return sw.Pair(st[0].data,st[1].data,delta = st[0].stats.delta)
 
 def eigen_plot(eign,fig,**kwargs):
-
+    """
+    Function broadly copied from SplitwavePy for plotting splitting measurements from an eigm file.
+    The difference being that this verison also returns the figure handle so the figure can be manipulated to add an interactive quality/re-do picker
+    """
     # setup figure and subplots
     #fig = plt.figure(figsize=(12,6))
     gs = gridspec.GridSpec(2, 3,width_ratios=[1,1,2])
@@ -106,7 +114,7 @@ def measure(pair):
     split = sw.EigenM(pair,lags=(4,) )
 
     fig = plt.figure(figsize=(12,6))
-    eigen_plot(split,fig)
+    eigen_plot(split,fig) #Call function eigen_plot to plot splititng messuremnt
 
     cid = fig.canvas.mpl_connect('key_press_event',interact)
     plt.show(fig)
@@ -114,6 +122,9 @@ def measure(pair):
     return split, pair.wbeg(), pair.wend()
 
 def null():
+    """
+    Functon to confirm the observation of a null event.
+    """
     var = input("Null Measurement (y/n)")
     if var is 'y':
         quality.append('null')
@@ -127,6 +138,11 @@ def null():
         null()
 
 def interact(event):
+    """
+    Function for quality assignment.
+    Responses differe depending on kep press
+
+    """
     if event.key in ['a','b','c']:
         quality.append(event.key)
         plt.close()
@@ -138,6 +154,8 @@ def interact(event):
     elif event.key == 'r':
         plt.close()
         measure(pair_glob)
+    else
+        print('Invalid key_press_event, please press a,b,c,n,r or x')
 
 
 ###################################################
@@ -146,7 +164,7 @@ def interact(event):
 output_file = open('NEW_Splitting.txt','w')
 output_file.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ FAST DFAST TLAG DTLAG WBEG WEND QUAL\n')
 st_id = []
-with open('NEW_read_stream.txt','r') as reader:
+with open('NEW_read_stream.txt','r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
     for line in reader.readlines():
         line.strip('\n')
         st_id = line[0:-7]
