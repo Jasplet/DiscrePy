@@ -36,21 +36,24 @@ def read_sac(st_id):
             return False
     except Exception:
         return False
-def save_sac(st,filename,wbeg,wend,qual):
+def save_sac(st,qual,date,time,wbeg,wend):
     """
     Function to trim sac traces once they have been windowed and save these windowed traces for re-use. This is to add easy repeatability
     Arguements:
     st - the stream to process and save
-    file - the filename of the stream
+    date - datestamp in the format yyyjjj (julian day)
+    time - timestamp in format hhmmss
     wbeg - start of the window
     wend - end of the window
     qual - quaulitativr estimate of seismogram quilty (how clear the SKS arrival is)
     """
     for tr in st:
         ch = tr.stats.channel
+        stat = tr.stats.station
         t0 = tr.stats.starttime
-        tr2 = tr.trim(t0 + wbeg, t0 + wend
-        tr2.write('{}/{}_{}_{}.sac'.format('/Users/ja17375/Scripts/Python/Splitting_Codes/SKS_Splitting/Data/Proccessed_Streams',filename,ch,qual), format='SAC')
+        path = '/Users/ja17375/Scripts/Python/Splitting_Codes/SKS_Splitting/Data/Proccessed_Streams'
+        tr2 = tr.trim(t0 + wbeg, t0 + wend)
+        tr2.write('{}/{}_{}_{:07d}_{:06d}_{}.sac'.format(path,stat,qual,date,time,ch), format='SAC')
 
 def model_SKS(tr):
     """
@@ -70,7 +73,8 @@ def st_prep(st,trim,f_min,f_max,SKS):
     """
     st.filter("bandpass",freqmin= f_min, freqmax= f_max,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
     st.trim(starttime = SKS_UTC - trim, endtime = SKS_UTC + trim)
-    return sw.Pair(st[0].data,st[1].data,delta = st[0].stats.delta)
+    rel_SKS = SKS_UTC - st[0].stats.starttime
+    return sw.Pair(st[0].data,st[1].data,delta = st[0].stats.delta), rel_SKS
 
 def eigen_plot(eign,fig,**kwargs):
     """
@@ -172,7 +176,7 @@ def interact(event):
     else:
         print('Invalid key_press_event, please press a,b,c,n,r or x')
 
-def split_match(date,station):
+def split_match(date,time,station):
     """
     Function to find and extract the measuremnt from Jack Walpoles splititng data for the same event.
     This matching is done by finding an entry with the same date stamp. Inital testing has shown this to be a unique identifier.
@@ -193,21 +197,29 @@ def split_match(date,station):
 #
     match = WL_split[(WL_split['DATE'] == date)] # slicies rows in WL_split that have the same datestamp as date. In theory this should return a single row DataFrame
     if len(match) == 1:
-        (fast,dfast,tlag,dtlag,wbeg,wend) = (WL_split.iloc[0]['FAST'],WL_split.iloc[0]['DFAST'],WL_split.iloc[0]['TLAG'],WL_split.iloc[0]['DTLAG'],WL_split.iloc[0]['WBEG'],WL_split.iloc[0]['WEND'])
+        (fast,dfast,tlag,dtlag,wbeg,wend) = (match.iloc[0]['FAST'],match.iloc[0]['DFAST'],match.iloc[0]['TLAG'],match.iloc[0]['DTLAG'],match.iloc[0]['WBEG'],match.iloc[0]['WEND'])
 
     elif len(match) == 0:
-        Warning("The provided datestamp does not match any obervations made by JW")
+        print("The provided datestamp does not match any obervations made by JW")
         (fast,dfast,tlag,dtlag,wbeg,wend) = ('NaN','NaN','NaN','NaN','NaN','NaN')
     else:
-        Warning("There has been more than one match, this behaviour is not expected and needs to be reviewed")
-        (fast,dfast,tlag,dtlag,wbeg,wend) = ('NaN','NaN','NaN','NaN','NaN','NaN')
 
+        print("There has been more than one match, now testing by timestamp also!\n")
+        time_test = int(str(time).zfill(6)[0:4]) #Jacks timestamps are only hhmm so I need to strip off the seconds from my timestamps. WARNING it is possible my timestamps are different to Jacks!!
+        print('My timestamp {}, Jacks timestamp {}'.format(time_test,match.iloc[0]['TIME']))
+        match2 = WL_split[(WL_split['DATE'] == date) & (WL_split['TIME'] == time_test)]
+        # print(match2)
+        (fast,dfast,tlag,dtlag,wbeg,wend) = (match.iloc[0]['FAST'],match.iloc[0]['DFAST'],match.iloc[0]['TLAG'],match.iloc[0]['DTLAG'],match.iloc[0]['WBEG'],match.iloc[0]['WEND'])
+
+        if len(match2) == 0: #If there is still no match
+            (fast,dfast,tlag,dtlag,wbeg,wend) = ('NaN','NaN','NaN','NaN','NaN','NaN')
+            print("No match found")
     return fast,dfast,tlag,dtlag,wbeg,wend
 
 ###################################################
 
 
-output_file = open('NEW_Splitting.txt','w')
+output_file = open('NEW_Splitting.txt','w+')
 output_file.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ WBEG WEND FAST DFAST TLAG DTLAG WL_FAST WL_DFAST WL_TLAG WL_DTLAG WL_WBEG WL_WEND QUAL\n')
 st_id = []
 with open('NEW_read_stream.txt','r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
@@ -222,14 +234,15 @@ with open('NEW_read_stream.txt','r') as reader: # NEW_read_stream.txt is a textf
             SKS_UTC, t0 = model_SKS(st[0])
             quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
             date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
-            pair = st_prep(st = st,trim = 100, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
+            pair,rel_SKS = st_prep(st = st,trim = 100, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
             pair_glob = pair
+            # print(' Predicted SKS arrival is at {:5.3f}\n'.format(rel_SKS))
             split, wbeg, wend = measure(pair)
-            print('SAC Filename is {}.\n Window Starts at {}, window ends at {}. Predicted SKS arrival is at {} \n'.format(line,wbeg,wend,SKS_UTC))
+            print('SAC Filename is {}.Window Starts at {:5.2f} and ends at {:5.2f}.\n'.format(line,wbeg,wend,))
 #           --------------
 #           Now lets find what splitting Jack Walpole measured for this event
 #           --------------
-            (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,"NEW")
+            (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,time,"NEW")
 
             # if quality is not ('x'): #If the quality attribute is not bad (indicated by x)
             filename = '{}_{:07d}_{:06d}.eigm'.format('./Eigm_Files/NEW',date,time)
@@ -239,8 +252,8 @@ with open('NEW_read_stream.txt','r') as reader: # NEW_read_stream.txt is a textf
             stats = [st[0].stats.sac[i] for i in attrib]
             org = ['NEW',date,time]
 
-            output_file.write('{} {:07d} {:06d} {:06.2f} {:06.2f} {:06.2f} {:06.2f} {:06.3f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {}\n'.format(*org,*stats,*meas,quality[0]))
-            save_sac(st,st_id[6:],wbeg,wend,quality[0])
+            output_file.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {} {} {} {} {} {} {}\n'.format(*org,*stats,*meas,quality[0]))
+            save_sac(st,quality[0],date,time,wbeg,wend)
             # else:
             #     meas = ['NaN','NaN','NaN','NaN','NaN','NaN']
             #     stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
@@ -250,7 +263,7 @@ with open('NEW_read_stream.txt','r') as reader: # NEW_read_stream.txt is a textf
         else:
             meas = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN']
             stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
-            org = ['NEW','NaN','NaN','NaN','NaN','NaN','NaN']
+            org = ['NEW','NaN','NaN']
             quality = ['NaN']
             print('No stream for event',line[0:-7])
             output_file.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22} {23} {24} {25} {26}\n'.format(*org,*stats,*meas,quality[0]))
