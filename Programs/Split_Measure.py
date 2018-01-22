@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-## This is a script which takes downloaded traces and Calculates SKS splitting
+## This is a pseudo package (a bundle of functions). Eventually this should turn into something more structured (eventually) such as a class?
 import obspy
 import pandas as pd
 import numpy as np
@@ -12,15 +12,111 @@ import splitwavepy as sw
 from obspy.clients.fdsn import Client
 from obspy.taup import TauPyModel
 import matplotlib.gridspec as gridspec
-#### Reading downloaded traces and Windowing data
-# Generate Travel time model for SKS phase for all events prior to Windowing
+import os.path
+
+###################################################
+
+def splitting(station,man_window):
+    """
+    Measures SKS splitting for all streams listed in a ttext file at the provided path. These streams must be saved as SAC files.abs
+    This function is the primary part of this module/package/script/thing, all the pther functions support this one.
+
+    inpath - string contaiing the path of the textfile which contains the sac file to be read
+
+    man_window - optional kwarg to specify if you want to manually window the data or use a set of windows (Walpoles windows are availbale for use by default)
+    """
+    outfile = output_init(station)
+
+    with open('../NEW_downloaded_streams.txt','r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
+        for line in reader.readlines():
+            line.strip('\n')
+            st_id = line[0:-7]
+            st = read_sac(st_id+'*')
+            # Intialise some global variables which I need to pass things between fucntions (this is probably not be best way to do things but it works!)
+            global pair_glob
+            global quality
+            if st != False: # i.e. if the stream is sufficiently populated and has been read.
+#               if eigm != False (if there is already an eigm for this event)
+                #   a = input('There is already the measuremnt {} for this event, do you want to remseasure? (y/n)'.format(eigm))
+
+############### Measuring Start Here! #####################
+                SKS_UTC, t0 = model_SKS(st[0])
+                quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
+                date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
+                pair,rel_SKS = st_prep(st = st,trim = 100, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
+                pair_glob = pair
+                # print(' Predicted SKS arrival is at {:5.3f}\n'.format(rel_SKS))
+
+    #           --------------
+    #           Now lets find what splitting Jack Walpole measured for this event
+    #           --------------
+                (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,time,"NEW")
+
+                if man_window == 'on': # If manual windowing is on
+                    split, wbeg, wend = split_measure(pair)
+                elif man_window == 'off': #Manual windowing is off. For now this will just mean Jacks windows will be used. Eventually add automation or support for entering windows.
+                    pair.set_window(start=wl_wbeg,end=wl_wend)
+
+                print('Window Starts at {:5.2f} and ends at {:5.2f}.\n'.format(wbeg,wend))
+
+                # if quality is not ('x'): #If the quality attribute is not bad (indicated by x)
+                filename = '{}_{:07d}_{:06d}.eigm'.format('./Eigm_Files/NEW',date,time)
+                attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
+                split.save(filename) # Saves splitting measurements
+                meas = [wbeg, wend, split.fast, split.dfast, split.lag, split.dlag,wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend ]
+                stats = [st[0].stats.sac[i] for i in attrib]
+                org = ['NEW',date,time]
+
+                outfile.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {} {} {} {} {} {} {}\n'.format(*org,*stats,*meas,quality[0]))
+                save_sac(st,quality[0],date,time,wbeg,wend)
+                # else:
+                #     meas = ['NaN','NaN','NaN','NaN','NaN','NaN']
+                #     stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
+                #     org = ['NEW',date, time]
+
+                    # outfile.write('{} {:07.0d} {:06.0d} {} {} {} {} {} {} {} {} {} {} {} {} {} {} \n'.format(*org,*stats,*meas,quality[0])
+            else:
+                meas = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN']
+                stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
+                org = ['NEW','NaN','NaN']
+                quality = ['NaN']
+                print('No stream for event',line[0:-7])
+                outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22} {23} {24} {25} {26}\n'.format(*org,*stats,*meas,quality[0]))
 
 
-# arrival = model.get_travel_times(depth,dist,["SKS"])
-# no_N = int(os.popen("ls *BHN.sac | wc -l").read())
-# no_E = int(os.popen("ls *BHE.sac | wc -l").read())
-# no_Z = int(os.popen("ls *BHZ.sac | wc -l").read())
-# num_s = max(no_N,no_E) # Find which channel has the max number of traces downloaded (i.e what is the maximum number of events we can measure splitting for)
+    outfile.close()
+
+def output_init(station):
+    """
+    Initialises output variables and output textfile
+
+    station - string containing the station code
+    """
+    default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting.txt'.format(station) #Default output filename
+
+    if os.path.isfile(default_out):
+        #Default file exists! Request user permission to overwrite
+        ovr = user_in('c1',station)
+        if ovr == 'y':
+            oufile = open(default_out,'w+')
+
+        elif ovr == 'n':
+            new_out = user_in('c2',station)
+            outfile = open(new_out,'w+')
+
+    outfile.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ WBEG WEND FAST DFAST TLAG DTLAG WL_FAST WL_DFAST WL_TLAG WL_DTLAG WL_WBEG WL_WEND QUAL\n')
+    return outfile
+def user_in(case,station):
+    if case == 'c1':
+        a = input('The file {}_Splitting.txt already exists, would you like to overwrite? (y/n)\n'.format(station))
+        return a
+    elif case == 'c2':
+        b = input('Please input the desired file name (extension not required): \n')
+        c = input('The filename will be {}.txt then? (y/n)'.format(b))
+        if c == 'y':
+            return b
+        elif c == 'x':
+            user_in(c2,station)
 
 def read_sac(st_id):
     """
@@ -36,6 +132,8 @@ def read_sac(st_id):
             return False
     except Exception:
         return False
+
+
 def save_sac(st,qual,date,time,wbeg,wend):
     """
     Function to trim sac traces once they have been windowed and save these windowed traces for re-use. This is to add easy repeatability
@@ -125,7 +223,7 @@ def eigen_plot(eign,fig,**kwargs):
     # neaten
     plt.tight_layout()
 
-def measure(pair):
+def split_measure(pair):
     """
     Function for Picking the window for a provded pair object and then measure the splitting
     """
@@ -151,7 +249,7 @@ def null():
         plt.close()
     elif var is 'n':
         print("Ok, repeating measurement")
-        measure(pair_glob)
+        split_measure(pair_glob)
     else:
         print("Invalid response, try again")
         null()
@@ -176,6 +274,16 @@ def interact(event):
     else:
         print('Invalid key_press_event, please press a,b,c,n,r or x')
 
+def Jacks_SKS_RAW(station):
+    """
+    Function to read in Jack Walpoles Raw data for comparison for a given station
+    """
+    raw = pd.read_csv("./Data/Jacks_SKS_RAW.txt",delim_whitespace=True)
+    JACK = raw[(raw['STAT'] == station) & (raw['AUTOQC'] =="split") ]
+    JACK = JACK.reset_index()
+    del JACK['index']
+    return JACK
+
 def split_match(date,time,station):
     """
     Function to find and extract the measuremnt from Jack Walpoles splititng data for the same event.
@@ -187,10 +295,7 @@ def split_match(date,time,station):
 #   First we need to read in the splitting observations made by Jack Walpole.
 #   We also slice out splitting observations just from the station of interest and then reset the indexing so WL_split's indicies start from [0]
 #   -------
-    raw = pd.read_csv("./Data/Jacks_SKS_RAW.txt",delim_whitespace=True)
-    WL_split = raw[(raw['STAT'] == station) & (raw['AUTOQC'] =="split") ]
-    WL_split = WL_split.reset_index()
-    del WL_split['index']
+    WL_split = Jacks_SKS_RAW(station)
 #   -------
 #   Using a Pandas DataFrame we can slice out any rows that match out dare stamp
 #   The the iloc function is used to extract the requisite values (Here this is trivial as match should be a single row dataframe, but the values still need to be extracted this way)
@@ -215,72 +320,3 @@ def split_match(date,time,station):
             (fast,dfast,tlag,dtlag,wbeg,wend) = ('NaN','NaN','NaN','NaN','NaN','NaN')
             print("No match found")
     return fast,dfast,tlag,dtlag,wbeg,wend
-
-###################################################
-
-
-output_file = open('NEW_Splitting.txt','w+')
-output_file.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ WBEG WEND FAST DFAST TLAG DTLAG WL_FAST WL_DFAST WL_TLAG WL_DTLAG WL_WBEG WL_WEND QUAL\n')
-st_id = []
-with open('NEW_read_stream.txt','r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
-    for line in reader.readlines():
-        line.strip('\n')
-        st_id = line[0:-7]
-        st = read_sac(st_id+'*')
-        # Intialise some global variables which I need to pass things between fucntions (this is probably not be best way to do things but it works!)
-        global pair_glob
-        global quality
-        if st != False: #i.e. if the stream is sufficiently populated and has been read.
-            SKS_UTC, t0 = model_SKS(st[0])
-            quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
-            date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
-            pair,rel_SKS = st_prep(st = st,trim = 100, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
-            pair_glob = pair
-            # print(' Predicted SKS arrival is at {:5.3f}\n'.format(rel_SKS))
-            split, wbeg, wend = measure(pair)
-            print('SAC Filename is {}.Window Starts at {:5.2f} and ends at {:5.2f}.\n'.format(line,wbeg,wend,))
-#           --------------
-#           Now lets find what splitting Jack Walpole measured for this event
-#           --------------
-            (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,time,"NEW")
-
-            # if quality is not ('x'): #If the quality attribute is not bad (indicated by x)
-            filename = '{}_{:07d}_{:06d}.eigm'.format('./Eigm_Files/NEW',date,time)
-            attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
-            split.save(filename) # Saves splitting measurements
-            meas = [wbeg, wend, split.fast, split.dfast, split.lag, split.dlag,wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend ]
-            stats = [st[0].stats.sac[i] for i in attrib]
-            org = ['NEW',date,time]
-
-            output_file.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {} {} {} {} {} {} {}\n'.format(*org,*stats,*meas,quality[0]))
-            save_sac(st,quality[0],date,time,wbeg,wend)
-            # else:
-            #     meas = ['NaN','NaN','NaN','NaN','NaN','NaN']
-            #     stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
-            #     org = ['NEW',date, time]
-
-                # output_file.write('{} {:07.0d} {:06.0d} {} {} {} {} {} {} {} {} {} {} {} {} {} {} \n'.format(*org,*stats,*meas,quality[0])
-        else:
-            meas = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN']
-            stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
-            org = ['NEW','NaN','NaN']
-            quality = ['NaN']
-            print('No stream for event',line[0:-7])
-            output_file.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22} {23} {24} {25} {26}\n'.format(*org,*stats,*meas,quality[0]))
-
-
-output_file.close()
-
-#data = [split1.FAST.data,split1.TLAG.data,fast.data,tlag.data]
-#print(data)
-# index = range(0,len(split1.FAST))
-# columns = ["Jacks_Fast","Jacks_Lag","My_Fast","My_Lag"]
-# df = pd.DataFrame(index=index,columns=columns)
-# df = df.fillna(0)
-# df.Jacks_Fast = data[0]
-# df.Jacks_Lag = data[1]
-# df.My_Fast = data[2]
-# df.My_Lag = data[3]
-# print(df)
-# fast_lag = df[(df['My_Fast'] != 0) & (df['My_Lag'] != 0)]
-# print(fast_lag)
