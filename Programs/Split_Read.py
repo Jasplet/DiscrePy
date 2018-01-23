@@ -51,7 +51,7 @@ def trace_download(dates,times,evla,evlo,stla,stlo,station, n_events):
             print("FDSNException for get_events")
         channel = ["BHN","BHZ","BHE"]
         for ch in channel:
-            
+
             id_tst = "./Data/" + stat + "_" + yr + "_" + mon + "_" + day+"_" + hr + "_" + minu + "_" + sec + "_" + ch + ".sac"
             print("Looking for :", id_tst)
             if os.path.isfile(id_tst) == True:
