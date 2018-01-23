@@ -26,8 +26,13 @@ def splitting(station,switch):
     switch - optional kwarg to specify if you want to manually window the data or use a set of windows (Walpoles windows are availbale for use by default)
     """
     outfile = output_init(station)
-
-    with open('../NEW_downloaded_streams.txt','r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
+    if switch == 'off':
+        ui = input('Please enter file name (minus extension) for the eigm files: \n')
+        filename = '/Users/ja17375/Python/SKS_Splitting/Eigm_Files/{}'.format(ui)
+        # plot_on = input('Do you want to plot the eigm surfaces? (y/n) \n')
+    else:
+        pass
+    with open('../{}_downloaded_streams.txt'.format(station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
         for line in reader.readlines():
             line.strip('\n')
             st_id = line[0:-7]
@@ -54,21 +59,25 @@ def splitting(station,switch):
                 (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,time,"NEW")
 
                 if switch == 'on': # If manual windowing is on
-                    split, wbeg, wend = split_measure(pair)
-                    filename = '{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/SKS_Splitting/Eigm_Files/NEW',date,time)
-                    split.save(filename) # Saves splitting measurements
+                    split, wbeg, wend,fig = split_measure(pair)
+                    eig_file = '{}{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/SKS_Splitting/Eigm_Files/',station,date,time)
+                    plt.savefig('{}{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/SKS_Splitting/Figures/Eigm_Surface/',station,date,time))
+                    plt.close()
 
                 elif switch == 'off': #Manual windowing is off. For now this will just mean Jacks windows will be used. Eventually add automation or support for entering windows.
                     wbeg,wend = wl_wbeg,wl_wend
                     pair.set_window(start=wl_wbeg,end=wl_wend) # Sets window to that of Jacks
                     split = sw.EigenM(pair,lags=(4,) ) # Measures splitting
+
                     fig = plt.figure(figsize=(12,6))
                     eigen_plot(split,fig)
+                    plt.savefig('{}/{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/SKS_Splitting/Figures/Eigm_Surface',ui,date,time))
+                    plt.close()
                     quality = 'n/a'
-                    
+                    eig_file = '{}_{:07d}_{:06d}.eigm'.format(filename,date,time)
 
                 print('My window starts at {:5.2f} and ends at {:5.2f}.\n'.format(wbeg,wend))
-
+                split.save(eig_file) # Saves splitting measurements
                 # if quality is not ('x'): #If the quality attribute is not bad (indicated by x)
 
 
@@ -103,7 +112,7 @@ def output_init(station):
     station - string containing the station code
     """
     # default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting.txt'.format(station) #Default output filename
-    default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/NEW_Splitting_JW_Windows.txt'
+    default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting_JW_Windows.txt'.format(station)
     if os.path.isfile(default_out):
         #Default file exists! Request user permission to overwrite
         ovr = user_in('c1',station)
@@ -164,7 +173,7 @@ def save_sac(st,qual,date,time,wbeg,wend,switch):
             ch = tr.stats.channel
             stat = tr.stats.station
             t0 = tr.stats.starttime
-            path = '/Users/ja17375/Scripts/Python/Splitting_Codes/SKS_Splitting/Data/Proccessed_Streams'
+            path = '/Users/ja17375/Scripts/Python/SKS_Splitting/Data/Proccessed_Streams'
             tr2 = tr.trim(t0 + wbeg, t0 + wend)
             tr2.write('{}/{}_{}_{:07d}_{:06d}_{}.sac'.format(path,stat,qual,date,time,ch), format='SAC')
     elif switch == 'off':
@@ -192,7 +201,7 @@ def st_prep(st,trim,f_min,f_max,SKS):
     st.filter("bandpass",freqmin= f_min, freqmax= f_max,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
     st.trim(starttime = SKS - trim, endtime = SKS + trim)
     rel_SKS = SKS - st[0].stats.starttime
-    return sw.Pair(st[0].data,st[1].data,delta = st[0].stats.delta), rel_SKS
+    return sw.Pair(st[1].data,st[0].data,delta = st[0].stats.delta), rel_SKS
 
 def eigen_plot(eign,fig,**kwargs):
     """
@@ -256,7 +265,7 @@ def split_measure(pair):
     cid = fig.canvas.mpl_connect('key_press_event',interact)
     plt.show(fig)
     fig.canvas.mpl_disconnect(cid)
-    return split, pair.wbeg(), pair.wend()
+    return split, pair.wbeg(), pair.wend(),fig
 
 def null():
     """
@@ -356,13 +365,13 @@ def diag_plot(file,title1):
     plt.ylabel('Fast Direction (deg)')
     plt.ylim([-90,90])
     plt.yticks(np.arange(-90,91,30))
-    plt.title('{} - Fast Direction')
+    plt.title('{} - Fast Direction'.format(title1))
 
     plt.subplot(223)
     plt.errorbar(data['BAZ'],data['WL_FAST'],yerr=data['WL_DFAST'],fmt='ro',elinewidth=0.5)
     plt.ylim([-90,90])
     plt.yticks(np.arange(-90,91,30))
-    plt.title('Jacks(Sheba) Fast Direction Measurements')
+    plt.title('Jacks(Sheba) - Fast Direction')
     plt.xlabel('Back Azimuth')
     plt.ylabel('Fast Direction (deg)')
 
@@ -370,14 +379,14 @@ def diag_plot(file,title1):
     plt.errorbar(data['BAZ'],data['TLAG'],yerr=data['DTLAG'],fmt='o',elinewidth=0.5)
     plt.ylabel('Tlag (s)')
     plt.ylim([0,4])
-    plt.title('{} - Lag Time}')
+    plt.title('{} - Lag Time'.format(title1))
 
     plt.subplot(224)
     plt.errorbar(data['BAZ'],data['WL_TLAG'],yerr=data['WL_DTLAG'],fmt='ro',elinewidth=0.5)
     plt.ylim([0,4])
     plt.ylabel('Tlag (s)')
     plt.xlabel('Back Azimuth')
-    plt.title('Jacks(Sheba) Lag Time Measurements')
+    plt.title('Jacks(Sheba) - Lag Time')
 
     plt.tight_layout()
     plt.show()
