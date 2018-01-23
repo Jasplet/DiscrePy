@@ -16,14 +16,14 @@ import os.path
 
 ###################################################
 
-def splitting(station,man_window):
+def splitting(station,switch):
     """
     Measures SKS splitting for all streams listed in a ttext file at the provided path. These streams must be saved as SAC files.abs
     This function is the primary part of this module/package/script/thing, all the pther functions support this one.
 
     inpath - string contaiing the path of the textfile which contains the sac file to be read
 
-    man_window - optional kwarg to specify if you want to manually window the data or use a set of windows (Walpoles windows are availbale for use by default)
+    switch - optional kwarg to specify if you want to manually window the data or use a set of windows (Walpoles windows are availbale for use by default)
     """
     outfile = output_init(station)
 
@@ -41,6 +41,7 @@ def splitting(station,man_window):
 
 ############### Measuring Start Here! #####################
                 SKS_UTC, t0 = model_SKS(st[0])
+                print('SKS_UTC ={}'.format(SKS_UTC))
                 quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
                 date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
                 pair,rel_SKS = st_prep(st = st,trim = 100, f_min = 0.01,f_max = 0.5, SKS = SKS_UTC)
@@ -52,23 +53,32 @@ def splitting(station,man_window):
     #           --------------
                 (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,time,"NEW")
 
-                if man_window == 'on': # If manual windowing is on
+                if switch == 'on': # If manual windowing is on
                     split, wbeg, wend = split_measure(pair)
-                elif man_window == 'off': #Manual windowing is off. For now this will just mean Jacks windows will be used. Eventually add automation or support for entering windows.
-                    pair.set_window(start=wl_wbeg,end=wl_wend)
+                    filename = '{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/SKS_Splitting/Eigm_Files/NEW',date,time)
+                    split.save(filename) # Saves splitting measurements
 
-                print('Window Starts at {:5.2f} and ends at {:5.2f}.\n'.format(wbeg,wend))
+                elif switch == 'off': #Manual windowing is off. For now this will just mean Jacks windows will be used. Eventually add automation or support for entering windows.
+                    wbeg,wend = wl_wbeg,wl_wend
+                    pair.set_window(start=wl_wbeg,end=wl_wend) # Sets window to that of Jacks
+                    split = sw.EigenM(pair,lags=(4,) ) # Measures splitting
+                    fig = plt.figure(figsize=(12,6))
+                    eigen_plot(split,fig)
+                    quality = 'n/a'
+                    
+
+                print('My window starts at {:5.2f} and ends at {:5.2f}.\n'.format(wbeg,wend))
 
                 # if quality is not ('x'): #If the quality attribute is not bad (indicated by x)
-                filename = '{}_{:07d}_{:06d}.eigm'.format('./Eigm_Files/NEW',date,time)
+
+
                 attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
-                split.save(filename) # Saves splitting measurements
                 meas = [wbeg, wend, split.fast, split.dfast, split.lag, split.dlag,wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend ]
                 stats = [st[0].stats.sac[i] for i in attrib]
                 org = ['NEW',date,time]
 
                 outfile.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {} {} {} {} {} {} {}\n'.format(*org,*stats,*meas,quality[0]))
-                save_sac(st,quality[0],date,time,wbeg,wend)
+                save_sac(st,quality[0],date,time,wbeg,wend,switch)
                 # else:
                 #     meas = ['NaN','NaN','NaN','NaN','NaN','NaN']
                 #     stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
@@ -81,7 +91,7 @@ def splitting(station,man_window):
                 org = ['NEW','NaN','NaN']
                 quality = ['NaN']
                 print('No stream for event',line[0:-7])
-                outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22} {23} {24} {25} {26}\n'.format(*org,*stats,*meas,quality[0]))
+                outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22}\n'.format(*org,*stats,*meas,quality[0]))
 
 
     outfile.close()
@@ -92,20 +102,24 @@ def output_init(station):
 
     station - string containing the station code
     """
-    default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting.txt'.format(station) #Default output filename
-
+    # default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting.txt'.format(station) #Default output filename
+    default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/NEW_Splitting_JW_Windows.txt'
     if os.path.isfile(default_out):
         #Default file exists! Request user permission to overwrite
         ovr = user_in('c1',station)
         if ovr == 'y':
-            oufile = open(default_out,'w+')
+            outfile = open(default_out,'w+')
 
         elif ovr == 'n':
             new_out = user_in('c2',station)
             outfile = open(new_out,'w+')
+    elif os.path.isfile(default_out) == False:
+        print('{} does not exist and will be created'.format(default_out))
+        outfile = open(default_out,'w+')
 
     outfile.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ WBEG WEND FAST DFAST TLAG DTLAG WL_FAST WL_DFAST WL_TLAG WL_DTLAG WL_WBEG WL_WEND QUAL\n')
     return outfile
+
 def user_in(case,station):
     if case == 'c1':
         a = input('The file {}_Splitting.txt already exists, would you like to overwrite? (y/n)\n'.format(station))
@@ -134,7 +148,7 @@ def read_sac(st_id):
         return False
 
 
-def save_sac(st,qual,date,time,wbeg,wend):
+def save_sac(st,qual,date,time,wbeg,wend,switch):
     """
     Function to trim sac traces once they have been windowed and save these windowed traces for re-use. This is to add easy repeatability
     Arguements:
@@ -145,24 +159,30 @@ def save_sac(st,qual,date,time,wbeg,wend):
     wend - end of the window
     qual - quaulitativr estimate of seismogram quilty (how clear the SKS arrival is)
     """
-    for tr in st:
-        ch = tr.stats.channel
-        stat = tr.stats.station
-        t0 = tr.stats.starttime
-        path = '/Users/ja17375/Scripts/Python/Splitting_Codes/SKS_Splitting/Data/Proccessed_Streams'
-        tr2 = tr.trim(t0 + wbeg, t0 + wend)
-        tr2.write('{}/{}_{}_{:07d}_{:06d}_{}.sac'.format(path,stat,qual,date,time,ch), format='SAC')
+    if switch == 'on':
+        for tr in st:
+            ch = tr.stats.channel
+            stat = tr.stats.station
+            t0 = tr.stats.starttime
+            path = '/Users/ja17375/Scripts/Python/Splitting_Codes/SKS_Splitting/Data/Proccessed_Streams'
+            tr2 = tr.trim(t0 + wbeg, t0 + wend)
+            tr2.write('{}/{}_{}_{:07d}_{:06d}_{}.sac'.format(path,stat,qual,date,time,ch), format='SAC')
+    elif switch == 'off':
+        pass
 
 def model_SKS(tr):
     """
     Function to run TauP traveltime models for the SKS phase.
     Returns SKS predictided arrivals (seconds), origin time of the event (t0) as a UTCDateTime obejct and the SKS arrival as a UTCDateTime object
+
+    tr - trace object for which SKS arrival time will be predicted
     """
     model = obspy.taup.tau.TauPyModel(model="iasp91")
     SKS = model.get_travel_times(tr.stats.sac.evdp,tr.stats.sac.gcarc,["SKS"])[0].time
-    t0 = st[0].stats.starttime # Start time of stream for event. This should be the event origin time.
-    UTC = obspy.core.utcdatetime.UTCDateTime(t0 + SKS)# SKS arrival time relative to trace start as a UTCDateTime object
-    return UTC, t0
+    t0 = tr.stats.starttime # Start time of stream for event. This should be the event origin time.
+    SKS_UTC = obspy.core.utcdatetime.UTCDateTime(t0 + SKS)# SKS arrival time relative to trace start as a UTCDateTime object
+
+    return SKS_UTC, t0
     #def Split_Measure(no_events):
 
 def st_prep(st,trim,f_min,f_max,SKS):
@@ -170,8 +190,8 @@ def st_prep(st,trim,f_min,f_max,SKS):
     Prepares Stream for spltting analysis (by bandpass filtering and trimming) and then creates the Pair object
     """
     st.filter("bandpass",freqmin= f_min, freqmax= f_max,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
-    st.trim(starttime = SKS_UTC - trim, endtime = SKS_UTC + trim)
-    rel_SKS = SKS_UTC - st[0].stats.starttime
+    st.trim(starttime = SKS - trim, endtime = SKS + trim)
+    rel_SKS = SKS - st[0].stats.starttime
     return sw.Pair(st[0].data,st[1].data,delta = st[0].stats.delta), rel_SKS
 
 def eigen_plot(eign,fig,**kwargs):
@@ -278,7 +298,7 @@ def Jacks_SKS_RAW(station):
     """
     Function to read in Jack Walpoles Raw data for comparison for a given station
     """
-    raw = pd.read_csv("./Data/Jacks_SKS_RAW.txt",delim_whitespace=True)
+    raw = pd.read_csv("../Data/Jacks_SKS_RAW.txt",delim_whitespace=True)
     JACK = raw[(raw['STAT'] == station) & (raw['AUTOQC'] =="split") ]
     JACK = JACK.reset_index()
     del JACK['index']
@@ -320,3 +340,44 @@ def split_match(date,time,station):
             (fast,dfast,tlag,dtlag,wbeg,wend) = ('NaN','NaN','NaN','NaN','NaN','NaN')
             print("No match found")
     return fast,dfast,tlag,dtlag,wbeg,wend
+
+def diag_plot(file,title1):
+    """
+    Function to make diagnostice plots for a given file of splitting measuremtns
+    """
+    data = pd.read_csv(file,delim_whitespace=True)
+    a = data['FAST']
+    d = data.index[np.isnan(data['FAST']) == True].tolist() # Find any rows which contain NaNs
+    data = data.drop(d)
+    fig,axs = plt.subplots(2, 2,sharex='col',figsize=(10,10))
+
+    plt.subplot(221)
+    plt.errorbar(data['BAZ'],data['FAST'],yerr=data['DFAST'],fmt='o',elinewidth=0.5)
+    plt.ylabel('Fast Direction (deg)')
+    plt.ylim([-90,90])
+    plt.yticks(np.arange(-90,91,30))
+    plt.title('{} - Fast Direction')
+
+    plt.subplot(223)
+    plt.errorbar(data['BAZ'],data['WL_FAST'],yerr=data['WL_DFAST'],fmt='ro',elinewidth=0.5)
+    plt.ylim([-90,90])
+    plt.yticks(np.arange(-90,91,30))
+    plt.title('Jacks(Sheba) Fast Direction Measurements')
+    plt.xlabel('Back Azimuth')
+    plt.ylabel('Fast Direction (deg)')
+
+    plt.subplot(222)
+    plt.errorbar(data['BAZ'],data['TLAG'],yerr=data['DTLAG'],fmt='o',elinewidth=0.5)
+    plt.ylabel('Tlag (s)')
+    plt.ylim([0,4])
+    plt.title('{} - Lag Time}')
+
+    plt.subplot(224)
+    plt.errorbar(data['BAZ'],data['WL_TLAG'],yerr=data['WL_DTLAG'],fmt='ro',elinewidth=0.5)
+    plt.ylim([0,4])
+    plt.ylabel('Tlag (s)')
+    plt.xlabel('Back Azimuth')
+    plt.title('Jacks(Sheba) Lag Time Measurements')
+
+    plt.tight_layout()
+    plt.show()
