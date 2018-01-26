@@ -17,7 +17,7 @@ import os.path
 
 ###################################################
 
-def splitting(station,switch):
+def splitting(station,switch,files):
     """
     Measures SKS splitting for all streams listed in a ttext file at the provided path. These streams must be saved as SAC files.abs
     This function is the primary part of this module/package/script/thing, all the pther functions support this one.
@@ -33,7 +33,7 @@ def splitting(station,switch):
         # plot_on = input('Do you want to plot the eigm surfaces? (y/n) \n')
     else:
         pass
-    with open('../{}_downloaded_streams.txt'.format(station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
+    with open(files,'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
         for line in reader.readlines():
             line.strip('\n')
             st_id = line[0:-7]
@@ -46,7 +46,7 @@ def splitting(station,switch):
                 #   a = input('There is already the measuremnt {} for this event, do you want to remseasure? (y/n)'.format(eigm))
 
 ############### Measuring Start Here! #####################
-                SKS_UTC, t0, SKS = model_SKS(st[0])
+                SKS_UTC, t0, SKS = model_SKS(st[0]) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
                 # print(t0)
                 # print('SKS_UTC ={}'.format(SKS_UTC))
                 quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
@@ -69,6 +69,7 @@ def splitting(station,switch):
 
                 elif switch == 'off': #Manual windowing is off. For now this will just mean Jacks windows will be used. Eventually add automation or support for entering windows.
                     wbeg,wend = wl_wbeg,wl_wend
+
                     pair.set_window(start=wl_wbeg,end=wl_wend) # Sets window to that of Jacks
                     split = sw.EigenM(pair,lags=(4,) ) # Measures splitting
 
@@ -82,7 +83,7 @@ def splitting(station,switch):
                 # print(t0+wbeg,t0+wend)
                 split.save(eig_file) # Saves splitting measurements
                 # if quality is not ('x'): #If the quality attribute is not bad (indicated by x)
-
+                print('WBEG: {}, WEND: {}'.format(wbeg,wend))
 
                 attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
                 meas = [wbeg, wend, split.fast, split.dfast, split.lag, split.dlag,wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend ]
@@ -315,7 +316,7 @@ def Jacks_SKS_RAW(station):
     Function to read in Jack Walpoles Raw data for comparison for a given station
     """
     raw = pd.read_csv("../Data/Jacks_SKS_RAW.txt",delim_whitespace=True)
-    JACK = raw[(raw['STAT'] == station) & (raw['AUTOQC'] =="split") ]
+    JACK = raw[(raw['STAT'] == station) ]
     JACK = JACK.reset_index()
     del JACK['index']
 
@@ -371,6 +372,7 @@ def diag_plot(file,title1):
 
     plt.subplot(221)
     plt.errorbar(data['BAZ'],data['FAST'],yerr=data['DFAST'],fmt='o',elinewidth=0.5)
+
     plt.ylabel('Fast Direction (deg)')
     plt.ylim([-90,90])
     plt.yticks(np.arange(-90,91,30))
