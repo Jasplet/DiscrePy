@@ -26,12 +26,7 @@ def splitting(station,switch,files):
 
     switch - optional kwarg to specify if you want to manually window the data or use a set of windows (Walpoles windows are availbale for use by default)
     """
-    outfile = output_init(station)
-
-    if switch == 'off':
-        ui = input('Please enter file name (minus extension) for the eigm files: \n')
-        filename = '/Users/ja17375/Python/SKS_Splitting/Eigm_Files/{}'.format(ui)
-        # plot_on = input('Do you want to plot the eigm surfaces? (y/n) \n')
+    outfile = output_init(station,switch)
 
 
     with open(files,'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
@@ -50,12 +45,16 @@ def splitting(station,switch,files):
                 # print('SKS_UTC ={}'.format(SKS_UTC))
                 quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
                 date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
-                eig_file ='{}{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/SKS_Splitting/Eigm_Files/',station,date,time)
+                if switch is 'on':
+                    eig_file ='{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/SKS_Splitting/Eigm_Files/',station/station,date,time)
+                elif switch is 'off':
+                    eig_file = '{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/SKS_Splitting/Eigm_Files/',station/station,'JW_Windows',date,time)
+
                 if os.path.isfile(eig_file):
                         print('Splitting already measured for this event, skipping')
                         split = sw.load(eig_file) #loads eigm file
                         # if split.quality == None:
-                        split.quality = 't'
+                        # split.quality = 't'
 
                         write_splitting(outfile,station,eigm=split,st=st,date=date,time=time)
 
@@ -79,13 +78,13 @@ def splitting(station,switch,files):
 
                         fig = plt.figure(figsize=(12,6))
                         eigen_plot(split,fig)
-                        plt.savefig('{}/{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/SKS_Splitting/Figures/Eigm_Surface',ui,date,time))
+                        plt.savefig('{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/SKS_Splitting/Figures/Eigm_Surface',station,'JW_Windows',date,time))
                         plt.close()
                         split.quality = 'w'
-                        eig_file = '{}_{:07d}_{:06d}.eigm'.format(filename,date,time)
+
 
                     write_splitting(outfile,station,eigm=split,st=st,date=date,time=time) #Call write_splitting where there are measuremtns to output
-                    save_sac(st,quality[0],date,time,wbeg,wend,switch)
+                    # save_sac(st,quality[0],date,time,wbeg,wend,switch)
                     split.save(eig_file) # Saves splitting measurements
             else:
                 write_splitting(outfile,station)
@@ -112,17 +111,20 @@ def write_splitting(outfile,station,eigm=None,st=None,date=None,time=None):
         print('No stream for event')
         outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22}\n'.format(*org,*stats,*meas,quality[0]))
 
-def output_init(station):
+def output_init(station,switch):
     """
     Initialises output variables and output textfile
 
     station - string containing the station code
     """
-    default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting.txt'.format(station) #Default output filename
-    #default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting_JW_Windows.txt'.format(station)
+    if switch is 'on':
+        default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting.txt'.format(station) #Default output filename
+    elif switch is 'off':
+        default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting_JW_Windows.txt'.format(station)
+
     if os.path.isfile(default_out):
         #Default file exists! Request user permission to overwrite
-        ovr = user_in('c1',station)
+        ovr = user_in('c1',default_out)
         if ovr == 'y':
             outfile = open(default_out,'w+')
 
@@ -136,9 +138,9 @@ def output_init(station):
     outfile.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ WBEG WEND FAST DFAST TLAG DTLAG WL_FAST WL_DFAST WL_TLAG WL_DTLAG WL_WBEG WL_WEND QUAL\n')
     return outfile
 
-def user_in(case,station):
+def user_in(case,file1,station=None):
     if case == 'c1':
-        a = input('The file {}_Splitting.txt already exists, do you want to overwrite? (y/n)\n'.format(station))
+        a = input('The file {} already exists, do you want to overwrite? (y/n)\n'.format(file1))
         return a
     elif case == 'c2':
         b = input('Please input the desired file name (extension not required): \n')
@@ -220,9 +222,9 @@ def st_prep(st,f_min,f_max):
     # print(st[0].data.size,st[1].data.size)
 
     if st[0].data.size %2 == 0 or st[1].data.size %2 == 0 : # tests to see if there is an even nukber of points
-        print("Even number of points, trimming by 3")
+        # print("Even number of points, trimming by 3")
         st = st.trim(0,st[0].stats.endtime - 3*(st[0].stats.delta))
-        print(st[0].data.size,st[1].data.size)
+        # print(st[0].data.size,st[1].data.size)
 
     st.filter("bandpass",freqmin= f_min, freqmax= f_max,corners=2,zerophase=True) # Zerophase bandpass filter of the streams
     pair = sw.Pair(st[1].data,st[0].data,delta = st[0].stats.delta)
