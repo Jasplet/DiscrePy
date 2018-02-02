@@ -46,9 +46,9 @@ def splitting(station,switch,files):
                 quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
                 date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
                 if switch is 'on':
-                    eig_file ='{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/SKS_Splitting/Eigm_Files/',station/station,date,time)
+                    eig_file ='{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',station/station,date,time)
                 elif switch is 'off':
-                    eig_file = '{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/SKS_Splitting/Eigm_Files/',station/station,'JW_Windows',date,time)
+                    eig_file = '{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',station/station,'JW_Windows',date,time)
 
                 if os.path.isfile(eig_file):
                         print('Splitting already measured for this event, skipping')
@@ -66,7 +66,7 @@ def splitting(station,switch,files):
                     if switch == 'on': # If manual windowing is on
                         split, wbeg, wend,fig = split_measure(pair,SKS)
                         split.quality = quality
-                        plt.savefig('{}{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/SKS_Splitting/Figures/Eigm_Surface/',station,date,time))
+                        plt.savefig('{}{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface/',station,date,time))
                         plt.close()
 
                     elif switch == 'off': #Manual windowing is off. For now this will just mean Jacks windows will be used. Eventually add automation or support for entering windows.
@@ -78,7 +78,7 @@ def splitting(station,switch,files):
 
                         fig = plt.figure(figsize=(12,6))
                         eigen_plot(split,fig)
-                        plt.savefig('{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/SKS_Splitting/Figures/Eigm_Surface',station,'JW_Windows',date,time))
+                        plt.savefig('{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface',station,'JW_Windows',date,time))
                         plt.close()
                         split.quality = 'w'
 
@@ -118,9 +118,9 @@ def output_init(station,switch):
     station - string containing the station code
     """
     if switch is 'on':
-        default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting.txt'.format(station) #Default output filename
+        default_out = '/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_Splitting.txt'.format(station) #Default output filename
     elif switch is 'off':
-        default_out = '/Users/ja17375/Python/SKS_Splitting/Measurements/{}_Splitting_JW_Windows.txt'.format(station)
+        default_out = '/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_Splitting_JW_Windows.txt'.format(station)
 
     if os.path.isfile(default_out):
         #Default file exists! Request user permission to overwrite
@@ -130,7 +130,7 @@ def output_init(station,switch):
 
         elif ovr == 'n':
             new_out = user_in('c2',station)
-            outfile = open('/Users/ja17375/Python/SKS_Splitting/Measurements/{}.txt'.format(new_out),'w+')
+            outfile = open('/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}.txt'.format(new_out),'w+')
     elif os.path.isfile(default_out) == False:
         print('{} does not exist and will be created'.format(default_out))
         outfile = open(default_out,'w+')
@@ -184,7 +184,7 @@ def save_sac(st,qual,date,time,wbeg,wend,switch):
             ch = tr.stats.channel
             stat = tr.stats.station
             t0 = tr.stats.starttime
-            path = '/Users/ja17375/Python/SKS_Splitting/Data/Proccessed_Streams'
+            path = '/Users/ja17375/Python/Shear_Wave_Splitting/Data/Proccessed_Streams'
             tr2 = tr.trim(t0 + wbeg, t0 + wend)
             tr2.write('{}/{}_{}_{:07d}_{:06d}_{}.sac'.format(path,stat,qual,date,time,ch), format='SAC')
     elif switch == 'off':
