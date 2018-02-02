@@ -55,7 +55,7 @@ def splitting(station,switch,files):
                         print('Splitting already measured for this event, skipping')
                         split = sw.load(eig_file) #loads eigm file
                         # if split.quality == None:
-                        
+                        split.quality = 't'
 
                         write_splitting(outfile,station,eigm=split,st=st,date=date,time=time)
 
