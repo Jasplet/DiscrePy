@@ -40,7 +40,7 @@ def splitting(station,switch,files):
             global quality
             if st != False: # i.e. if the stream is sufficiently populated and has been read.
 
-                SKS_UTC, t0, SKS = model_SKS(st[0]) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
+                SKS_UTC, t0, SKS = model_traveltimes(st[0]) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
                 # print(t0)
                 # print('SKS_UTC ={}'.format(SKS_UTC))
                 quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
@@ -190,7 +190,7 @@ def save_sac(st,qual,date,time,wbeg,wend,switch):
     elif switch == 'off':
         pass
 
-def model_SKS(tr):
+def model_traveltimes(tr):
     """
     Function to run TauP traveltime models for the SKS phase.
     Returns SKS predictided arrivals (seconds), origin time of the event (t0) as a UTCDateTime obejct and the SKS arrival as a UTCDateTime object
@@ -198,11 +198,11 @@ def model_SKS(tr):
     tr - trace object for which SKS arrival time will be predicted
     """
     model = obspy.taup.tau.TauPyModel(model="iasp91")
-    SKS = model.get_travel_times(tr.stats.sac.evdp,tr.stats.sac.gcarc,["SKS"])[0].time
+    travelt = model.get_travel_times(tr.stats.sac.evdp,tr.stats.sac.gcarc,["SKKS"])[0].time
     t0 = tr.stats.starttime # Start time of stream for event. This should be the event origin time.
-    SKS_UTC = obspy.core.utcdatetime.UTCDateTime(t0 + SKS)# SKS arrival time relative to trace start as a UTCDateTime object
+    travelt_UTC = obspy.core.utcdatetime.UTCDateTime(t0 + travelt)# SKS arrival time relative to trace start as a UTCDateTime object
 
-    return SKS_UTC, t0, SKS
+    return travelt_UTC, t0, travelt
 
 
 def st_prep(st,f_min,f_max):
