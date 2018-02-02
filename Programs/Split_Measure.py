@@ -17,7 +17,7 @@ import os.path
 
 ###################################################
 
-def splitting(station,switch,files):
+def splitting(station,switch,files,phase):
     """
     Measures SKS splitting for all streams listed in a ttext file at the provided path. These streams must be saved as SAC files.abs
     This function is the primary part of this module/package/script/thing, all the pther functions support this one.
@@ -40,15 +40,15 @@ def splitting(station,switch,files):
             global quality
             if st != False: # i.e. if the stream is sufficiently populated and has been read.
 
-                SKS_UTC, t0, SKS = model_traveltimes(st[0]) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
+                SKS_UTC, t0, SKS = model_traveltimes(st[0],phase) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
                 # print(t0)
                 # print('SKS_UTC ={}'.format(SKS_UTC))
                 quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
                 date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
                 if switch is 'on':
-                    eig_file ='{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',station/station,date,time)
+                    eig_file ='{}/{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',phase,station,station,date,time)
                 elif switch is 'off':
-                    eig_file = '{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',station/station,'JW_Windows',date,time)
+                    eig_file = '{}/{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',phase,station,station,'JW_Windows',date,time)
 
                 if os.path.isfile(eig_file):
                         print('Splitting already measured for this event, skipping')
