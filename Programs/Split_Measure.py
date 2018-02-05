@@ -64,10 +64,14 @@ def splitting(station,switch,files,phase):
                     pair_glob = pair
 
                     if switch == 'on': # If manual windowing is on
-                        split, wbeg, wend,fig = split_measure(pair,traveltime)
-                        split.quality = quality
-                        plt.savefig('{}{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface/',station,phase,date,time))
-                        plt.close()
+                        if phase == 'SKKS' and st[0].gcarc < 105.0:
+                            pass
+                        else:
+                            print('{} {}'.format(phase,st[0].gcarc))    
+                            split, wbeg, wend,fig = split_measure(pair,traveltime)
+                            split.quality = quality
+                            plt.savefig('{}{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface/',station,phase,date,time))
+                            plt.close()
 
                     elif switch == 'off': #Manual windowing is off. For now this will just mean Jacks windows will be used. Eventually add automation or support for entering windows.
 
