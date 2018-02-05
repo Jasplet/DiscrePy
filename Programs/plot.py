@@ -18,43 +18,57 @@ def SKS_plot(file,title1):
     data = data[(data.QUAL != 'x')]
     fig,axs = plt.subplots(2, 2,sharex='col',figsize=(10,10))
 
-    plt.subplot(221)
-    plt.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].FAST,yerr=data[(data.QUAL == 'n')].DFAST,fmt='kx',elinewidth=0.5,label='Null')
-    plt.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].FAST,yerr=data[(data.QUAL != 'n')].DFAST,fmt='ko',elinewidth=0.5,label='Split')
-    plt.legend(loc=2)
+    ax1 = subplot(221)
+    ax1.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].FAST,yerr=data[(data.QUAL == 'n')].DFAST,fmt='kx',elinewidth=0.5,label='Null')
+    ax1.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].FAST,yerr=data[(data.QUAL != 'n')].DFAST,fmt='ko',elinewidth=0.5,label='Split')
+    ax1.legend(loc=2)
 
-    plt.ylabel('Fast Direction (deg)')
-    plt.ylim([-90,90])
-    plt.yticks(np.arange(-90,91,30))
-    plt.title('{} - Fast Direction'.format(title1))
+    ax1.ylabel('Fast Direction (deg)')
+    ax1.ylim([-90,90])
+    ax1.yticks(np.arange(-90,91,30))
+    ax1.title('{} - Fast Direction'.format(title1))
 
-    plt.subplot(223)
-    plt.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_FAST,yerr=data[(data.QUAL == 'n')].WL_DFAST,fmt='kx',elinewidth=0.5)
-    plt.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_FAST,yerr=data[(data.QUAL != 'n')].WL_DFAST,fmt='ko',elinewidth=0.5)
-    plt.ylim([-90,90])
-    plt.yticks(np.arange(-90,91,30))
-    plt.title('Jacks(Sheba) - Fast Direction')
-    plt.xlabel('Back Azimuth')
-    plt.ylabel('Fast Direction (deg)')
+    ax2 = subplot(223)
+    ax2.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_FAST,yerr=data[(data.QUAL == 'n')].WL_DFAST,fmt='kx',elinewidth=0.5)
+    ax2.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_FAST,yerr=data[(data.QUAL != 'n')].WL_DFAST,fmt='ko',elinewidth=0.5)
+    ax2.ylim([-90,90])
+    ax2.yticks(np.arange(-90,91,30))
+    ax2.title('Jacks(Sheba) - Fast Direction')
+    ax2.xlabel('Back Azimuth')
+    ax2.ylabel('Fast Direction (deg)')
 
-    plt.subplot(222)
-    plt.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].TLAG,yerr=data[(data.QUAL == 'n')].DTLAG,fmt='kx',elinewidth=0.5)
-    plt.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].TLAG,yerr=data[(data.QUAL != 'n')].DTLAG,fmt='ko',elinewidth=0.5)
-    plt.ylabel('Tlag (s)')
-    plt.ylim([0,4])
-    plt.title('{} - Lag Time'.format(title1))
+    ax3 = subplot(222)
+    ax3.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].TLAG,yerr=data[(data.QUAL == 'n')].DTLAG,fmt='kx',elinewidth=0.5)
+    ax3.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].TLAG,yerr=data[(data.QUAL != 'n')].DTLAG,fmt='ko',elinewidth=0.5)
+    ax3.ylabel('Tlag (s)')
+    ax3.ylim([0,4])
+    ax3.title('{} - Lag Time'.format(title1))
 
-    plt.subplot(224)
-    plt.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_TLAG,yerr=data[(data.QUAL == 'n')].WL_DTLAG,fmt='kx',elinewidth=0.5)
-    plt.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_TLAG,yerr=data[(data.QUAL != 'n')].WL_DTLAG,fmt='ko',elinewidth=0.5)
-    plt.ylim([0,4])
-    plt.ylabel('Tlag (s)')
-    plt.xlabel('Back Azimuth')
-    plt.title('Jacks(Sheba) - Lag Time')
+    ax4 = subplot(224)
+    ax4.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_TLAG,yerr=data[(data.QUAL == 'n')].WL_DTLAG,fmt='kx',elinewidth=0.5)
+    ax4.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_TLAG,yerr=data[(data.QUAL != 'n')].WL_DTLAG,fmt='ko',elinewidth=0.5)
+    ax4.ylim([0,4])
+    ax4.ylabel('Tlag (s)')
+    ax4.xlabel('Back Azimuth')
+    ax4.title('Jacks(Sheba) - Lag Time')
 
 
     plt.tight_layout()
     plt.show()
+
+def _lag(ax,baz,lag1,dlag1):
+
+    ax.errorbar(baz,lag1,yerr=dlag1,fmt = 'kx',elinewidth=0.5)
+    ax.ylim([0,4])
+    ax.ylabel('Lag (s)')
+    ax.xlabel('Back Azimuth (deg)')
+
+def _fast(ax,baz,fast1,dfast1):
+
+    ax.errorbar(baz,lag1,yerr=dlag1,fmt = 'kx',elinewidth=0.5)
+    ax.ylim([0,4])
+    ax.ylabel('Lag (s)')
+    ax.xlabel('Back Azimuth (deg)')
 
 def coverage(evla,evla,stla,stlo,stat):
     fig = plt.figure(figsize = (10,10))
