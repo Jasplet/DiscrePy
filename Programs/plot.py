@@ -36,11 +36,11 @@ def SKS_plot(file,title1):
     axs[0,1].set_xlabel('Back Azimuth')
     axs[0,1].set_ylabel('Fast Direction (deg)')
 
-    axs[1,0].errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].TLAG,yerr=data[(data.QUAL == 'n')].DTLAG,fmt='kx',elinewidth=0.5)
-    axs[1,0].errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].TLAG,yerr=data[(data.QUAL != 'n')].DTLAG,fmt='ko',elinewidth=0.5)
-    axs[1,0].set_ylabel('Tlag (s)')
-    axs[1,0].set_ylim([0,4])
-    axs[1,0].set_title('{} - Lag Time'.format(title1))
+    _lag(axs[1,0],data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].TLAG,data[(data.QUAL == 'n')].DTLAG,fmt='kx')
+    _lag(axs[1,0],data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].TLAG,data[(data.QUAL != 'n')].DTLAG,fmt='ko')
+    # axs[1,0].set_ylabel('Tlag (s)')
+    # axs[1,0].set_ylim([0,4])
+    # axs[1,0].set_title('{} - Lag Time'.format(title1))
 
     axs[1,1].errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_TLAG,yerr=data[(data.QUAL == 'n')].WL_DTLAG,fmt='kx',elinewidth=0.5)
     axs[1,1].errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_TLAG,yerr=data[(data.QUAL != 'n')].WL_DTLAG,fmt='ko',elinewidth=0.5)
@@ -49,23 +49,23 @@ def SKS_plot(file,title1):
     axs[1,1].set_xlabel('Back Azimuth')
     axs[1,1].set_title('Jacks(Sheba) - Lag Time')
 
-
     plt.tight_layout()
     plt.show()
 
-def _lag(ax,baz,lag1,dlag1):
+def _lag(ax,baz,lag1,dlag1,fmt):
 
-    ax.errorbar(baz,lag1,yerr=dlag1,fmt = 'kx',elinewidth=0.5)
-    ax.ylim([0,4])
-    ax.ylabel('Lag (s)')
-    ax.xlabel('Back Azimuth (deg)')
+    ax.errorbar(baz,lag1,yerr=dlag1,fmt=fmt,elinewidth=0.5)
+
+    ax.set_ylim([0,4])
+    ax.set_ylabel('Lag (s)')
+    ax.set_xlabel('Back Azimuth (deg)')
 
 def _fast(ax,baz,fast1,dfast1):
 
     ax.errorbar(baz,lag1,yerr=dlag1,fmt = 'kx',elinewidth=0.5)
-    ax.ylim([0,4])
-    ax.ylabel('Lag (s)')
-    ax.xlabel('Back Azimuth (deg)')
+    ax.set_ylim([-90,90])
+    ax.set_ylabel('Fast Direction (s)')
+    ax.set_xlabel('Back Azimuth (deg)')
 
 def coverage(evla,evlo,stla,stlo,stat):
     fig = plt.figure(figsize = (10,10))
