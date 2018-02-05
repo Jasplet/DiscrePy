@@ -52,6 +52,14 @@ def SKS_plot(file,title1):
     plt.tight_layout()
     plt.show()
 
+def _plot(stat,phase):
+
+    data = pd.read_csv('/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_{}_Splitting.txt'.format(stat,phase),delim_whitespace=True)
+    a = data['FAST']
+    d = data.index[np.isnan(data['FAST']) == True].tolist() # Find any rows which contain NaNs
+    data = data.drop(d)
+    data = data[(data.QUAL != 'x')]`
+
 def _lag(ax,baz,lag1,dlag1,fmt):
 
     ax.errorbar(baz,lag1,yerr=dlag1,fmt=fmt,elinewidth=0.5)
