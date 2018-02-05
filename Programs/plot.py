@@ -1,7 +1,13 @@
 #! /usr/bin/env python
 ### Script containing varous plotting functions for splitting Measurements
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import cartopy as cart
+import matplotlib.gridspec as gridspec
+import obspy
 
-def diag_plot(file,title1):
+def SKS_plot(file,title1):
     """
     Function to make diagnostice plots for a given file of splitting measuremtns
     """
