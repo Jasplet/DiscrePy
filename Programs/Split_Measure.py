@@ -40,7 +40,7 @@ def splitting(station,switch,files,phase):
             global quality
             if st != False: # i.e. if the stream is sufficiently populated and has been read.
 
-                SKS_UTC, t0, SKS = model_traveltimes(st[0],phase) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
+                tt_UTC, t0, traveltime = model_traveltimes(st[0],phase) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
                 # print(t0)
                 # print('SKS_UTC ={}'.format(SKS_UTC))
                 quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
@@ -56,7 +56,7 @@ def splitting(station,switch,files,phase):
                         # if split.quality == None:
                         # split.quality = 't'
 
-                        write_splitting(outfile,station,eigm=split,st=st,date=date,time=time)
+                        write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time)
 
                 else:
                     pair = st_prep(st = st, f_min = 0.01,f_max = 0.5)
@@ -64,7 +64,7 @@ def splitting(station,switch,files,phase):
                     pair_glob = pair
 
                     if switch == 'on': # If manual windowing is on
-                        split, wbeg, wend,fig = split_measure(pair,SKS)
+                        split, wbeg, wend,fig = split_measure(pair,traveltime)
                         split.quality = quality
                         plt.savefig('{}{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface/',station,phase,date,time))
                         plt.close()
@@ -83,16 +83,16 @@ def splitting(station,switch,files,phase):
                         split.quality = 'w'
 
 
-                    write_splitting(outfile,station,eigm=split,st=st,date=date,time=time) #Call write_splitting where there are measuremtns to output
+                    write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time) #Call write_splitting where there are measuremtns to output
                     # save_sac(st,quality[0],date,time,wbeg,wend,switch)
                     split.save(eig_file) # Saves splitting measurements
             else:
-                write_splitting(outfile,station)
+                write_splitting(outfile,phase,station)
 
     plt.close('all')
     outfile.close()
 
-def write_splitting(outfile,station,eigm=None,st=None,date=None,time=None):
+def write_splitting(outfile,station,phase,eigm=None,st=None,date=None,time=None):
 
     if phase == 'SKS':
 
@@ -121,6 +121,7 @@ def write_splitting(outfile,station,eigm=None,st=None,date=None,time=None):
             stats = [st[0].stats.sac[i] for i in attrib] # Use list comprehension to extract sac attributes I want.
             org = [st[0].stats.station,date,time]
             outfile.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {}\n'.format(*org,*stats,*meas,str(eigm.quality[0])))
+
         elif eigm is None:
             meas = ['NaN','NaN','NaN','NaN','NaN','NaN']
             stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
@@ -222,7 +223,7 @@ def model_traveltimes(tr,phase):
     travelt = model.get_travel_times(tr.stats.sac.evdp,tr.stats.sac.gcarc,[phase])[0].time
     t0 = tr.stats.starttime # Start time of stream for event. This should be the event origin time.
     travelt_UTC = obspy.core.utcdatetime.UTCDateTime(t0 + travelt)# SKS arrival time relative to trace start as a UTCDateTime object
-
+    print(travelt)
     return travelt_UTC, t0, travelt
 
 
@@ -301,11 +302,13 @@ def eigen_plot(eign,fig,**kwargs):
     plt.tight_layout()
 
 
-def split_measure(pair,SKS):
+def split_measure(pair,tt):
     """
     Function for Picking the window for a provded pair object and then measure the splitting
+
+    tt - [s] predicted traveltime for the phase you are trying to window relative to the event origin time (t0)
     """
-    pair.plot(pick=True,marker = SKS) # Plots the window picker.
+    pair.plot(pick=True,marker = tt) # Plots the window picker.
     split = sw.EigenM(pair,lags=(4,) )
 
     fig = plt.figure(figsize=(12,6))
