@@ -55,3 +55,27 @@ def SKS_plot(file,title1):
 
     plt.tight_layout()
     plt.show()
+
+def coverage(evla,evla,stla,stlo,stat):
+    fig = plt.figure(figsize = (10,10))
+    # We can either do and AzimuthalEquidistant projection centered on the staiton or a nice, Pacific-centered one
+    # proj = cart.PlateCarree(central_longitude=180)
+    proj = cart.AzimuthalEquidistant(central_longitude=stlo,central_latitude=stla)
+    ax = plt.axes(projection=proj)
+    ax.set_global() #This sets the axes extent to its maximum possible setting, so we can find these darn events
+
+    ax.coastlines(resolution = '110m') # Coastline data is downloaded by Cartopy from Natural Earth (http://www.naturalearthdata.com)
+    #Resolution options are 100m,50m and 10m
+
+    ax.add_feature(cartopy.feature.OCEAN, zorder=0)
+    ax.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
+
+    # Now add observed events
+    ax.plot(evlo,evla,'ro',markersize = 5,transform = cart.Geodetic(),label='Event Location')
+
+    # ax.set_xticks([-130,-125,-120,-115,-110,-105,-100], crs=proj)
+    # ax.set_yticks([30,35,40,45,50,55,60], crs=proj)
+    stat = 'NEW'
+    ax.plot(stlo,stla,'kv',transform=cart.Geodetic(),markersize=10,label='Station Loction')
+    plt.title('Coverage for Station {}'.format(stat))
+    ax.legend()
