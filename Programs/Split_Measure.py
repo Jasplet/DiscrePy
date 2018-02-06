@@ -38,9 +38,11 @@ def splitting(station,switch,files,phase):
             # Intialise some global variables which I need to pass things between fucntions (this is probably not be best way to do things but it works!)
             global pair_glob
             global quality
+            global tt_glob
             if st != False: # i.e. if the stream is sufficiently populated and has been read.
 
                 tt_UTC, t0, traveltime = model_traveltimes(st[0],phase) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
+                tt_glob = traveltime #global variable, allows for function interect to call for a repeat meausrent
                 # print(t0)
                 # print('SKS_UTC ={}'.format(SKS_UTC))
                 quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
@@ -64,14 +66,16 @@ def splitting(station,switch,files,phase):
                     pair_glob = pair
 
                     if switch == 'on': # If manual windowing is on
-                        if phase == 'SKKS' and st[0].gcarc < 105.0:
-                            pass
+                        if phase == 'SKKS' and st[0].stats.sac.gcarc < 105.0:
+                            split = None
                         else:
-                            print('{} {}'.format(phase,st[0].gcarc))    
+                            print('Test Passed. Phase ={}, GCARC = {}'.format(phase,st[0].stats.sac.gcarc))
                             split, wbeg, wend,fig = split_measure(pair,traveltime)
                             split.quality = quality
                             plt.savefig('{}{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface/',station,phase,date,time))
                             plt.close()
+                            write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time)
+                            split.save(eig_file)
 
                     elif switch == 'off': #Manual windowing is off. For now this will just mean Jacks windows will be used. Eventually add automation or support for entering windows.
 
@@ -87,9 +91,9 @@ def splitting(station,switch,files,phase):
                         split.quality = 'w'
 
 
-                    write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time) #Call write_splitting where there are measuremtns to output
-                    # save_sac(st,quality[0],date,time,wbeg,wend,switch)
-                    split.save(eig_file) # Saves splitting measurements
+                        write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time) #Call write_splitting where there are measuremtns to output
+                        # save_sac(st,quality[0],date,time,wbeg,wend,switch)
+                        split.save(eig_file) # Saves splitting measurements
             else:
                 write_splitting(outfile,phase,station)
 
@@ -227,7 +231,7 @@ def model_traveltimes(tr,phase):
     travelt = model.get_travel_times(tr.stats.sac.evdp,tr.stats.sac.gcarc,[phase])[0].time
     t0 = tr.stats.starttime # Start time of stream for event. This should be the event origin time.
     travelt_UTC = obspy.core.utcdatetime.UTCDateTime(t0 + travelt)# SKS arrival time relative to trace start as a UTCDateTime object
-    print(travelt)
+    # print(travelt)
     return travelt_UTC, t0, travelt
 
 
@@ -340,7 +344,7 @@ def interact(event):
         plt.close()
     elif event.key == 'r':
         plt.close()
-        split_measure(pair_glob)
+        split_measure(pair_glob,tt_glob)
     else:
         print('Invalid key_press_event, please press a,b,c,n,r or x')
 
