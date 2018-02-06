@@ -17,7 +17,7 @@ import os.path
 
 ###################################################
 
-def splitting(station,switch,files):
+def splitting(station,switch,files,phase):
     """
     Measures SKS splitting for all streams listed in a ttext file at the provided path. These streams must be saved as SAC files.abs
     This function is the primary part of this module/package/script/thing, all the pther functions support this one.
@@ -26,7 +26,7 @@ def splitting(station,switch,files):
 
     switch - optional kwarg to specify if you want to manually window the data or use a set of windows (Walpoles windows are availbale for use by default)
     """
-    outfile = output_init(station,switch)
+    outfile = output_init(station,switch,phase)
 
 
     with open(files,'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
@@ -38,23 +38,28 @@ def splitting(station,switch,files):
             # Intialise some global variables which I need to pass things between fucntions (this is probably not be best way to do things but it works!)
             global pair_glob
             global quality
+            global tt_glob
             if st != False: # i.e. if the stream is sufficiently populated and has been read.
 
-                SKS_UTC, t0, SKS = model_SKS(st[0]) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
+                tt_UTC, t0, traveltime = model_traveltimes(st[0],phase) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
+                tt_glob = traveltime #global variable, allows for function interect to call for a repeat meausrent
                 # print(t0)
                 # print('SKS_UTC ={}'.format(SKS_UTC))
                 quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
                 date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
                 if switch is 'on':
-                    eig_file ='{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/SKS',station,station,date,time)
+
+                    eig_file ='{}/{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',phase,station,station,date,time)
                 elif switch is 'off':
-                    eig_file = '{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/SKS',station,station,'JW_Windows',date,time)
+                    eig_file = '{}/{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',phase,station,station,'JW_Windows',date,time)
 
                 if os.path.isfile(eig_file):
+
 
                     split = sw.load(eig_file) #loads eigm file
 
                     write_splitting(outfile,station,eigm=split,st=st,date=date,time=time)
+
 
                 else:
                     pair = st_prep(st = st, f_min = 0.01,f_max = 0.5)
@@ -62,10 +67,18 @@ def splitting(station,switch,files):
                     pair_glob = pair
 
                     if switch == 'on': # If manual windowing is on
-                        split, wbeg, wend,fig = split_measure(pair,SKS)
-                        split.quality = quality
-                        plt.savefig('{}{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface/',station,date,time))
-                        plt.close()
+
+                        if phase == 'SKKS' and st[0].stats.sac.gcarc < 105.0:
+                            split = None
+                        else:
+                            print('Test Passed. Phase ={}, GCARC = {}'.format(phase,st[0].stats.sac.gcarc))
+                            split, wbeg, wend,fig = split_measure(pair,traveltime)
+                            split.quality = quality
+                            plt.savefig('{}{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface/',station,phase,date,time))
+                            plt.close()
+                            write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time)
+                            split.save(eig_file)
+
 
                     elif switch == 'off': #Manual windowing is off. For now this will just mean Jacks windows will be used. Eventually add automation or support for entering windows.
 
@@ -76,49 +89,72 @@ def splitting(station,switch,files):
 
                         fig = plt.figure(figsize=(12,6))
                         eigen_plot(split,fig)
-                        plt.savefig('{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface',station,'JW_Windows',date,time))
+
+                        plt.savefig('{}/{}_{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface',station,phase,'JW_Windows',date,time))
+
                         plt.close()
                         split.quality = 'w'
 
 
-                    write_splitting(outfile,station,eigm=split,st=st,date=date,time=time) #Call write_splitting where there are measuremtns to output
-                    # save_sac(st,quality[0],date,time,wbeg,wend,switch)
-                    split.save(eig_file) # Saves splitting measurements
+                        write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time) #Call write_splitting where there are measuremtns to output
+                        # save_sac(st,quality[0],date,time,wbeg,wend,switch)
+                        split.save(eig_file) # Saves splitting measurements
             else:
-                write_splitting(outfile,station)
+                write_splitting(outfile,phase,station)
 
     plt.close('all')
     outfile.close()
 
-def write_splitting(outfile,station,eigm=None,st=None,date=None,time=None):
+def write_splitting(outfile,station,phase,eigm=None,st=None,date=None,time=None):
 
-    if eigm is not None:
-        #Splitting measure has been made or already exists and needs to be written out
-        (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,time,station)
+    if phase == 'SKS':
 
-        meas = [eigm.data.wbeg(), eigm.data.wend(), eigm.fast, eigm.dfast, eigm.lag, eigm.dlag,wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend ] #Measurement that I want to output
-        attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
-        stats = [st[0].stats.sac[i] for i in attrib] # Use list comprehension to extract sac attributes I want.
-        org = [st[0].stats.station,date,time]
-        outfile.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {} {} {} {} {} {} {}\n'.format(*org,*stats,*meas,str(eigm.quality[0])))
-    elif eigm is None:
-        meas = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN']
-        stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
-        org = [station,'NaN','NaN']
-        quality = ['x']
-        print('No stream for event')
-        outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22}\n'.format(*org,*stats,*meas,quality[0]))
+        if eigm is not None:
+            #Splitting measure has been made or already exists and needs to be written out
+            (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,time,station)
 
-def output_init(station,switch):
+            meas = [eigm.data.wbeg(), eigm.data.wend(), eigm.fast, eigm.dfast, eigm.lag, eigm.dlag,wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend ] #Measurement that I want to output
+            attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
+            stats = [st[0].stats.sac[i] for i in attrib] # Use list comprehension to extract sac attributes I want.
+            org = [st[0].stats.station,date,time]
+            outfile.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {} {} {} {} {} {} {}\n'.format(*org,*stats,*meas,str(eigm.quality[0])))
+        elif eigm is None:
+            meas = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN']
+            stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
+            org = [station,'NaN','NaN']
+            quality = ['x']
+            print('No stream for event')
+            outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22}\n'.format(*org,*stats,*meas,quality[0]))
+
+    elif phase == 'SKKS':
+
+        if eigm is not None:
+            meas = [eigm.data.wbeg(), eigm.data.wend(), eigm.fast, eigm.dfast, eigm.lag, eigm.dlag] #Measurement that I want to output
+            attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
+            stats = [st[0].stats.sac[i] for i in attrib] # Use list comprehension to extract sac attributes I want.
+            org = [st[0].stats.station,date,time]
+            outfile.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {}\n'.format(*org,*stats,*meas,str(eigm.quality[0])))
+
+        elif eigm is None:
+            meas = ['NaN','NaN','NaN','NaN','NaN','NaN']
+            stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
+            org = [station,'NaN','NaN']
+            quality = ['x']
+            print('No stream for event')
+            outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16}\n'.format(*org,*stats,*meas,quality[0]))
+
+def output_init(station,switch,phase):
     """
     Initialises output variables and output textfile
 
     station - string containing the station code
     """
     if switch is 'on':
-        default_out = '/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_Splitting.txt'.format(station) #Default output filename
+
+        default_out = '/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_{}_Splitting.txt'.format(station,phase) #Default output filename
     elif switch is 'off':
-        default_out = '/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_Splitting_JW_Windows.txt'.format(station)
+        default_out = '/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_{}_Splitting_JW_Windows.txt'.format(station,phase)
+
 
     if os.path.isfile(default_out):
         #Default file exists! Request user permission to overwrite
@@ -133,7 +169,10 @@ def output_init(station,switch):
         print('{} does not exist and will be created'.format(default_out))
         outfile = open(default_out,'w+')
 
-    outfile.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ WBEG WEND FAST DFAST TLAG DTLAG WL_FAST WL_DFAST WL_TLAG WL_DTLAG WL_WBEG WL_WEND QUAL\n')
+    if phase == 'SKS':
+        outfile.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ WBEG WEND FAST DFAST TLAG DTLAG WL_FAST WL_DFAST WL_TLAG WL_DTLAG WL_WBEG WL_WEND QUAL\n')
+    elif phase == 'SKKS':
+        outfile.write('STAT DATE TIME STLA STLO EVLA EVLO EVDP GCARC BAZ WBEG WEND FAST DFAST TLAG DTLAG QUAL\n')
     return outfile
 
 def user_in(case,file1,station=None):
@@ -188,7 +227,7 @@ def save_sac(st,qual,date,time,wbeg,wend,switch):
     elif switch == 'off':
         pass
 
-def model_SKS(tr):
+def model_traveltimes(tr,phase):
     """
     Function to run TauP traveltime models for the SKS phase.
     Returns SKS predictided arrivals (seconds), origin time of the event (t0) as a UTCDateTime obejct and the SKS arrival as a UTCDateTime object
@@ -196,11 +235,11 @@ def model_SKS(tr):
     tr - trace object for which SKS arrival time will be predicted
     """
     model = obspy.taup.tau.TauPyModel(model="iasp91")
-    SKS = model.get_travel_times(tr.stats.sac.evdp,tr.stats.sac.gcarc,["SKS"])[0].time
+    travelt = model.get_travel_times(tr.stats.sac.evdp,tr.stats.sac.gcarc,[phase])[0].time
     t0 = tr.stats.starttime # Start time of stream for event. This should be the event origin time.
-    SKS_UTC = obspy.core.utcdatetime.UTCDateTime(t0 + SKS)# SKS arrival time relative to trace start as a UTCDateTime object
-
-    return SKS_UTC, t0, SKS
+    travelt_UTC = obspy.core.utcdatetime.UTCDateTime(t0 + travelt)# SKS arrival time relative to trace start as a UTCDateTime object
+    # print(travelt)
+    return travelt_UTC, t0, travelt
 
 
 def st_prep(st,f_min,f_max):
@@ -278,11 +317,13 @@ def eigen_plot(eign,fig,**kwargs):
     plt.tight_layout()
 
 
-def split_measure(pair,SKS):
+def split_measure(pair,tt):
     """
     Function for Picking the window for a provded pair object and then measure the splitting
+
+    tt - [s] predicted traveltime for the phase you are trying to window relative to the event origin time (t0)
     """
-    pair.plot(pick=True,marker = SKS) # Plots the window picker.
+    pair.plot(pick=True,marker = tt) # Plots the window picker.
     split = sw.EigenM(pair,lags=(4,) )
 
     fig = plt.figure(figsize=(12,6))
@@ -310,7 +351,7 @@ def interact(event):
         plt.close()
     elif event.key == 'r':
         plt.close()
-        split_measure(pair_glob)
+        split_measure(pair_glob,tt_glob)
     else:
         print('Invalid key_press_event, please press a,b,c,n,r or x')
 
