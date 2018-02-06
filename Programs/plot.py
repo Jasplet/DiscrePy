@@ -100,7 +100,7 @@ def SKKS_plot(stat,phase):
     ax3.legend()
     plt.show()
 
-def _lag(ax,baz,lag1,dlag1,fmt):
+def plot_lag(ax,baz,lag1,dlag1,fmt):
 
     ax.errorbar(baz,lag1,yerr=dlag1,fmt=fmt,elinewidth=0.5)
 
@@ -108,7 +108,7 @@ def _lag(ax,baz,lag1,dlag1,fmt):
     ax.set_ylabel('Lag (s)')
     ax.set_xlabel('Back Azimuth (deg)')
 
-def _fast(ax,baz,fast1,dfast1,fmt):
+def plot_fast(ax,baz,fast1,dfast1,fmt):
 
     ax.errorbar(baz,fast1,yerr=dfast1,fmt = fmt,elinewidth=0.5)
     ax.set_ylim([-90,90])
