@@ -48,17 +48,18 @@ def splitting(station,switch,files,phase):
                 quality = [] # variable to hold Callback key entries for estimated quality of splitting measurements
                 date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
                 if switch is 'on':
+
                     eig_file ='{}/{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',phase,station,station,date,time)
                 elif switch is 'off':
                     eig_file = '{}/{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',phase,station,station,'JW_Windows',date,time)
 
                 if os.path.isfile(eig_file):
-                        print('Splitting already measured for this event, skipping')
-                        split = sw.load(eig_file) #loads eigm file
-                        # if split.quality == None:
-                        # split.quality = 't'
 
-                        write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time)
+
+                    split = sw.load(eig_file) #loads eigm file
+
+                    write_splitting(outfile,station,eigm=split,st=st,date=date,time=time)
+
 
                 else:
                     pair = st_prep(st = st, f_min = 0.01,f_max = 0.5)
@@ -66,6 +67,7 @@ def splitting(station,switch,files,phase):
                     pair_glob = pair
 
                     if switch == 'on': # If manual windowing is on
+
                         if phase == 'SKKS' and st[0].stats.sac.gcarc < 105.0:
                             split = None
                         else:
@@ -77,6 +79,7 @@ def splitting(station,switch,files,phase):
                             write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time)
                             split.save(eig_file)
 
+
                     elif switch == 'off': #Manual windowing is off. For now this will just mean Jacks windows will be used. Eventually add automation or support for entering windows.
 
                         (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,time,station)
@@ -86,7 +89,9 @@ def splitting(station,switch,files,phase):
 
                         fig = plt.figure(figsize=(12,6))
                         eigen_plot(split,fig)
+
                         plt.savefig('{}/{}_{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface',station,phase,'JW_Windows',date,time))
+
                         plt.close()
                         split.quality = 'w'
 
@@ -145,9 +150,11 @@ def output_init(station,switch,phase):
     station - string containing the station code
     """
     if switch is 'on':
+
         default_out = '/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_{}_Splitting.txt'.format(station,phase) #Default output filename
     elif switch is 'off':
         default_out = '/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_{}_Splitting_JW_Windows.txt'.format(station,phase)
+
 
     if os.path.isfile(default_out):
         #Default file exists! Request user permission to overwrite
