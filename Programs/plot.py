@@ -122,7 +122,7 @@ def SKS_SKKS_plot(stat):
     fig = plt.figure(figsize = [20,20])
     axs = []
     gs = gridspec.GridSpec(2,3) # Creates a 2x3 grid in the figure space for plotting in
-    proj = cart.AzimuthalEquidistant(central_longitude=data.STLO[0],central_latitude=data.STLA[0])
+    proj = cart.AzimuthalEquidistant(central_longitude=SKKS_data.STLO[0],central_latitude=SKKS_data.STLA[0])
 
 
     ax1 = plt.subplot(gs[0,0])
@@ -130,7 +130,7 @@ def SKS_SKKS_plot(stat):
     ax3 = fig.add_subplot(gs[:,1:],projection = proj) # have to use add_subplots in order to add a different projection
 
     ax1.errorbar(SKS_data.BAZ,SKS_data.TLAG,yerr = SKS_data.DTLAG,fmt='rx',elinewidth=0.5,label='SKS')
-    ax1.errorbar(SKKS_data.BAZ,SKKS_data.TLAG,yerr=SKKS_data.DTLAG,fmt = 'bx',elinewidth=0.5,label='SKKS')
+    ax1.errorbar(SKKS_data.BAZ,SKKS_data.TLAG,yerr=SKKS_data.DTLAG,fmt = 'bo',elinewidth=0.5,label='SKKS')
     ax1.set_ylim([0,4])
     ax1.set_ylabel('Lag (s)')
     ax1.set_xlabel('Back Azimuth (deg)')
@@ -140,12 +140,12 @@ def SKS_SKKS_plot(stat):
     # coverage(ax3,data.EVLA,data.EVLO,data.STLA[0],data.STLO[0],stat)
     # plt.show()
     ax2.errorbar(SKS_data.BAZ,SKS_data.FAST,yerr = SKS_data.DFAST,fmt='rx',elinewidth=0.5,label='SKS')
-    ax2.errorbar(SKKS_data.BAZ,SKKS_data.FAST,yerr=SKKS_data.DFAST,fmt = 'bx',elinewidth=0.5,label='SKKS')
+    ax2.errorbar(SKKS_data.BAZ,SKKS_data.FAST,yerr=SKKS_data.DFAST,fmt = 'bo',elinewidth=0.5,label='SKKS')
     ax2.set_ylim([-90,90])
     ax2.set_ylabel('Fast Direction (s)')
     ax2.set_xlabel('Back Azimuth (deg)')
     ### Plot Coverage on third axis object
-
+    #ax3.set_extent([-180,180,-60,90])
     ax3.set_global() #This sets the axes extent to its maximum possible setting, so we can find these darn events
     ax3.coastlines(resolution = '110m') # Coastline data is downloaded by Cartopy from Natural Earth (http://www.naturalearthdata.com)
     #Resolution options are 100m,50m and 10m
@@ -153,11 +153,11 @@ def SKS_SKKS_plot(stat):
     ax3.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
     # Now add observed events
     ax3.plot(SKS_data.EVLO,SKS_data.EVLA,'ro',markersize = 5,transform = cart.Geodetic(),label='Event Locations (SKS)')
-    ax3.plot(SKKS_data.EVLO,SKKS_data.EVLA,'ro',markersize = 5,transform = cart.Geodetic(),label='Event Locations (SKS)')
+    ax3.plot(SKKS_data.EVLO,SKKS_data.EVLA,'bx',markersize = 5,transform = cart.Geodetic(),label='Event Locations (SKKS)')
     # ax.set_xticks([-130,-125,-120,-115,-110,-105,-100], crs=proj)
     # ax.set_yticks([30,35,40,45,50,55,60], crs=proj)
-    ax3.plot(SKS_data.STLO,SKS_data.STLA,'kv',transform=cart.Geodetic(),markersize=10,label='Station Loction')
-    ax3.set_title('{} coverage for Station {}'.format(phase,stat))
+    ax3.plot(SKS_data.STLO,SKS_data.STLA,'kv',transform=cart.Geodetic(),markersize=10,label='Station {}'.format(stat))
+    ax3.set_title('SKS/SKKS coverage for Station {}'.format(stat))
     ax3.legend()
     plt.show()
 
