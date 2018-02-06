@@ -49,16 +49,17 @@ def splitting(station,switch,files,phase):
                 date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
                 if switch is 'on':
 
-                    eig_file ='{}/{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',phase,station,station,date,time)
+                    eig_file ='{}/{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files',phase,station,station,date,time)
                 elif switch is 'off':
-                    eig_file = '{}/{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files/',phase,station,station,'JW_Windows',date,time)
+                    eig_file = '{}/{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files',phase,station,station,'JW_Windows',date,time)
+
 
                 if os.path.isfile(eig_file):
 
 
                     split = sw.load(eig_file) #loads eigm file
 
-                    write_splitting(outfile,station,eigm=split,st=st,date=date,time=time)
+                    write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time)
 
 
                 else:
@@ -112,19 +113,20 @@ def write_splitting(outfile,station,phase,eigm=None,st=None,date=None,time=None)
         if eigm is not None:
             #Splitting measure has been made or already exists and needs to be written out
             (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,time,station)
-
+    
             meas = [eigm.data.wbeg(), eigm.data.wend(), eigm.fast, eigm.dfast, eigm.lag, eigm.dlag,wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend ] #Measurement that I want to output
             attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
             stats = [st[0].stats.sac[i] for i in attrib] # Use list comprehension to extract sac attributes I want.
             org = [st[0].stats.station,date,time]
-            outfile.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {} {} {} {} {} {} {}\n'.format(*org,*stats,*meas,str(eigm.quality[0])))
+            outfile.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {} {} {} {} {} {} {}\n'.format(*org,*stats,*meas,str(eigm.quality[0][0])))
+
         elif eigm is None:
             meas = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN','NaN']
             stats = ['NaN','NaN','NaN','NaN','NaN','NaN','NaN']
             org = [station,'NaN','NaN']
             quality = ['x']
             print('No stream for event')
-            outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22}\n'.format(*org,*stats,*meas,quality[0]))
+            outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22}\n'.format(*org,*stats,*meas,quality[0][0]))
 
     elif phase == 'SKKS':
 
@@ -133,7 +135,7 @@ def write_splitting(outfile,station,phase,eigm=None,st=None,date=None,time=None)
             attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
             stats = [st[0].stats.sac[i] for i in attrib] # Use list comprehension to extract sac attributes I want.
             org = [st[0].stats.station,date,time]
-            outfile.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {}\n'.format(*org,*stats,*meas,str(eigm.quality[0])))
+            outfile.write('{} {:07d} {:06d} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:05.2f} {:06.2f} {:06.2f} {:4.2f} {:4.2f} {:4.2f} {:4.2f} {:5.3f} {:4.2f} {}\n'.format(*org,*stats,*meas,str(eigm.quality[0][0])))
 
         elif eigm is None:
             meas = ['NaN','NaN','NaN','NaN','NaN','NaN']
@@ -141,7 +143,7 @@ def write_splitting(outfile,station,phase,eigm=None,st=None,date=None,time=None)
             org = [station,'NaN','NaN']
             quality = ['x']
             print('No stream for event')
-            outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16}\n'.format(*org,*stats,*meas,quality[0]))
+            outfile.write('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} {15} {16}\n'.format(*org,*stats,*meas,quality[0][0]))
 
 def output_init(station,switch,phase):
     """
