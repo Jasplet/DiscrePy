@@ -8,15 +8,23 @@ import cartopy
 import matplotlib.gridspec as gridspec
 import obspy
 
-def SKS_plot(file,title1):
-    """
-    Function to make diagnostice plots for a given file of splitting measuremtns
-    """
-    data = pd.read_csv(file,delim_whitespace=True)
+
+def load(stat,phase):
+
+    data = pd.read_csv('/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_{}_Splitting.txt'.format(stat,phase),delim_whitespace=True)
     a = data['FAST']
     d = data.index[np.isnan(data['FAST']) == True].tolist() # Find any rows which contain NaNs
     data = data.drop(d)
     data = data[(data.QUAL != 'x')]
+
+    return data
+
+def SKS_plot(stat,title1,phase=SKS):
+    """
+    Function to make diagnostice plots for a given file of splitting measuremtns
+    """
+    data = load(stat,phase)
+
     fig,axs = plt.subplots(2, 2,sharex='col',figsize=(10,10))
 
 
@@ -56,12 +64,13 @@ def SKS_plot(file,title1):
 
 
 def SKKS_plot(stat,phase):
+    """
+    Creates a 3 panel plot showing measured fast direction and lag time vs back azimuth at a given station along with the coverage of the events
+    stat - station Code [STRING]
+    phase - phase to plot [STRING]
+    """
+    data = load(stat,phase)
 
-    data = pd.read_csv('/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_{}_Splitting.txt'.format(stat,phase),delim_whitespace=True)
-    a = data['FAST']
-    d = data.index[np.isnan(data['FAST']) == True].tolist() # Find any rows which contain NaNs
-    data = data.drop(d)
-    data = data[(data.QUAL != 'x')]
     fig = plt.figure(figsize = [20,20])
     axs = []
     gs = gridspec.GridSpec(2,3)
@@ -96,7 +105,7 @@ def SKKS_plot(stat,phase):
     # ax.set_xticks([-130,-125,-120,-115,-110,-105,-100], crs=proj)
     # ax.set_yticks([30,35,40,45,50,55,60], crs=proj)
     ax3.plot(data.STLO,data.STLA,'kv',transform=cart.Geodetic(),markersize=10,label='Station Loction')
-    ax3.set_title('Coverage for Station {}'.format(stat))
+    ax3.set_title('{} coverage for Station {}'.format(phase,stat))
     ax3.legend()
     plt.show()
 
@@ -115,8 +124,15 @@ def plot_fast(ax,baz,fast1,dfast1,fmt):
     ax.set_ylabel('Fast Direction (s)')
     ax.set_xlabel('Back Azimuth (deg)')
 
-def coverage(ax,evla,evlo,stla,stlo,stat):
-
+def coverage(evla,evlo,stla,stlo,stat):
+    """
+    Creates a map showing the locations of a seismic station and the associated events using a AzimuthalEquidistant projection centered on the Station
+    evla - event longitude(s) [deg] can be 1 or more
+    evlo - event latitude(s) [deg] can be 1 or more
+    stla - station latitude [deg]
+    stlo - station longitude [deg]
+    stat - Station Code (string)
+    """
     # We can either do and AzimuthalEquidistant projection centered on the staiton or a nice, Pacific-centered one
     # proj = cart.PlateCarree(central_longitude=180)
     proj = cart.AzimuthalEquidistant(central_longitude=stlo,central_latitude=stla)
@@ -138,3 +154,4 @@ def coverage(ax,evla,evlo,stla,stlo,stat):
     ax.plot(stlo,stla,'kv',transform=cart.Geodetic(),markersize=10,label='Station Loction')
     ax.set_title('Coverage for Station {}'.format(stat))
     ax.legend()
+    plt.show()
