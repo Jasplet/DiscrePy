@@ -21,8 +21,8 @@ def load(stat,phase):
 
 
     #Parse events by whether they are 'null' or 'split'
-    null = (data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].FAST,data[(data.QUAL == 'n')].DFAST,data[(data.QUAL == 'n')].TLAG,data[(data.QUAL == 'n')].DTLAG,data[(data.QUAL == 'n')].EVLA,data[(data.QUAL == 'n')].EVLO)
-    split =(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].FAST,data[(data.QUAL != 'n')].DFAST,data[(data.QUAL != 'n')].TLAG,data[(data.QUAL != 'n')].DTLAG,data[(data.QUAL != 'n')].EVLA,data[(data.QUAL != 'n')].EVLO)
+    null = (data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].FAST,data[(data.QUAL == 'n')].DFAST,data[(data.QUAL == 'n')].TLAG,data[(data.QUAL == 'n')].DTLAG,data[(data.QUAL == 'n')].EVLO,data[(data.QUAL == 'n')].EVLA)
+    split =(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].FAST,data[(data.QUAL != 'n')].DFAST,data[(data.QUAL != 'n')].TLAG,data[(data.QUAL != 'n')].DTLAG,data[(data.QUAL != 'n')].EVLO,data[(data.QUAL != 'n')].EVLA)
     return data,stat_loc,null,split # also return data so not to break SKS_plot
 
 def SKS_plot(stat,title1,phase='SKS'):
@@ -122,8 +122,8 @@ def SKS_SKKS_plot(stat):
     stat - station Code [STRING]
     phase - phase to plot [STRING]
     """
-    SKS_data = load(stat,phase='SKS')
-    SKKS_data = load(stat,phase='SKKS')
+    SKS_data,stat_loc,SKS_null,SKS_split = load(stat,phase='SKS')
+    SKKS_data,stat_loc,SKKS_null,SKKS_split = load(stat,phase='SKKS')
 
     fig = plt.figure(figsize = [20,20])
     axs = []
@@ -135,8 +135,10 @@ def SKS_SKKS_plot(stat):
     ax2 = plt.subplot(gs[1,0])
     ax3 = fig.add_subplot(gs[:,1:],projection = proj) # have to use add_subplots in order to add a different projection
 
-    ax1.errorbar(SKS_data.BAZ,SKS_data.TLAG,yerr = SKS_data.DTLAG,fmt='rx',elinewidth=0.5,label='SKS')
-    ax1.errorbar(SKKS_data.BAZ,SKKS_data.TLAG,yerr=SKKS_data.DTLAG,fmt = 'bo',elinewidth=0.5,label='SKKS')
+    ax1.errorbar(SKS_null[0],SKS_null[1],yerr = SKS_null[2],fmt='ro',elinewidth=0.5,label='SKS (null)')
+    ax1.errorbar(SKKS_null[0],SKKS_null[1],yerr = SKKS_null[2],fmt='bo',elinewidth=0.5,label='SKKS (null)')
+    ax1.errorbar(SKS_split[0],SKS_split[1],yerr = SKS_split[2],fmt='rx',elinewidth=0.5,label='SKS (split)')
+    ax1.errorbar(SKKS_split[0],SKKS_split[1],yerr=SKKS_split[2],fmt = 'bx',elinewidth=0.5,label='SKKS (split)')
     ax1.set_ylim([0,4])
     ax1.set_ylabel('Lag (s)')
     ax1.set_xlabel('Back Azimuth (deg)')
@@ -145,8 +147,10 @@ def SKS_SKKS_plot(stat):
     # _fast(ax2,data.BAZ,data.FAST,data.DFAST,'kx')
     # coverage(ax3,data.EVLA,data.EVLO,data.STLA[0],data.STLO[0],stat)
     # plt.show()
-    ax2.errorbar(SKS_data.BAZ,SKS_data.FAST,yerr = SKS_data.DFAST,fmt='rx',elinewidth=0.5,label='SKS')
-    ax2.errorbar(SKKS_data.BAZ,SKKS_data.FAST,yerr=SKKS_data.DFAST,fmt = 'bo',elinewidth=0.5,label='SKKS')
+    ax1.errorbar(SKS_null[0],SKS_null[3],yerr = SKS_null[4],fmt='ro',elinewidth=0.5,label='SKS (null)')
+    ax1.errorbar(SKKS_null[0],SKKS_null[3],yerr = SKKS_null[4],fmt='bo',elinewidth=0.5,label='SKKS (null)')
+    ax1.errorbar(SKS_split[0],SKS_split[3],yerr = SKS_split[4],fmt='rx',elinewidth=0.5,label='SKS (split)')
+    ax1.errorbar(SKKS_split[0],SKKS_split[3],yerr=SKKS_split[4],fmt = 'bx',elinewidth=0.5,label='SKKS (split)')
     ax2.set_ylim([-90,90])
     ax2.set_ylabel('Fast Direction (s)')
     ax2.set_xlabel('Back Azimuth (deg)')
@@ -158,8 +162,10 @@ def SKS_SKKS_plot(stat):
     ax3.add_feature(cartopy.feature.OCEAN, zorder=0)
     ax3.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
     # Now add observed events
-    ax3.plot(SKS_data.EVLO,SKS_data.EVLA,'ro',markersize = 5,transform = cart.Geodetic(),label='Event Locations (SKS)')
-    ax3.plot(SKKS_data.EVLO,SKKS_data.EVLA,'bx',markersize = 5,transform = cart.Geodetic(),label='Event Locations (SKKS)')
+    ax3.plot(SKS_null[5],SKS_null[6],'ro',markersize = 5,transform = cart.Geodetic(),label='Null SKS Locations')
+    ax3.plot(SKKS_null[5],SKKS_null[6],'bo',markersize = 5,transform = cart.Geodetic(),label='Null SKKS Locations')
+    ax3.plot(SKS_split[5],SKS_split[6],'rx',markersize = 5,transform = cart.Geodetic(),label='Null SKS Locations')
+    ax3.plot(SKKS_split[5],SKKS_split[6],'bx',markersize = 5,transform = cart.Geodetic(),label='Null SKKS Locations')
     # ax.set_xticks([-130,-125,-120,-115,-110,-105,-100], crs=proj)
     # ax.set_yticks([30,35,40,45,50,55,60], crs=proj)
     ax3.plot(SKS_data.STLO,SKS_data.STLA,'kv',transform=cart.Geodetic(),markersize=10,label='Station {}'.format(stat))
