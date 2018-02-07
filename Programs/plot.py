@@ -17,19 +17,25 @@ def load(stat,phase):
     data = data.drop(d)
     data = data[(data.QUAL != 'x')]
 
-    return data
+    stat_loc = data.STLA[0],data.STLO[0] # sta and stlo are the same for all events (same station). In future maybe read this data in from Station list?)
+
+
+    #Parse events by whether they are 'null' or 'split'
+    null = (data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].FAST,data[(data.QUAL == 'n')].DFAST,data[(data.QUAL == 'n')].TLAG,data[(data.QUAL == 'n')].DTLAG,data[(data.QUAL == 'n')].EVLA,data[(data.QUAL == 'n')].EVLO)
+    split =(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].FAST,data[(data.QUAL != 'n')].DFAST,data[(data.QUAL != 'n')].TLAG,data[(data.QUAL != 'n')].DTLAG,data[(data.QUAL != 'n')].EVLA,data[(data.QUAL != 'n')].EVLO)
+    return data,stat_loc,null,split # also return data so not to break SKS_plot
 
 def SKS_plot(stat,title1,phase='SKS'):
     """
     Function to make diagnostice plots for a given file of splitting measuremtns
     """
-    data = load(stat,phase)
+    stat_loc, = load(stat,phase)
 
     fig,axs = plt.subplots(2, 2,sharex='col',figsize=(10,10))
 
 
-    axs[0,0].errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].FAST,yerr=data[(data.QUAL == 'n')].DFAST,fmt='kx',elinewidth=0.5,label='Null')
-    axs[0,0].errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].FAST,yerr=data[(data.QUAL != 'n')].DFAST,fmt='ko',elinewidth=0.5,label='Split')
+    axs[0,0].errorbar(null[0],null[1],yerr=null[2],fmt='kx',elinewidth=0.5,label='Null')
+    axs[0,0].errorbar(split[0].split[1],yerr=split[2],fmt='ko',elinewidth=0.5,label='Split')
     axs[0,0].legend(loc=2)
 
     axs[0,0].set_ylabel('Fast Direction (deg)')
@@ -45,8 +51,8 @@ def SKS_plot(stat,title1,phase='SKS'):
     axs[0,1].set_xlabel('Back Azimuth')
     axs[0,1].set_ylabel('Fast Direction (deg)')
 
-    _lag(axs[1,0],data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].TLAG,data[(data.QUAL == 'n')].DTLAG,fmt='kx')
-    _lag(axs[1,0],data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].TLAG,data[(data.QUAL != 'n')].DTLAG,fmt='ko')
+    plot_lag(axs[1,0],null[0],null[3],null[4],fmt='kx')
+    plot_lag(axs[1,0],split[0],split[3],split[4],fmt='ko')
     # axs[1,0].set_ylabel('Tlag (s)')
     # axs[1,0].set_ylim([0,4])
     # axs[1,0].set_title('{} - Lag Time'.format(title1))
