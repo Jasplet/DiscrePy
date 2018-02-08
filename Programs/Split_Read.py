@@ -23,7 +23,7 @@ def split_read(station,network):
     """
     Initialises some variable and call the trace_dowload function for a given station
     """
-    raw = pd.read_csv('/Users/ja17375/Python/SKS_Splitting/Data/Jacks_SKS_RAW.txt',delim_whitespace=True,keep_default_na=False)
+    raw = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Python/Data/Jacks_SKS_RAW.txt',delim_whitespace=True,keep_default_na=False)
 
     data = raw[(raw['STAT'] == station) & (raw['AUTOQC'] != 'fail')]
     ### This appear to be the best way to parse the data that we want
@@ -32,7 +32,7 @@ def split_read(station,network):
     del data['index']
 
 
-    outfile = open('/Users/ja17375/Python/SKS_Splitting/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
+    outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
 
     attempts = 0 #Counter for how many attempted downloads there were
     fdsnx = 0 #Counter for how many attempts hit a FDSNNoDataException
@@ -74,7 +74,7 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
     channel = ["BHN","BHZ","BHE"]
     for ch in channel:
 
-        tr_id = "/Users/ja17375/Python/SKS_Splitting/Data/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(station,station,date,time,start.second,ch)
+        tr_id = "/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(station,station,date,time,start.second,ch)
         # print("Looking for :", id_tst)
         if os.path.isfile(tr_id) == True:
             print("It exists. It was not downloaded") # File does not exist

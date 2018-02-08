@@ -11,7 +11,7 @@ import obspy
 
 def load(stat,phase):
 
-    data = pd.read_csv('/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_{}_Splitting.txt'.format(stat,phase),delim_whitespace=True)
+    data = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Python/Measurements/{}_{}_Splitting.txt'.format(stat,phase),delim_whitespace=True)
     a = data['FAST']
     d = data.index[np.isnan(data['FAST']) == True].tolist() # Find any rows which contain NaNs
     data = data.drop(d)
@@ -115,7 +115,7 @@ def SKKS_plot(stat,phase):
     ax3.legend()
     plt.show()
 
-def SKS_SKKS_plot(stat):
+def SKS_SKKS_plot(stat,save=False):
     """
     Creates a 3 panel plot showing measured fast direction and lag time vs back azimuth at a given station along with the coverage of the events
     for BOTH SKS  and SKKS
@@ -125,7 +125,7 @@ def SKS_SKKS_plot(stat):
     SKS_data,stat_loc,SKS_null,SKS_split = load(stat,phase='SKS')
     SKKS_data,stat_loc,SKKS_null,SKKS_split = load(stat,phase='SKKS')
 
-    fig = plt.figure(figsize = [20,20])
+    fig = plt.figure()
     axs = []
     gs = gridspec.GridSpec(2,3) # Creates a 2x3 grid in the figure space for plotting in
     proj = cart.AzimuthalEquidistant(central_longitude=SKKS_data.STLO[0],central_latitude=SKKS_data.STLA[0])
@@ -139,20 +139,20 @@ def SKS_SKKS_plot(stat):
     ax1.errorbar(SKKS_null[0],SKKS_null[1],yerr = SKKS_null[2],fmt='bo',elinewidth=0.5,label='SKKS (null)')
     ax1.errorbar(SKS_split[0],SKS_split[1],yerr = SKS_split[2],fmt='rx',elinewidth=0.5,label='SKS (split)')
     ax1.errorbar(SKKS_split[0],SKKS_split[1],yerr=SKKS_split[2],fmt = 'bx',elinewidth=0.5,label='SKKS (split)')
-    ax1.set_ylim([0,4])
-    ax1.set_ylabel('Lag (s)')
+    ax1.set_ylim([-90,90])
+    ax1.set_ylabel('Fast Direction (deg)')
     ax1.set_xlabel('Back Azimuth (deg)')
     ax1.legend()
     # _lag(ax1,data.BAZ,data.TLAG,data.DTLAG,'kx')
     # _fast(ax2,data.BAZ,data.FAST,data.DFAST,'kx')
     # coverage(ax3,data.EVLA,data.EVLO,data.STLA[0],data.STLO[0],stat)
     # plt.show()
-    ax1.errorbar(SKS_null[0],SKS_null[3],yerr = SKS_null[4],fmt='ro',elinewidth=0.5,label='SKS (null)')
-    ax1.errorbar(SKKS_null[0],SKKS_null[3],yerr = SKKS_null[4],fmt='bo',elinewidth=0.5,label='SKKS (null)')
-    ax1.errorbar(SKS_split[0],SKS_split[3],yerr = SKS_split[4],fmt='rx',elinewidth=0.5,label='SKS (split)')
-    ax1.errorbar(SKKS_split[0],SKKS_split[3],yerr=SKKS_split[4],fmt = 'bx',elinewidth=0.5,label='SKKS (split)')
-    ax2.set_ylim([-90,90])
-    ax2.set_ylabel('Fast Direction (s)')
+    ax2.errorbar(SKS_null[0],SKS_null[3],yerr = SKS_null[4],fmt='ro',elinewidth=0.5,label='SKS (null)')
+    ax2.errorbar(SKKS_null[0],SKKS_null[3],yerr = SKKS_null[4],fmt='bo',elinewidth=0.5,label='SKKS (null)')
+    ax2.errorbar(SKS_split[0],SKS_split[3],yerr = SKS_split[4],fmt='rx',elinewidth=0.5,label='SKS (split)')
+    ax2.errorbar(SKKS_split[0],SKKS_split[3],yerr=SKKS_split[4],fmt = 'bx',elinewidth=0.5,label='SKKS (split)')
+    ax2.set_ylim([0,4])
+    ax2.set_ylabel('Lag (s)')
     ax2.set_xlabel('Back Azimuth (deg)')
     ### Plot Coverage on third axis object
     #ax3.set_extent([-180,180,-60,90])
@@ -171,7 +171,13 @@ def SKS_SKKS_plot(stat):
     ax3.plot(SKS_data.STLO,SKS_data.STLA,'kv',transform=cart.Geodetic(),markersize=10,label='Station {}'.format(stat))
     ax3.set_title('SKS/SKKS coverage for Station {}'.format(stat))
     ax3.legend()
-    plt.show()
+
+
+    if save is True:
+        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Python/Figures/{}_SKS_SKKS_plot'.format(stat))
+        print('Saving')
+    else:
+        plt.show()
 
 def plot_lag(ax,baz,lag1,dlag1,fmt):
 

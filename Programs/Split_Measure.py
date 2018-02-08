@@ -49,9 +49,9 @@ def splitting(station,switch,files,phase):
                 date,time = int(str(t0.year)+str(t0.julday).zfill(3)),int(str(t0.hour).zfill(2)+str(t0.minute).zfill(2)+str(t0.second).zfill(2)) #creates time and date stamps
                 if switch is 'on':
 
-                    eig_file ='{}/{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files',phase,station,station,date,time)
+                    eig_file ='{}/{}/{}/{}_{:07d}_{:06d}.eigm'.format('/Users/ja17375/Shear_Wave_Splitting/Python/Eigm_Files',phase,station,station,date,time)
                 elif switch is 'off':
-                    eig_file = '{}/{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Eigm_Files',phase,station,station,'JW_Windows',date,time)
+                    eig_file = '{}/{}/{}/{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Shear_Wave_Splitting/Python/Eigm_Files',phase,station,station,'JW_Windows',date,time)
 
 
                 if os.path.isfile(eig_file):
@@ -75,7 +75,7 @@ def splitting(station,switch,files,phase):
                             print('Test Passed. Phase ={}, GCARC = {}'.format(phase,st[0].stats.sac.gcarc))
                             split, wbeg, wend,fig = split_measure(pair,traveltime)
                             split.quality = quality
-                            plt.savefig('{}{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface/',station,phase,date,time))
+                            plt.savefig('{}{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Shear_Wave_Splitting/Python/Figures/Eigm_Surface/',station,phase,date,time))
                             plt.close()
                             write_splitting(outfile,station,phase,eigm=split,st=st,date=date,time=time)
                             split.save(eig_file)
@@ -91,7 +91,7 @@ def splitting(station,switch,files,phase):
                         fig = plt.figure(figsize=(12,6))
                         eigen_plot(split,fig)
 
-                        plt.savefig('{}/{}_{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Python/Shear_Wave_Splitting/Figures/Eigm_Surface',station,phase,'JW_Windows',date,time))
+                        plt.savefig('{}/{}_{}_{}_{:07d}_{:06d}'.format('/Users/ja17375/Shear_Wave_Splitting/Python/Figures/Eigm_Surface',station,phase,'JW_Windows',date,time))
 
                         plt.close()
                         split.quality = 'w'
@@ -113,7 +113,7 @@ def write_splitting(outfile,station,phase,eigm=None,st=None,date=None,time=None)
         if eigm is not None:
             #Splitting measure has been made or already exists and needs to be written out
             (wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend) = split_match(date,time,station)
-    
+
             meas = [eigm.data.wbeg(), eigm.data.wend(), eigm.fast, eigm.dfast, eigm.lag, eigm.dlag,wl_fast,wl_dfast,wl_tlag,wl_dtlag,wl_wbeg,wl_wend ] #Measurement that I want to output
             attrib = ['stla','stlo','evla','evlo','evdp','gcarc','baz'] #SAC attribute values that I want to extract and print later
             stats = [st[0].stats.sac[i] for i in attrib] # Use list comprehension to extract sac attributes I want.
@@ -153,9 +153,9 @@ def output_init(station,switch,phase):
     """
     if switch is 'on':
 
-        default_out = '/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_{}_Splitting.txt'.format(station,phase) #Default output filename
+        default_out = '/Users/ja17375/Shear_Wave_Splitting/Python/Measurements/{}_{}_Splitting.txt'.format(station,phase) #Default output filename
     elif switch is 'off':
-        default_out = '/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}_{}_Splitting_JW_Windows.txt'.format(station,phase)
+        default_out = '/Users/ja17375/Shear_Wave_Splitting/Python/Measurements/{}_{}_Splitting_JW_Windows.txt'.format(station,phase)
 
 
     if os.path.isfile(default_out):
@@ -166,7 +166,7 @@ def output_init(station,switch,phase):
 
         elif ovr == 'n':
             new_out = user_in('c2',station)
-            outfile = open('/Users/ja17375/Python/Shear_Wave_Splitting/Measurements/{}.txt'.format(new_out),'w+')
+            outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Measurements/{}.txt'.format(new_out),'w+')
     elif os.path.isfile(default_out) == False:
         print('{} does not exist and will be created'.format(default_out))
         outfile = open(default_out,'w+')
@@ -223,7 +223,7 @@ def save_sac(st,qual,date,time,wbeg,wend,switch):
             ch = tr.stats.channel
             stat = tr.stats.station
             t0 = tr.stats.starttime
-            path = '/Users/ja17375/Python/Shear_Wave_Splitting/Data/Proccessed_Streams'
+            path = '/Users/ja17375/Shear_Wave_Splitting/Python/Data/Proccessed_Streams'
             tr2 = tr.trim(t0 + wbeg, t0 + wend)
             tr2.write('{}/{}_{}_{:07d}_{:06d}_{}.sac'.format(path,stat,qual,date,time,ch), format='SAC')
     elif switch == 'off':
