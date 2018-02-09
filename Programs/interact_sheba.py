@@ -52,7 +52,7 @@ def main():
                     st_id = '{}'.format(str(line[0:-1]))
 
                     Event = Interface(ob.read(st_id))
-                    
+
         else:
             print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
 
@@ -70,7 +70,10 @@ class Interface:
         self.BHN = st.select(channel='BHN')
         self.BHZ = st.select(channel='BHZ')
 
-
+    def sheba(self):
+        """
+        The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
+        """
 
 ## Psuedo code plan for script
 # Read Station list
