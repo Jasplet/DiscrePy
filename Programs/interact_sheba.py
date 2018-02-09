@@ -49,10 +49,13 @@ def main():
             with open('{}/{}_downloaded_streams.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
                 for line in reader.readlines():
                     line.strip('\n')
-                    st_id = '{}'.format(str(line[0:-1]))
-
-                    Event = Interface(ob.read(st_id))
-
+                    st_id = '{}BH?.sac'.format(str(line[0:-1]))
+                    st = ob.read(st_id)
+                    if len(st) is 3:
+                        Event = Interface(st)
+                        print(Event.BHE[0].stats.sac.cmpaz)
+                        print(Event.BHN[0].stats.sac.cmpaz)
+                        print(Event.BHZ[0].stats.sac.cmpaz)
         else:
             print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
 
@@ -67,9 +70,14 @@ class Interface:
         # self.date = date
         # self.time = time
         self.BHE = st.select(channel='BHE')
+        self.BHE[0].stats.sac.cmpinc = 90
+        self.BHE[0].stats.sac.cmpaz = 90
         self.BHN = st.select(channel='BHN')
+        self.BHN[0].stats.sac.cmpinc = 90
+        self.BHN[0].stats.sac.cmpaz = 0
         self.BHZ = st.select(channel='BHZ')
-
+        self.BHZ[0].stats.sac.cmpinc = 0
+        self.BHZ[0].stats.sac.cmpaz = 0
     def sheba(self):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
