@@ -88,7 +88,10 @@ class Interface:
         """
 
         for comp in ['BHN','BHE','BHZ']:
-#           First filter each component. Bandpass flag gives a bandpass-butterworth filter
+#           De-mean and detrend each component
+            self.comp.detrend(type='demean') #demeans the component
+            self.comp.detrend(type='simple')
+#           Filter each component. Bandpass flag gives a bandpass-butterworth filter
             self.comp.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
 #           Now trim each component to the input length (default is 1400,1600)
             self.comp.trim(self.comp[0].stats.starttime + t1,self.comp[0].stats.starttime + t2)
