@@ -77,7 +77,7 @@ class Interface:
         self.BHZ[0].stats.sac.cmpinc = 0
         self.BHZ[0].stats.sac.cmpaz = 0
 
-    def process(self,t1=1400,t2=1600):
+    def process(self,c1=0.01,c2=0.5,t1=1400,t2=1600):
         """
         Function to bandpass filter and trim the components
         t1 - [s] Lower bound of trim, time relative to event time
@@ -86,14 +86,12 @@ class Interface:
         c2 - [Hz] Upper corner frequency
         By default traces will trim between 1400 - 1600s and will be filtered between 0.01Hz-0.5Hz
         """
-#       First filter each component. Bandpass flag gives a bandpass-butterworth filter
+
         for comp in ['BHN','BHE','BHZ']:
-            st_f = filt(self.comp) #Variable st_f isn't strictly required, but added for santiy
-            self.comp = trim(st_f)
-#       Now trim each component to the input length (default is 1400,1600)
-        self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
-        self.BHE.trim(self.BHE[0].stats.starttime + t1,self.BHE[0].stats.starttime + t2)
-        self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
+#           First filter each component. Bandpass flag gives a bandpass-butterworth filter
+            self.comp.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
+#           Now trim each component to the input length (default is 1400,1600)
+            self.comp.trim(self.comp[0].stats.starttime + t1,self.comp[0].stats.starttime + t2)
 
 
     def sheba(self):
@@ -101,17 +99,7 @@ class Interface:
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
 
-    def filt(st,c1=0.01,c2=0.5):
-        """
-        Applied a 2 pass 2 pole bandpass-butterwoth filter to a component
-        """
-        st.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
-        return st
-    def trim(st,t1=1400,t2=1600)
-        """
-        Function to trim a component
-        """
-        st.trim(st[0].stats.starttime + t1,st[0].stats.starttime + t2)
+
 ## Psuedo code plan for script
 # Read Station list
 
