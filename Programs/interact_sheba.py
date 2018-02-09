@@ -53,9 +53,7 @@ def main():
                     st = ob.read(st_id)
                     if len(st) is 3:
                         Event = Interface(st)
-                        print(Event.BHE[0].stats.sac.cmpaz)
-                        print(Event.BHN[0].stats.sac.cmpaz)
-                        print(Event.BHZ[0].stats.sac.cmpaz)
+
         else:
             print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
 
@@ -78,6 +76,9 @@ class Interface:
         self.BHZ = st.select(channel='BHZ')
         self.BHZ[0].stats.sac.cmpinc = 0
         self.BHZ[0].stats.sac.cmpaz = 0
+
+    def process(self,t1,t2)
+
     def sheba(self):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
