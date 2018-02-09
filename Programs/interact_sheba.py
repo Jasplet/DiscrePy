@@ -49,9 +49,19 @@ def main():
         else:
             print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station)
 
-        
 
 
+class interface:
+    """
+    Class which will act as the interface to sheba.
+    The "subprocess" sheba will be a bound method
+    """
+    def __init__(self,st,date,time):
+        self.date = date
+        self.time = time
+        self.BHE = st.select(channel='BHE')
+        self.BHN = st.select(channel='BHN')
+        self.BHZ = st.select(channel='BHZ')
 
 ## Psuedo code plan for script
 # Read Station list
