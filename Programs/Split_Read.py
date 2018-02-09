@@ -74,7 +74,7 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
     channel = ["BHN","BHZ","BHE"]
     for ch in channel:
 
-        tr_id = "/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(station,station,date,time,start.second,ch)
+        tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(station,station,date,time,start.second,ch)
         # print("Looking for :", id_tst)
         if os.path.isfile(tr_id) == True:
             print("It exists. It was not downloaded") # File does not exist
@@ -85,8 +85,11 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
             # print("It does not exist. Download attempted")
             st = obspy.core.stream.Stream() # Initialises our stream variable
             try:
-
-                download_client = obspy.clients.fdsn.Client('NCEDC')
+                if network is 'BK':
+                    download_client = obspy.clients.fdsn.Client('NCEDC')
+                else:
+                    download_client = obspy.clients.fdsn.Client('IRIS')
+                    
                 st = download_client.get_waveforms(network,station,'??',ch,start,start + 3000,attach_response=True)
 
                 if len(st) > 3:
