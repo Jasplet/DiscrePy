@@ -18,17 +18,17 @@
 #   Import Statements
 ##############################
 #   Standard Packages - all freely available
-    import obspy as ob
-    import numpy as np
-    import pandas as import pd
-    import matplotlib.pyplot as ply #Just incase
-    import subprocess as sub
-    import os.path
+import obspy as ob
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as ply #Just incase
+import subprocess as sub
+import os.path
 ##############################
 #   Import other scripts in Programs/
-    import Split_Read as sr
-    import Split_Measure as sm #Just in incase
-    import plot as sp
+import Split_Read as sr
+import Split_Measure as sm #Just in incase
+import plot as sp
 ##############################
 def main():
     """
@@ -40,28 +40,37 @@ def main():
     statlist ='{}/Data/StationList.txt'.format(path)
     stations = pd.read_csv(statlist,delim_whitespace=True).STAT
    #Loop over all stations in the list.
-    for station in stations():
+    for station in stations:
         #Each station SHOULD have its own directory within Data/SAC_files
         #If the data has been downloaded. So lets look for directorys that exist
-        if os.path.isdir('{}/Data/SAC_files/{}'.format(path,station)):
+        dir_path = '{}/Data/SAC_files/{}'.format(path,station)
+        if os.path.isdir(dir_path):
             #Happy Days! The data directory exists!
+            with open('{}/{}_downloaded_streams.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
+                for line in reader.readlines():
+                    line.strip('\n')
+                    st_id = '{}'.format(str(line[0:-1]))
 
+                    Event = Interface(ob.read(st_id))
+                    
         else:
-            print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station)
+            print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
 
 
 
-class interface:
+class Interface:
     """
     Class which will act as the interface to sheba.
     The "subprocess" sheba will be a bound method
     """
-    def __init__(self,st,date,time):
-        self.date = date
-        self.time = time
+    def __init__(self,st):
+        # self.date = date
+        # self.time = time
         self.BHE = st.select(channel='BHE')
         self.BHN = st.select(channel='BHN')
         self.BHZ = st.select(channel='BHZ')
+
+
 
 ## Psuedo code plan for script
 # Read Station list
