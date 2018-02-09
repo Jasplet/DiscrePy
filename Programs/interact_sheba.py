@@ -30,7 +30,7 @@ import Split_Read as sr
 import Split_Measure as sm #Just in incase
 import plot as sp
 ##############################
-def main():
+def main(phase='SKS'):
     """
     Main - call this function to run the interface to sheba
     """
@@ -53,7 +53,15 @@ def main():
                     st = ob.read(st_id)
                     if len(st) is 3:
                         Event = Interface(st)
+                        if phase is 'SKS':
+                            Event.process(station)
+                            Event.sheba(station)
+                        elif phase is 'SKKS':
+#                           When we look for SKKS the traces will need to be trimmmed at different times!
+                            Event.process(t1 = 1800, t2 = 2000)
 
+                    else:
+                        pass
         else:
             print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
 
@@ -77,7 +85,7 @@ class Interface:
         self.BHZ[0].stats.sac.cmpinc = 0
         self.BHZ[0].stats.sac.cmpaz = 0
 
-    def process(self,c1=0.01,c2=0.5,t1=1400,t2=1600):
+    def process(self,station,c1=0.01,c2=0.5,t1=1400,t2=1600):
         """
         Function to bandpass filter and trim the components
         t1 - [s] Lower bound of trim, time relative to event time
@@ -87,22 +95,53 @@ class Interface:
         By default traces will trim between 1400 - 1600s and will be filtered between 0.01Hz-0.5Hz
         """
 
-        for comp in ['BHN','BHE','BHZ']:
-#           De-mean and detrend each component
-            self.comp.detrend(type='demean') #demeans the component
-            self.comp.detrend(type='simple')
-#           Filter each component. Bandpass flag gives a bandpass-butterworth filter
-            self.comp.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
-#           Now trim each component to the input length (default is 1400,1600)
-            self.comp.trim(self.comp[0].stats.starttime + t1,self.comp[0].stats.starttime + t2)
 
+#       De-mean and detrend each component
+        self.BHN.detrend(type='demean') #demeans the component
+        self.BHE.detrend(type='demean')
+        self.BHZ.detrend(type='demean')
+#       Detrend
+        self.BHN.detrend(type='simple') #De-trends component
+        self.BHE.detrend(type='simple') #De-trends component
+        self.BHZ.detrend(type='simple') #De-trends component
+#       Filter each component. Bandpass flag gives a bandpass-butterworth filter
+        self.BHN.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
+        self.BHE.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
+        self.BHZ.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
+#       Now trim each component to the input length (default is 1400,1600)
+        self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
+        self.BHE.trim(self.BHE[0].stats.starttime + t1,self.BHE[0].stats.starttime + t2)
+        self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
+#       Now write out the three processed components
+        self.BHN.write('{}.BHN'.format(station),format='SAC',byteorder=1)
+        self.BHE.write('{}.BHE'.format(station),format='SAC',byteorder=1)
+        self.BHZ.write('{}.BHZ'.format(station),format='SAC',byteorder=1)
 
-    def sheba(self):
+    def plot_comp(self):
+        """
+        Quick Function to plot component together on one seismogram
+        """
+        st = self.BHN + self.BHE + self.BHZ
+        st.plot(type='relative')
+
+    def sheba(self,station):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
+        p = sub.Popen(['sac'],
+                     stdout = sub.PIPE,
+                     stdin  = sub.PIPE,
+                     stderr = sub.STDOUT,
+                     encoding='utf8')
+        s = '''
+        echo on\n
+        setmacro /Users/ja17375/Ext_programs/macros
+        read {}.BHN {}.BHE {}.BHZ
+        m sheba plot no nwind 10 10 
+        '''.format(station,station,station)
 
-
+        out =p.communicate(s)
+        print(out[0])
 ## Psuedo code plan for script
 # Read Station list
 
