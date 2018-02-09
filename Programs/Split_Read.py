@@ -121,7 +121,7 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
                     #print(st_2[0].stats)
                     #st[0].stats.sac = sac
                     #st_2.plot()
-                    st_2[0].write(tr_id, format='SAC')
+                    st_2[0].write(tr_id, format='SAC',byteorder=1)
                     print("The trace ", tr_id, "was downloaded and saved!")
                     dwn += 1
                     if ch == 'BHE':
