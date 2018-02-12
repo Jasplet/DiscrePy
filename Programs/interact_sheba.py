@@ -39,6 +39,7 @@ def main(phase='SKS'):
     path = '/Users/ja17375/Shear_Wave_Splitting'
     statlist ='{}/Data/StationList.txt'.format(path)
     stations = pd.read_csv(statlist,delim_whitespace=True).STAT
+    i = 1 # Counter
    #Loop over all stations in the list.
     for station in stations:
         #Each station SHOULD have its own directory within Data/SAC_files
@@ -56,10 +57,11 @@ def main(phase='SKS'):
                         if phase is 'SKS':
                             Event.process(station)
                             Event.sheba(station)
+                            i +=1
                         elif phase is 'SKKS':
 #                           When we look for SKKS the traces will need to be trimmmed at different times!
                             Event.process(t1 = 1800, t2 = 2000)
-
+                            i +=1
                     else:
                         pass
         else:
@@ -85,7 +87,7 @@ class Interface:
         self.BHZ[0].stats.sac.cmpinc = 0
         self.BHZ[0].stats.sac.cmpaz = 0
 
-    def process(self,station,c1=0.01,c2=0.5,t1=1400,t2=1600):
+    def process(self,station,c1=0.01,c2=0.5,t1=1400,t2=1600,i=None):
         """
         Function to bandpass filter and trim the components
         t1 - [s] Lower bound of trim, time relative to event time
@@ -113,9 +115,17 @@ class Interface:
         self.BHE.trim(self.BHE[0].stats.starttime + t1,self.BHE[0].stats.starttime + t2)
         self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
 #       Now write out the three processed components
-        self.BHN.write('{}.BHN'.format(station),format='SAC',byteorder=1)
-        self.BHE.write('{}.BHE'.format(station),format='SAC',byteorder=1)
-        self.BHZ.write('{}.BHZ'.format(station),format='SAC',byteorder=1)
+#       Naming depends on whether this is being executed as a test or within a loop
+#       where a counter should be provided to prevent overwriting.
+        if i is not None:
+            self.BHN.write('{}{}.BHN'.format(station,i),format='SAC',byteorder=1)
+            self.BHE.write('{}{}.BHE'.format(station,i),format='SAC',byteorder=1)
+            self.BHZ.write('{}{}.BHZ'.format(station,i),format='SAC',byteorder=1)
+        else:
+            self.BHN.write('{}.BHN'.format(station),format='SAC',byteorder=1)
+            self.BHE.write('{}.BHE'.format(station),format='SAC',byteorder=1)
+            self.BHZ.write('{}.BHZ'.format(station),format='SAC',byteorder=1)
+
 
     def plot_comp(self):
         """
@@ -136,9 +146,9 @@ class Interface:
         s = '''
         echo on\n
         setmacro /Users/ja17375/Ext_programs/macros
-        read {}.BHN {}.BHE {}.BHZ
-        m sheba plot no nwind 10 10 
-        '''.format(station,station,station)
+
+        m sheba file {} plot no nwind 10 10
+        '''.format(station)
 
         out =p.communicate(s)
         print(out[0])
