@@ -19,7 +19,7 @@ from obspy.clients import iris
 
 
 ##################### Start of Function to Request and Save Traces ##################
-def split_read(station,network):
+def split_read(station,network='US'):
     """
     Initialises some variable and call the trace_dowload function for a given station
     """
