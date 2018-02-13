@@ -152,8 +152,6 @@ class Interface:
         if i is not None:
             s = '''
             echo on\n
-            setmacro /Users/ja17375/Ext_programs/macros
-
             m sheba file {}/{}{} plot no nwind 10 10 batch yes
             '''.format(path,station,i)
             print(s)
@@ -162,8 +160,6 @@ class Interface:
         else:
             s = '''
             echo on\n
-            setmacro /Users/ja17375/Ext_programs/macros
-
             m sheba file {} plot no nwind 10 10
             '''.format(station)
 
