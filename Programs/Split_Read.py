@@ -31,9 +31,11 @@ def split_read(station,network='US'):
     data = data.reset_index()
     del data['index']
 
-
-    outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
-
+    try:
+        outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
+    except FileNotFoundError:
+        os.makedirs('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}'.format(station))
+        outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
     attempts = 0 #Counter for how many attempted downloads there were
     fdsnx = 0 #Counter for how many attempts hit a FDSNNoDataException
     dwn = 0 #Counter for how many events were downloaded
