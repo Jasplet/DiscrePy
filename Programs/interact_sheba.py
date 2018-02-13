@@ -114,6 +114,11 @@ class Interface:
         self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
         self.BHE.trim(self.BHE[0].stats.starttime + t1,self.BHE[0].stats.starttime + t2)
         self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
+#       Add windowing ranges to sac headers user0,user1,user2,user3 [start1,start2,end1,end2]
+#       As we will use Teanby's multiwindowing subroutine, my window ranges will be at the start, the middle and the end of the trim (1400,1500,1500,1600 for SKS)
+        self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (t1,(t1+t2/2),(t1+t2/2),t2)
+        self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (t1,(t1+t2/2),(t1+t2/2),t2)
+        self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (t1,(t1+t2/2),(t1+t2/2),t2)
 #       Now write out the three processed components
 #       Naming depends on whether this is being executed as a test or within a loop
 #       where a counter should be provided to prevent overwriting.
