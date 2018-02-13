@@ -24,6 +24,7 @@ import pandas as pd
 import matplotlib.pyplot as ply #Just incase
 import subprocess as sub
 import os.path
+import time
 ##############################
 #   Import other scripts in Programs/
 import Split_Read as sr
@@ -41,6 +42,7 @@ def main(phase='SKS'):
     stations = pd.read_csv(statlist,delim_whitespace=True).STAT
 
    #Loop over all stations in the list.
+   start = time.time()
     for station in stations:
         i = 1 # Counter
         #Each station SHOULD have its own directory within Data/SAC_files
@@ -56,9 +58,17 @@ def main(phase='SKS'):
                     if len(st) is 3:
                         Event = Interface(st)
                         if phase is 'SKS':
-                            Event.process(station,phase,i=i,path='{}/Sheba/SAC'.format(path))
-                            Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/'.format(path))
-                            i +=1
+                            outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
+                            try:
+                                Event.process(station,phase,i=i,path=outdir)
+                                Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station))
+                                i +=1
+                            except OSError:
+                                print('Directory for writing outputs to does not exist. Initialising')
+                                os.makedirs(outdir)
+                                Event.process(station,phase,i=i,path=outdir)
+                                Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station))
+                                i +=1
                         elif phase is 'SKKS':
 #                           When we look for SKKS the traces will need to be trimmmed at different times!
                             Event.process(t1 = 1800, t2 = 2000)
@@ -69,6 +79,9 @@ def main(phase='SKS'):
             # print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
             pass
 
+    end = time.time()
+    runtime = end - start
+    print('The runtime of main is {}'.format(runtime))
 
 class Interface:
     """
@@ -188,6 +201,16 @@ class Interface:
 
             out =p.communicate(s)
             # print(out[0])
+
+def tidy(station,phase):
+    """
+    Function to tidy up the working directory after a sheba run. Do things like concatenate final result files together, move postscripts to the postscript folder etc.
+    Give the working directory a good clean basically
+    """
+
+    sub.call(['cat','', '{}_{}*.final_result'.format(station,phase)])
+
+
 ## Psuedo code plan for script
 # Read Station list
 
