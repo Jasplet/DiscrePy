@@ -39,9 +39,10 @@ def main(phase='SKS'):
     path = '/Users/ja17375/Shear_Wave_Splitting'
     statlist ='{}/Data/StationList.txt'.format(path)
     stations = pd.read_csv(statlist,delim_whitespace=True).STAT
-    i = 1 # Counter
+
    #Loop over all stations in the list.
     for station in stations:
+        i = 1 # Counter
         #Each station SHOULD have its own directory within Data/SAC_files
         #If the data has been downloaded. So lets look for directorys that exist
         dir_path = '{}/Data/SAC_files/{}'.format(path,station)
@@ -56,7 +57,7 @@ def main(phase='SKS'):
                         Event = Interface(st)
                         if phase is 'SKS':
                             Event.process(station,phase,i=i,path='{}/Sheba/SAC'.format(path))
-                            Event.sheba(station,phase,i=i,path='{}/Sheba/SAC'.format(path))
+                            Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/'.format(path))
                             i +=1
                         elif phase is 'SKKS':
 #                           When we look for SKKS the traces will need to be trimmmed at different times!
@@ -65,8 +66,8 @@ def main(phase='SKS'):
                     else:
                         pass
         else:
-            print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
-
+            # print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
+            pass
 
 
 class Interface:
@@ -87,25 +88,42 @@ class Interface:
         self.BHZ[0].stats.sac.cmpinc = 0
         self.BHZ[0].stats.sac.cmpaz = 0
 
-    def process(self,station,phase,c1=0.01,c2=0.5,t1=1400,t2=1600,i=None,path=None):
+    def windowrange(self,phase):
+        """
+        Function to run TauP traveltime models for the SKS phase.
+        Returns SKS predictided arrivals (seconds), origin time of the event (t0) as a UTCDateTime obejct and the SKS arrival as a UTCDateTime object
+
+        tr - trace object for which SKS arrival time will be predicted
+        """
+        model = ob.taup.tau.TauPyModel(model="iasp91")
+        traveltime = model.get_travel_times(self.BHN[0].stats.sac.evdp,self.BHN[0].stats.sac.gcarc,[phase])[0].time
+#       Set the range of window starttime (user0/user1)
+        user0 = traveltime - 30
+        user1 = traveltime
+#       Set the raqnge of window endtime (user2/user3)
+        user2 = traveltime + 20
+        user3 = traveltime + 60
+        return user0,user1,user2,user3
+
+    def process(self,station,phase,c1=0.01,c2=0.5,t1=1300,t2=1600,i=None,path=None):
         """
         Function to bandpass filter and trim the components
         t1 - [s] Lower bound of trim, time relative to event time
         t2 - [s] Upper bound of trim, time relative to event time
         c1 - [Hz] Lower corner frequency
         c2 - [Hz] Upper corner frequency
-        By default traces will trim between 1400 - 1600s and will be filtered between 0.01Hz-0.5Hz
+        By default traces will trim between 1300 - 1700s and will be filtered between 0.01Hz-0.5Hz
         """
 
 
 #       De-mean and detrend each component
-        self.BHN.detrend(type='demean') #demeans the component
-        self.BHE.detrend(type='demean')
-        self.BHZ.detrend(type='demean')
+        # self.BHN.detrend(type='demean') #demeans the component
+        # self.BHE.detrend(type='demean')
+        # self.BHZ.detrend(type='demean')
 #       Detrend
-        self.BHN.detrend(type='simple') #De-trends component
-        self.BHE.detrend(type='simple') #De-trends component
-        self.BHZ.detrend(type='simple') #De-trends component
+        # self.BHN.detrend(type='simple') #De-trends component
+        # self.BHE.detrend(type='simple') #De-trends component
+        # self.BHZ.detrend(type='simple') #De-trends component
 #       Filter each component. Bandpass flag gives a bandpass-butterworth filter
         self.BHN.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
         self.BHE.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
@@ -116,9 +134,9 @@ class Interface:
         self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
 #       Add windowing ranges to sac headers user0,user1,user2,user3 [start1,start2,end1,end2]
 #       As we will use Teanby's multiwindowing subroutine, my window ranges will be at the start, the middle and the end of the trim (1400,1500,1500,1600 for SKS)
-        self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (t1,(t1+t2/2),(t1+t2/2),t2)
-        self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (t1,(t1+t2/2),(t1+t2/2),t2)
-        self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (t1,(t1+t2/2),(t1+t2/2),t2)
+        self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = self.windowrange(phase)
+        self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = self.windowrange(phase)
+        self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = self.windowrange(phase)
 #       Now write out the three processed components
 #       Naming depends on whether this is being executed as a test or within a loop
 #       where a counter should be provided to prevent overwriting.
@@ -132,6 +150,8 @@ class Interface:
             self.BHZ.write('{}.BHZ'.format(station),format='SAC',byteorder=1)
 
 
+
+
     def plot_comp(self):
         """
         Quick Function to plot component together on one seismogram
@@ -143,6 +163,7 @@ class Interface:
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
+        print('Passing {}_{}_{} into Sheba'.format(station,phase,i))
         p = sub.Popen(['sac'],
                      stdout = sub.PIPE,
                      stdin  = sub.PIPE,
@@ -152,19 +173,21 @@ class Interface:
         if i is not None:
             s = '''
             echo on\n
-            m sheba file {}/{}_{}_{} plot no nwind 10 10 batch yes
-            '''.format(path,station,phase,i)
-            print(s)
+            SETMACRO /Users/ja17375/Ext_programs/macros
+            m sheba file {}_{}_{} plot yes pick no nwind 10 10 batch yes
+            '''.format(station,phase,i)
+
             out =p.communicate(s)
-            # print(out[0])
+
         else:
             s = '''
             echo on\n
+            SETMACRO /Users/ja17375/Ext_programs/macros
             m sheba file {} plot no nwind 10 10
             '''.format(station)
 
             out =p.communicate(s)
-            print(out[0])
+            # print(out[0])
 ## Psuedo code plan for script
 # Read Station list
 
