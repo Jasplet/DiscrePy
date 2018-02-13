@@ -55,8 +55,8 @@ def main(phase='SKS'):
                     if len(st) is 3:
                         Event = Interface(st)
                         if phase is 'SKS':
-                            Event.process(station,i=i,path='{}/Data/SAC_files/SHEBA'.format(path))
-                            Event.sheba(station,i=i,path='{}/Data/SAC_files/SHEBA'.format(path))
+                            Event.process(station,i=i,path='{}/Sheba/SAC'.format(path))
+                            Event.sheba(station,i=i,path='{}/Sheba/SAC'.format(path))
                             i +=1
                         elif phase is 'SKKS':
 #                           When we look for SKKS the traces will need to be trimmmed at different times!
