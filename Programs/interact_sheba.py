@@ -55,8 +55,8 @@ def main(phase='SKS'):
                     if len(st) is 3:
                         Event = Interface(st)
                         if phase is 'SKS':
-                            Event.process(station,i=i,path='{}/Sheba/SAC'.format(path))
-                            Event.sheba(station,i=i,path='{}/Sheba/SAC'.format(path))
+                            Event.process(station,phase,i=i,path='{}/Sheba/SAC'.format(path))
+                            Event.sheba(station,phase,i=i,path='{}/Sheba/SAC'.format(path))
                             i +=1
                         elif phase is 'SKKS':
 #                           When we look for SKKS the traces will need to be trimmmed at different times!
@@ -87,7 +87,7 @@ class Interface:
         self.BHZ[0].stats.sac.cmpinc = 0
         self.BHZ[0].stats.sac.cmpaz = 0
 
-    def process(self,station,c1=0.01,c2=0.5,t1=1400,t2=1600,i=None,path=None):
+    def process(self,station,phase,c1=0.01,c2=0.5,t1=1400,t2=1600,i=None,path=None):
         """
         Function to bandpass filter and trim the components
         t1 - [s] Lower bound of trim, time relative to event time
@@ -123,9 +123,9 @@ class Interface:
 #       Naming depends on whether this is being executed as a test or within a loop
 #       where a counter should be provided to prevent overwriting.
         if i is not None:
-            self.BHN.write('{}/{}{}.BHN'.format(path,station,i),format='SAC',byteorder=1)
-            self.BHE.write('{}/{}{}.BHE'.format(path,station,i),format='SAC',byteorder=1)
-            self.BHZ.write('{}/{}{}.BHZ'.format(path,station,i),format='SAC',byteorder=1)
+            self.BHN.write('{}/{}_{}_{}.BHN'.format(path,station,phase,i),format='SAC',byteorder=1)
+            self.BHE.write('{}/{}_{}_{}.BHE'.format(path,station,phase,i),format='SAC',byteorder=1)
+            self.BHZ.write('{}/{}_{}_{}.BHZ'.format(path,station,phase,i),format='SAC',byteorder=1)
         else:
             self.BHN.write('{}.BHN'.format(station),format='SAC',byteorder=1)
             self.BHE.write('{}.BHE'.format(station),format='SAC',byteorder=1)
@@ -139,7 +139,7 @@ class Interface:
         st = self.BHN + self.BHE + self.BHZ
         st.plot(type='relative')
 
-    def sheba(self,station,i = None,path=None):
+    def sheba(self,station,phase,i = None,path=None):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
@@ -152,8 +152,8 @@ class Interface:
         if i is not None:
             s = '''
             echo on\n
-            m sheba file {}/{}{} plot no nwind 10 10 batch yes
-            '''.format(path,station,i)
+            m sheba file {}/{}_{}_{} plot no nwind 10 10 batch yes
+            '''.format(path,station,phase,i)
             print(s)
             out =p.communicate(s)
             # print(out[0])
