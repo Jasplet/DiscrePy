@@ -64,17 +64,17 @@ def main(phase='SKS'):
                     if len(st) is 3:
                         Event = Interface(st)
                         if phase is 'SKS':
+                            Event.process(station,phase)
                             outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
                             try:
-                                Event.process(station,phase,i=i,path=outdir)
-                                Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station))
-                                i +=1
+                                Event.write_out(i=i,path=outdir)
                             except OSError:
-                                print('Directory for writing outputs to does not exist. Initialising')
+                                print('Directory for writing outputs do not all exist. Initialising')
                                 os.makedirs(outdir)
-                                Event.process(station,phase,i=i,path=outdir)
-                                Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station))
-                                i +=1
+                                Event.write_out(i=i,path=outdir)
+
+                            Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station,phase))
+                            i +=1
                         elif phase is 'SKKS':
 #                           When we look for SKKS the traces will need to be trimmmed at different times!
                             Event.process(t1 = 1800, t2 = 2000)
@@ -119,7 +119,7 @@ class Interface:
 
         return traveltime
 
-    def process(self,station,phase,c1=0.01,c2=0.5,t1=1300,t2=1600,i=None,path=None):
+    def process(self,station,phase,c1=0.01,c2=0.5):
         """
         Function to bandpass filter and trim the components
         t1 - [s] Lower bound of trim, time relative to event time
@@ -158,14 +158,14 @@ class Interface:
 #       Set the raqnge of window endtime (user2/user3)
         user2 = tt + 15 # 15 seconds after, gives a min window size of 20 seconds
         user3 = tt + 30 # 30 seconds after, gives a max window size of 45 seconds
-        ranges = (user0,user1,user2,user3)
 #
-        self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = ranges
-        self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = ranges
-        self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = ranges
+        self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (user0,user1,user2,user3)
+        self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
+        self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
 #       Now write out the three processed components
 #       Naming depends on whether this is being executed as a test or within a loop
 #       where a counter should be provided to prevent overwriting.
+    def write_out(i=None,path=None):
         if i is not None:
             self.BHN.write('{}/{}_{}_{}.BHN'.format(path,station,phase,i),format='SAC',byteorder=1)
             self.BHE.write('{}/{}_{}_{}.BHE'.format(path,station,phase,i),format='SAC',byteorder=1)
@@ -185,36 +185,34 @@ class Interface:
         st = self.BHN + self.BHE + self.BHZ
         st.plot(type='relative')
 
-    def sheba(self,station,phase,i = None,path=None):
+    def sheba(self,station,phase,i = 0,path=None):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
         print('Passing {}_{}_{} into Sheba'.format(station,phase,i))
+        if path is not None:
+            sub.call('cd','path')
+
         p = sub.Popen(['sac'],
                      stdout = sub.PIPE,
                      stdin  = sub.PIPE,
                      stderr = sub.STDOUT,
                      encoding='utf8')
+#       Now that the child process SAC has been opened, lets specify what arguements we want to pass to it
+#       echo on means commands should be echoed (so we can check whats going on if we print output)
+#       SETMACRO makes sure SAC can find sheba (avoids pathing problems)
+#       m sheba calls sheba as a SAC macro
+        s = '''
+        echo on\n
+        SETMACRO /Users/ja17375/Ext_programs/macros
+        m sheba file {}_{}_{} plot yes pick no nwind 10 10 batch yes
+        '''.format(station,phase,i)
+        try:
+            out = p.communicate(s)
+            print(out[2])
+        except CalledProcessError as err:
+            print(err)
 
-        if i is not None:
-            s = '''
-            echo on\n
-            SETMACRO /Users/ja17375/Ext_programs/macros
-            m sheba file {}_{}_{} plot yes pick no nwind 10 10 batch yes
-            '''.format(station,phase,i)
-            try:
-                p.communicate(s)
-            except CalledProcessError as err:
-                print(err)
-        else:
-            s = '''
-            echo on\n
-            SETMACRO /Users/ja17375/Ext_programs/macros
-            m sheba file {} plot no nwind 10 10
-            '''.format(station)
-
-            out =p.communicate(s)
-            #print(out)
 
 def tidy(station,phase):
     """
