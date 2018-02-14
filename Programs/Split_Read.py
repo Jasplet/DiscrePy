@@ -33,12 +33,12 @@ def split_read(station,network='*'):
 
 #   Make target directory. the exist_ok=True flag means that if it already exists then there will be no error
     try:
-        print('Make /Users/ja17375/Shear_Wave_Splitting/Data/{}'.format(station))
-        os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Data/{}'.format(station))
+        print('Make /Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}'.format(station))
+        os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}'.format(station))
     except FileExistsError:
         print('It already exists, Hooray! Less work for me!')
 #   Made
-    outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
+    outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
 
 
     attempts = 0 #Counter for how many attempted downloads there were
@@ -81,7 +81,7 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
     channel = ["BHN","BHZ","BHE"]
     for ch in channel:
 
-        tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(station,station,date,time,start.second,ch)
+        tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(station,station,date,time,start.second,ch)
         # print("Looking for :", id_tst)
         if os.path.isfile(tr_id) == True:
             print("It exists. It was not downloaded") # File does not exist
