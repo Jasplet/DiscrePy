@@ -63,22 +63,19 @@ def main(phase='SKS'):
                     st = ob.read(st_id)
                     if len(st) is 3:
                         Event = Interface(st)
-                        if phase is 'SKS':
-                            Event.process(station,phase)
-                            outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
-                            try:
-                                Event.write_out(i=i,path=outdir)
-                            except OSError:
-                                print('Directory for writing outputs do not all exist. Initialising')
-                                os.makedirs(outdir)
-                                Event.write_out(i=i,path=outdir)
+                        Event.process(station,phase)
+                        outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
 
-                            Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station,phase))
-                            i +=1
-                        elif phase is 'SKKS':
-#                           When we look for SKKS the traces will need to be trimmmed at different times!
-                            Event.process(t1 = 1800, t2 = 2000)
-                            i +=1
+                        try:
+
+                            Event.write_out(station,phase,i=i,path=outdir)
+                        except OSError:
+                            print('Directory for writing outputs do not all exist. Initialising')
+                            os.makedirs(outdir)
+                            Event.write_out(station,phase,i=i,path=outdir)
+
+                        Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station,phase))
+                        i +=1
                     else:
                         pass
         else:
@@ -162,11 +159,13 @@ class Interface:
         self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (user0,user1,user2,user3)
         self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
         self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
+
+    def write_out(self,station,phase,i=0,path=None):
 #       Now write out the three processed components
 #       Naming depends on whether this is being executed as a test or within a loop
 #       where a counter should be provided to prevent overwriting.
-    def write_out(i=None,path=None):
-        if i is not None:
+
+        if path is not None:
             self.BHN.write('{}/{}_{}_{}.BHN'.format(path,station,phase,i),format='SAC',byteorder=1)
             self.BHE.write('{}/{}_{}_{}.BHE'.format(path,station,phase,i),format='SAC',byteorder=1)
             self.BHZ.write('{}/{}_{}_{}.BHZ'.format(path,station,phase,i),format='SAC',byteorder=1)
@@ -190,13 +189,12 @@ class Interface:
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
         print('Passing {}_{}_{} into Sheba'.format(station,phase,i))
-        if path is not None:
-            sub.call('cd','path')
 
         p = sub.Popen(['sac'],
                      stdout = sub.PIPE,
                      stdin  = sub.PIPE,
                      stderr = sub.STDOUT,
+                     cwd = path,
                      encoding='utf8')
 #       Now that the child process SAC has been opened, lets specify what arguements we want to pass to it
 #       echo on means commands should be echoed (so we can check whats going on if we print output)
@@ -209,7 +207,7 @@ class Interface:
         '''.format(station,phase,i)
         try:
             out = p.communicate(s)
-            print(out[2])
+            # print(out[0])
         except CalledProcessError as err:
             print(err)
 
