@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as ply #Just incase
 import subprocess as sub
+from subprocess import CalledProcessError
 import os.path
 import time
 ##############################
@@ -34,6 +35,9 @@ import plot as sp
 def main(phase='SKS'):
     """
     Main - call this function to run the interface to sheba
+    This function depends on the existence of a station list file specified by statlist and you have sac data alreayd downloaded
+    Path should point to the directory that you want the sheba processing directories to be stored under
+
     """
    #First Indentify the possible station that we could have data for
    #This way we know what directory paths to look in for the sac files
@@ -42,7 +46,9 @@ def main(phase='SKS'):
     stations = pd.read_csv(statlist,delim_whitespace=True).STAT
 
    #Loop over all stations in the list.
-   start = time.time()
+   #################### Time run #################
+    start = time.time()
+    ################## Start Process #############
     for station in stations:
         i = 1 # Counter
         #Each station SHOULD have its own directory within Data/SAC_files
@@ -138,7 +144,7 @@ class Interface:
         self.BHZ.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
 #       Now trim each component to the input length
 #       To ensure that we contain the phase information completlely lets model the arrival using TauP
-        tt = model_traveltimes(phase)
+        tt = self.model_traveltimes(phase)
 #       Now set the trim
         t1 = (tt - 60) #I.e A minute before the arrival
         t2 = (tt + 120) #I.e Two minutes after the arrival
@@ -147,11 +153,11 @@ class Interface:
         self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
 #       Add windowing ranges to sac headers user0,user1,user2,user3 [start1,start2,end1,end2]
 #       Set the range of window starttime (user0/user1)
-        user0 = traveltime - 15 #15 seconds before arrival
-        user1 = traveltime # At predicted arrival
+        user0 = tt - 15 #15 seconds before arrival
+        user1 = tt # At predicted arrival
 #       Set the raqnge of window endtime (user2/user3)
-        user2 = traveltime + 15 # 15 seconds after, gives a min window size of 20 seconds
-        user3 = traveltime + 30 # 30 seconds after, gives a max window size of 45 seconds
+        user2 = tt + 15 # 15 seconds after, gives a min window size of 20 seconds
+        user3 = tt + 30 # 30 seconds after, gives a max window size of 45 seconds
         ranges = (user0,user1,user2,user3)
 #
         self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = ranges
@@ -196,9 +202,10 @@ class Interface:
             SETMACRO /Users/ja17375/Ext_programs/macros
             m sheba file {}_{}_{} plot yes pick no nwind 10 10 batch yes
             '''.format(station,phase,i)
-
-            out =p.communicate(s)
-
+            try:
+                p.communicate(s)
+            except CalledProcessError as err:
+                print(err)
         else:
             s = '''
             echo on\n
