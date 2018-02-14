@@ -39,7 +39,7 @@ def splitting(station,switch,files,phase):
             global pair_glob
             global quality
             global tt_glob
-            if st != False: # i.e. if the stream is sufficiently populated and has been read.
+            if st != False and len(st) is 3: # i.e. if the stream is sufficiently populated and has been read.
 
                 tt_UTC, t0, traveltime = model_traveltimes(st[0],phase) # Returns SKS arrival as a UTCDateTime object, event origin time and SKS arrival relative to the origin time
                 tt_glob = traveltime #global variable, allows for function interect to call for a repeat meausrent

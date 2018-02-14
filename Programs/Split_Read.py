@@ -19,7 +19,7 @@ from obspy.clients import iris
 
 
 ##################### Start of Function to Request and Save Traces ##################
-def split_read(station,network):
+def split_read(station,network='US'):
     """
     Initialises some variable and call the trace_dowload function for a given station
     """
@@ -31,9 +31,11 @@ def split_read(station,network):
     data = data.reset_index()
     del data['index']
 
-
-    outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
-
+    try:
+        outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
+    except FileNotFoundError:
+        os.makedirs('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}'.format(station))
+        outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
     attempts = 0 #Counter for how many attempted downloads there were
     fdsnx = 0 #Counter for how many attempts hit a FDSNNoDataException
     dwn = 0 #Counter for how many events were downloaded
@@ -74,7 +76,7 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
     channel = ["BHN","BHZ","BHE"]
     for ch in channel:
 
-        tr_id = "/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(station,station,date,time,start.second,ch)
+        tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(station,station,date,time,start.second,ch)
         # print("Looking for :", id_tst)
         if os.path.isfile(tr_id) == True:
             print("It exists. It was not downloaded") # File does not exist
@@ -85,8 +87,11 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
             # print("It does not exist. Download attempted")
             st = obspy.core.stream.Stream() # Initialises our stream variable
             try:
+                if network is 'BK':
+                    download_client = obspy.clients.fdsn.Client('NCEDC')
+                else:
+                    download_client = obspy.clients.fdsn.Client('IRIS')
 
-                download_client = obspy.clients.fdsn.Client('NCEDC')
                 st = download_client.get_waveforms(network,station,'??',ch,start,start + 3000,attach_response=True)
 
                 if len(st) > 3:
@@ -106,7 +111,7 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
                     st_2[0].stats.sac.evlo = evlo#cat[0].origins[0].longitude # Event longitude
                     st_2[0].stats.sac.evdp = evdp#cat[0].origins[0].depth/1000 # Event depth
                     dist_client = iris.Client() # Creates client to calculate event - station distance
-                    print('stla = {}, stlo = {}, evla = {}, evlo = {}'.format(stla,stlo,evla,evlo))
+                    # print('stla = {}, stlo = {}, evla = {}, evlo = {}'.format(stla,stlo,evla,evlo))
 
                     d = dist_client.distaz(stalat=stla,stalon=stlo,evtlat=evla,evtlon=evlo)
 
@@ -121,8 +126,8 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
                     #print(st_2[0].stats)
                     #st[0].stats.sac = sac
                     #st_2.plot()
-                    st_2[0].write(tr_id, format='SAC')
-                    print("The trace ", tr_id, "was downloaded and saved!")
+                    st_2[0].write(tr_id, format='SAC',byteorder=1)
+                    # print("The trace ", tr_id, "was downloaded and saved!")
                     dwn += 1
                     if ch == 'BHE':
                         outfile.write('{}\n'.format(tr_id[0:-7]))

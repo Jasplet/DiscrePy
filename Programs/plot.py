@@ -127,13 +127,13 @@ def SKS_SKKS_plot(stat,save=False):
 
     fig = plt.figure()
     axs = []
-    gs = gridspec.GridSpec(2,3) # Creates a 2x3 grid in the figure space for plotting in
+    gs = gridspec.GridSpec(2,4) # Creates a 2x3 grid in the figure space for plotting in
     proj = cart.AzimuthalEquidistant(central_longitude=SKKS_data.STLO[0],central_latitude=SKKS_data.STLA[0])
 
 
-    ax1 = plt.subplot(gs[0,0])
-    ax2 = plt.subplot(gs[1,0])
-    ax3 = fig.add_subplot(gs[:,1:],projection = proj) # have to use add_subplots in order to add a different projection
+    ax1 = plt.subplot(gs[0,0:2])
+    ax2 = plt.subplot(gs[1,0:2])
+    ax3 = fig.add_subplot(gs[:,2:],projection = proj) # have to use add_subplots in order to add a different projection
 
     ax1.errorbar(SKS_null[0],SKS_null[1],yerr = SKS_null[2],fmt='ro',elinewidth=0.5,label='SKS (null)')
     ax1.errorbar(SKKS_null[0],SKKS_null[1],yerr = SKKS_null[2],fmt='bo',elinewidth=0.5,label='SKKS (null)')
@@ -159,8 +159,8 @@ def SKS_SKKS_plot(stat,save=False):
     ax3.set_global() #This sets the axes extent to its maximum possible setting, so we can find these darn events
     ax3.coastlines(resolution = '110m') # Coastline data is downloaded by Cartopy from Natural Earth (http://www.naturalearthdata.com)
     #Resolution options are 100m,50m and 10m
-    ax3.add_feature(cartopy.feature.OCEAN, zorder=0)
-    ax3.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
+    #ax3.add_feature(cartopy.feature.OCEAN, zorder=0)
+    #ax3.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
     # Now add observed events
     ax3.plot(SKS_null[5],SKS_null[6],'ro',markersize = 5,transform = cart.Geodetic(),label='Null SKS Locations')
     ax3.plot(SKKS_null[5],SKKS_null[6],'bo',markersize = 5,transform = cart.Geodetic(),label='Null SKKS Locations')
