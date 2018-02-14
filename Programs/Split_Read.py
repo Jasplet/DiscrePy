@@ -19,7 +19,7 @@ from obspy.clients import iris
 
 
 ##################### Start of Function to Request and Save Traces ##################
-def split_read(station,network='US'):
+def split_read(station,network='*'):
     """
     Initialises some variable and call the trace_dowload function for a given station
     """
@@ -31,11 +31,16 @@ def split_read(station,network='US'):
     data = data.reset_index()
     del data['index']
 
+#   Make target directory. the exist_ok=True flag means that if it already exists then there will be no error
     try:
-        outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
-    except FileNotFoundError:
-        os.makedirs('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}'.format(station))
-        outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
+        print('Make /Users/ja17375/Shear_Wave_Splitting/Python/Data/{}'.format(station))
+        os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}'.format(station))
+    except FileExistsError:
+        print('It already exists, Hooray! Less work for me!')
+#   Made
+    outfile = open('/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
+
+
     attempts = 0 #Counter for how many attempted downloads there were
     fdsnx = 0 #Counter for how many attempts hit a FDSNNoDataException
     dwn = 0 #Counter for how many events were downloaded
@@ -76,7 +81,7 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
     channel = ["BHN","BHZ","BHE"]
     for ch in channel:
 
-        tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(station,station,date,time,start.second,ch)
+        tr_id = "/Users/ja17375/Shear_Wave_Splitting/Python/Data/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(station,station,date,time,start.second,ch)
         # print("Looking for :", id_tst)
         if os.path.isfile(tr_id) == True:
             print("It exists. It was not downloaded") # File does not exist
