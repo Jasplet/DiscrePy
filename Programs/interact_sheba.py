@@ -101,7 +101,7 @@ class Interface:
         self.BHZ[0].stats.sac.cmpinc = 0
         self.BHZ[0].stats.sac.cmpaz = 0
 
-    def windowrange(self,phase):
+    def model_traveltimes(self,phase):
         """
         Function to run TauP traveltime models for the SKS phase.
         Returns SKS predictided arrivals (seconds), origin time of the event (t0) as a UTCDateTime obejct and the SKS arrival as a UTCDateTime object
@@ -110,13 +110,8 @@ class Interface:
         """
         model = ob.taup.tau.TauPyModel(model="iasp91")
         traveltime = model.get_travel_times(self.BHN[0].stats.sac.evdp,self.BHN[0].stats.sac.gcarc,[phase])[0].time
-#       Set the range of window starttime (user0/user1)
-        user0 = traveltime - 30
-        user1 = traveltime
-#       Set the raqnge of window endtime (user2/user3)
-        user2 = traveltime + 20
-        user3 = traveltime + 60
-        return user0,user1,user2,user3
+
+        return traveltime
 
     def process(self,station,phase,c1=0.01,c2=0.5,t1=1300,t2=1600,i=None,path=None):
         """
@@ -141,15 +136,27 @@ class Interface:
         self.BHN.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
         self.BHE.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
         self.BHZ.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
-#       Now trim each component to the input length (default is 1400,1600)
+#       Now trim each component to the input length
+#       To ensure that we contain the phase information completlely lets model the arrival using TauP
+        tt = model_traveltimes(phase)
+#       Now set the trim
+        t1 = (tt - 60) #I.e A minute before the arrival
+        t2 = (tt + 120) #I.e Two minutes after the arrival
         self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
         self.BHE.trim(self.BHE[0].stats.starttime + t1,self.BHE[0].stats.starttime + t2)
         self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
 #       Add windowing ranges to sac headers user0,user1,user2,user3 [start1,start2,end1,end2]
-#       As we will use Teanby's multiwindowing subroutine, my window ranges will be at the start, the middle and the end of the trim (1400,1500,1500,1600 for SKS)
-        self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = self.windowrange(phase)
-        self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = self.windowrange(phase)
-        self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = self.windowrange(phase)
+#       Set the range of window starttime (user0/user1)
+        user0 = traveltime - 15 #15 seconds before arrival
+        user1 = traveltime # At predicted arrival
+#       Set the raqnge of window endtime (user2/user3)
+        user2 = traveltime + 15 # 15 seconds after, gives a min window size of 20 seconds
+        user3 = traveltime + 30 # 30 seconds after, gives a max window size of 45 seconds
+        ranges = (user0,user1,user2,user3)
+#
+        self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = ranges
+        self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = ranges
+        self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = ranges
 #       Now write out the three processed components
 #       Naming depends on whether this is being executed as a test or within a loop
 #       where a counter should be provided to prevent overwriting.
@@ -200,7 +207,7 @@ class Interface:
             '''.format(station)
 
             out =p.communicate(s)
-            # print(out[0])
+            #print(out)
 
 def tidy(station,phase):
     """
