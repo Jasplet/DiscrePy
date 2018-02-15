@@ -32,7 +32,7 @@ import Split_Read as sr
 import Split_Measure as sm #Just in incase
 import plot as sp
 ##############################
-def main(phase='SKS'):
+def main(phase='SKS',bath=False):
     """
     Main - call this function to run the interface to sheba
     This function depends on the existence of a station list file specified by statlist and you have sac data alreayd downloaded
@@ -42,49 +42,63 @@ def main(phase='SKS'):
    #First Indentify the possible station that we could have data for
    #This way we know what directory paths to look in for the sac files
     path = '/Users/ja17375/Shear_Wave_Splitting'
-    statlist ='{}/Data/StationList.txt'.format(path)
-    stations = pd.read_csv(statlist,delim_whitespace=True).STAT
 
    #Loop over all stations in the list.
    #################### Time run #################
     start = time.time()
     ################## Start Process #############
-    for station in stations:
-        i = 1 # Counter
-        #Each station SHOULD have its own directory within Data/SAC_files
-        #If the data has been downloaded. So lets look for directorys that exist
-        dir_path = '{}/Data/SAC_files/{}'.format(path,station)
-        if os.path.isdir(dir_path):
-            #Happy Days! The data directory exists!
-            with open('{}/{}_downloaded_streams.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
-                for line in reader.readlines():
-                    line.strip('\n')
-                    st_id = '{}BH?.sac'.format(str(line[0:-1]))
-                    st = ob.read(st_id)
-                    if len(st) is 3:
-                        Event = Interface(st)
-                        Event.process(station,phase)
-                        outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
+    if batch is True:
+#       If processing of data for multiple stations is desired
+        statlist ='{}/Data/StationList.txt'.format(path)
+        stations = pd.read_csv(statlist,delim_whitespace=True).STAT
 
-                        try:
+        for station in stations:
+#           Iterate over stations in the station list. 
+            run_sheba(path,station)
 
-                            Event.write_out(station,phase,i=i,path=outdir)
-                        except OSError:
-                            print('Directory for writing outputs do not all exist. Initialising')
-                            os.makedirs(outdir)
-                            Event.write_out(station,phase,i=i,path=outdir)
-
-                        Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station,phase))
-                        i +=1
-                    else:
-                        pass
-        else:
-            # print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
-            pass
-
+    elif batch is False:
+        station = input('Input Station Name > ')
+        run_sheba(path,station)
     end = time.time()
     runtime = end - start
-    print('The runtime of main is {}'.format(runtime))
+    print('The runtime of main is {} seconds'.format(runtime))
+
+def run_sheba(path,station):
+    """
+    Function that holds the guts of the workflow for preparing SAC files and running sheba
+    """
+
+    #Each station SHOULD have its own directory within Data/SAC_files
+    #If the data has been downloaded. So lets look for directorys that exist
+    dir_path = '{}/Data/SAC_files/{}'.format(path,station)
+    if os.path.isdir(dir_path):
+        #Happy Days! The data directory exists!
+        i = 1 # Counter
+        with open('{}/{}_downloaded_streams.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
+            for line in reader.readlines():
+                line.strip('\n')
+                st_id = '{}BH?.sac'.format(str(line[0:-1]))
+                st = ob.read(st_id)
+                if len(st) is 3:
+                    Event = Interface(st)
+                    Event.process(station,phase)
+                    outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
+
+                    try:
+
+                        Event.write_out(station,phase,i=i,path=outdir)
+                    except OSError:
+                        print('Directory for writing outputs do not all exist. Initialising')
+                        os.makedirs(outdir)
+                        Event.write_out(station,phase,i=i,path=outdir)
+
+                    Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station,phase))
+                    i +=1
+                else:
+                    pass
+    else:
+        print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
+        pass
 
 class Interface:
     """
@@ -219,28 +233,3 @@ def tidy(station,phase):
     """
 
     sub.call(['cat','', '{}_{}*.final_result'.format(station,phase)])
-
-
-## Psuedo code plan for script
-# Read Station list
-
-# for stat in list:
-    #request sac file list from data/SAC_files/stat/
-
-    #for event in eventlist:
-        #st = ob.read(event*
-
-        #filter stream
-
-        #trim stream to reasonable range (1400- 1600)
-
-        #byte-swap stream
-        #set headers for inclination/azimuth (call sac subprocess to do this)
-
-        # sac m sheba
-    #end loop over eventlist
-#end loop over stationlist
-
-#concatenate sheba result files together - possibly add some more metadata as well
-
-#subroutine for stacking error surfaces
