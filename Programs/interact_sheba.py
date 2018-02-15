@@ -32,7 +32,7 @@ import Split_Read as sr
 import Split_Measure as sm #Just in incase
 import plot as sp
 ##############################
-def main(phase='SKS',bath=False):
+def main(phase='SKS',batch=False):
     """
     Main - call this function to run the interface to sheba
     This function depends on the existence of a station list file specified by statlist and you have sac data alreayd downloaded
@@ -53,17 +53,17 @@ def main(phase='SKS',bath=False):
         stations = pd.read_csv(statlist,delim_whitespace=True).STAT
 
         for station in stations:
-#           Iterate over stations in the station list. 
-            run_sheba(path,station)
+#           Iterate over stations in the station list.
+            run_sheba(path,station,phase)
 
     elif batch is False:
         station = input('Input Station Name > ')
-        run_sheba(path,station)
+        run_sheba(path,station,phase)
     end = time.time()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
 
-def run_sheba(path,station):
+def run_sheba(path,station,phase):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
