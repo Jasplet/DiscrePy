@@ -115,6 +115,7 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
                     st_2[0].stats.sac.evla = evla#cat[0].origins[0].latitude # Event latitude
                     st_2[0].stats.sac.evlo = evlo#cat[0].origins[0].longitude # Event longitude
                     st_2[0].stats.sac.evdp = evdp#cat[0].origins[0].depth/1000 # Event depth
+                    st_2[0].stats.sac.kstnm = '{:>8}'.format(station)
                     dist_client = iris.Client() # Creates client to calculate event - station distance
                     # print('stla = {}, stlo = {}, evla = {}, evlo = {}'.format(stla,stlo,evla,evlo))
 
