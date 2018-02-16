@@ -81,18 +81,22 @@ def run_sheba(path,station,phase):
                 st = ob.read(st_id)
                 if len(st) is 3:
                     Event = Interface(st)
-                    Event.process(station,phase)
-                    outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
+                    if Event.check_phase_dist(phase_to_check=phase) is True:
+                        Event.process(station,phase)
+                        outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
 
-                    try:
+                        try:
 
-                        Event.write_out(station,phase,i=i,path=outdir)
-                    except OSError:
-                        print('Directory for writing outputs do not all exist. Initialising')
-                        os.makedirs(outdir)
-                        Event.write_out(station,phase,i=i,path=outdir)
+                            Event.write_out(station,phase,i=i,path=outdir)
+                        except OSError:
+                            print('Directory for writing outputs do not all exist. Initialising')
+                            os.makedirs(outdir)
+                            Event.write_out(station,phase,i=i,path=outdir)
 
-                    Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station,phase))
+                        Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station,phase))
+                    else:
+                        pass
+#                   Counter, i , for number of events processed
                     i +=1
                 else:
                     pass
@@ -134,13 +138,13 @@ class Interface:
 
         return traveltime
 
-    def check_phase_dist(self,phase):
+    def check_phase_dist(self,phase_to_check):
         """
         Function to test if the given phase is actually measureable!
         """
-        if phase == 'SKS':
+        if phase_to_check == 'SKS':
             return True
-        elif phase == 'SKKS':
+        elif phase_to_check == 'SKKS':
             if self.gcarc >= 105.0:
                 return True
             else:
