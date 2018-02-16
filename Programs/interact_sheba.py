@@ -112,6 +112,9 @@ class Interface:
     def __init__(self,st):
         # self.date = date
         # self.time = time
+        for i in [0.,1.,2.]:
+            st[i].stats.sac.kstnm = '{:>8}'.format(st[i].stats.sac.kstnm)
+#§          Formats Station name in headers so that it is 8 characters long, with emtpy character fill with whitespaces
         self.BHE = st.select(channel='BHE')
         self.BHE[0].stats.sac.cmpinc = 90
         self.BHE[0].stats.sac.cmpaz = 90
