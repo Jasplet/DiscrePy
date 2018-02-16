@@ -117,6 +117,10 @@ class Interface:
         self.BHZ = st.select(channel='BHZ')
         self.BHZ[0].stats.sac.cmpinc = 0
         self.BHZ[0].stats.sac.cmpaz = 0
+#       Also lets load the gcarc from each stream, so we can test for whether SKKS should be measuable
+        self.gcarc = (st[0].stats.sac.gcarc)
+#       As this gcarc is calculated in split_read.py I know that it should be the same for all three traces
+#       So for ease we will always read it from st[0]
 
     def model_traveltimes(self,phase):
         """
@@ -129,6 +133,22 @@ class Interface:
         traveltime = model.get_travel_times(self.BHN[0].stats.sac.evdp,self.BHN[0].stats.sac.gcarc,[phase])[0].time
 
         return traveltime
+
+    def check_phase_dist(self,phase):
+        """
+        Function to test if the given phase is actually measureable!
+        """
+        if phase == 'SKS':
+            return True
+        elif phase == 'SKKS':
+            if self.gcarc >= 105.0:
+                return True
+            else:
+                print('Event-Station distance less than 105 deg, too short for SKKS')
+                return False
+        else:
+            print('Phase not SKS or SKKS')
+            return False
 
     def process(self,station,phase,c1=0.01,c2=0.5):
         """
