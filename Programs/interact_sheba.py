@@ -59,6 +59,8 @@ def main(phase='SKS',batch=False):
     elif batch is False:
         station = input('Input Station Name > ')
         run_sheba(path,station,phase)
+
+
     end = time.time()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
@@ -72,13 +74,14 @@ def run_sheba(path,station,phase):
     #If the data has been downloaded. So lets look for directorys that exist
     dir_path = '{}/Data/SAC_files/{}'.format(path,station)
     if os.path.isdir(dir_path):
-        #Happy Days! The data directory exists!
+        #'Happy Days! The data directory exists!'
         i = 1 # Counter
         with open('{}/{}_downloaded_streams.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
             for line in reader.readlines():
                 line.strip('\n')
                 st_id = '{}BH?.sac'.format(str(line[0:-1]))
                 st = ob.read(st_id)
+
                 if len(st) is 3:
                     Event = Interface(st)
                     if Event.check_phase_dist(phase_to_check=phase) is True:
@@ -99,6 +102,7 @@ def run_sheba(path,station,phase):
 #                   Counter, i , for number of events processed
                     i +=1
                 else:
+                    print(' len(st) is not 3. Passing')
                     pass
     else:
         print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
@@ -112,7 +116,7 @@ class Interface:
     def __init__(self,st):
         # self.date = date
         # self.time = time
-        for i in [0.,1.,2.]:
+        for i in [0,1,2]:
             st[i].stats.sac.kstnm = '{:>8}'.format(st[i].stats.sac.kstnm)
 #§          Formats Station name in headers so that it is 8 characters long, with emtpy character fill with whitespaces
         self.BHE = st.select(channel='BHE')
