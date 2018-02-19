@@ -31,6 +31,7 @@ def main(event_list=None,batch=False):
         for station in df.STAT.unique():
 #        for each unique station Code
             Instance = Downloader(df,station)
+            Insran
             for i in range(0,len(Instance.data)):
                 #Loop over events for the given station Instance
 
@@ -60,6 +61,11 @@ class Downloader:
         self.ex = 0 #Counter for how many event already exist in filesystem and therefore werent downloaded
         self.ts = 0 #Counter for events who;s traces are too short.
         self.fdsnclient = Client('IRIS')
+#       Download Station Data
+        stat =  self.fdsnclient.get_stations(channel='BH?',station='{}'.format(self.station))
+        self.network = stat.networks[0].code
+        self.stla = stat.networks[0].stations[0].latitude
+        self.stlo = stat.netowrks[0].stations[0].longitdue
 
     def download_station_data(self):
         """
