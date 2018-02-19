@@ -26,10 +26,13 @@ def main(event_list=None,batch=False):
     """
     if batch is True:
         # Reads our event list as a pandas datatframe
-        df = pd.read_csv(eventlist,delim_whitespace=True)
+        df = pd.read_csv(eventlist,delim_whitespace=True,converters={'TIME': lambda x: str(x)})
+        # The converters kwarg fr TIME will stop pandas from stripping off the leading zeros (but time is now a string)
         for station in df.STAT.unique():
 #        for each unique station Code
             Instance = Downloader(df,station)
+            for i in range(0,len(Instance.data)):
+                #Loop over events for the given station Instance
 
 
 class Downloader:
@@ -56,12 +59,39 @@ class Downloader:
         self.dwn = 0 #Counter for how many events were downloaded
         self.ex = 0 #Counter for how many event already exist in filesystem and therefore werent downloaded
         self.ts = 0 #Counter for events who;s traces are too short.
+        self.fdsnclient = Client('IRIS')
+
+    def download_station_data(self):
+        """
+        Download or read important station data and make sure it is right
+        """
+        stat =  self.fdsnclient.get_stations(channel='BH?',station='{}'.format(self.station))
+        self.network = stat.networks[0].code
+        self.stla = stat.networks[0].stations[0].latitude
+        self.stlo = stat.netowrks[0].stations[0].longitdue
 
 
-def download():
-    """
-    Function to hold download requests
-    """
+    def download_event_data(self):
+        """
+        Function to download event information so we can get mroe accurate start times
+        """
+        datetime = str(date) + "T" + str(time).zfill(4) #Combined date and time inputs for converstion t UTCDateTime object
+        self.start = obspy.core.UTCDateTime(datetime) #iso8601=True
+
+        try:
+            cat = fdsnclient.get_events(starttime=self.start-60,endtime=self.start+60 ,latitude=self.data.EVLA[i],longitude=self.EVLO[i],maxradius=0.5) #Get event in order to get more accurate event times.
+            if len(cat) > 1:
+                print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
+
+            start.second = cat[0].origins[0].time.second
+
+            if start.minute != cat[0].origins[0].time.minute:
+                self.time = self.time[:2] + str(cat[0].origins[0].time.minute) # Time is hhmm so we subtract the old minute value and add the new one
+
+        except FDSNNoDataException:
+            print("No Event Data Available")
+        except FDSNException:
+            print("FDSNException for get_events")
 
 # PsuedoCode - For developoment
 
