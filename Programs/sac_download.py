@@ -31,10 +31,13 @@ def main(event_list=None,batch=False):
         for station in df.STAT.unique():
 #        for each unique station Code
             Instance = Downloader(df,station)
-            Insran
+
             for i in range(0,len(Instance.data)):
                 #Loop over events for the given station Instance
-
+                Instance.download_event_data()
+                for channel in ['BHN','BHE','BHZ']:
+                    download_traces(channel)
+        print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} aboarted as the data has already been downloaded'.format(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex))
 
 class Downloader:
 
@@ -45,7 +48,6 @@ class Downloader:
         self.data = self.data.reset_index()
         del self.data['index']
 #           Resets indexing of DataFrame
-
 
         try:
             print('Make /Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}'.format(station))
@@ -76,7 +78,6 @@ class Downloader:
         self.stla = stat.networks[0].stations[0].latitude
         self.stlo = stat.netowrks[0].stations[0].longitdue
 
-
     def download_event_data(self):
         """
         Function to download event information so we can get mroe accurate start times
@@ -98,6 +99,71 @@ class Downloader:
             print("No Event Data Available")
         except FDSNException:
             print("FDSNException for get_events")
+
+    def download_traces(self,ch):
+        """
+
+        """
+        tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_{:07d}_{:04d}{:02d}_{}.sac".format(self.station,self.station,self.data.DATE[i],self.data.TIME[i],self.start.second,ch)
+        #
+        if os.path.isfile(tr_id) == True:
+            print("It exists. It was not downloaded") # File does not exist
+            if ch == 'BHE':
+                outfile.write('{}\n'.format(tr_id[0:-7]))
+                ex += 1
+        else:
+            # print("It does not exist. Download attempted")
+            st = obspy.core.stream.Stream() # Initialises our stream variable
+            try:
+                if network is 'BK':
+                    download_client = obspy.clients.fdsn.Client('NCEDC')
+                else:
+                    download_client = obspy.clients.fdsn.Client('IRIS')
+
+                st = download_client.get_waveforms(network,station,'??',ch,start,start + 3000,attach_response=True)
+
+                if len(st) > 3:
+                    print("WARNING: More than three traces downloaded for event ", tr_id)
+                if ((st[0].stats.endtime - st[0].stats.starttime) >= 2999.0):
+
+                    write_st(st)
+                    self.dwn += 1
+                    if ch == 'BHE':
+                        outfile.write('{}\n'.format(tr_id[0:-7]))
+
+                else:
+                    print("Trace is too short.")
+                    self.ts += 1
+            except FDSNException:
+                if ch == 'BHE':
+                    self.fdsnx += 1
+
+    def write_st(self,st):
+        """
+
+        """
+        st[0].write('holder.sac', format='SAC',) # Writes traces as SAC files
+        #st.plot()
+        st_2 = obspy.core.read('holder.sac')
+        #sac = AttribDict() # Creates a dictionary sacd to contain all the header information I want.
+        ## Station Paramters
+        st_2[0].stats.sac.stla = stla
+        st_2[0].stats.sac.stlo = stlo
+        ## Event Paramters
+        st_2[0].stats.sac.evla = evla#cat[0].origins[0].latitude # Event latitude
+        st_2[0].stats.sac.evlo = evlo#cat[0].origins[0].longitude # Event longitude
+        st_2[0].stats.sac.evdp = evdp#cat[0].origins[0].depth/1000 # Event depth
+        st_2[0].stats.sac.kstnm = '{:>8}'.format(station)
+        dist_client = iris.Client() # Creates client to calculate event - station distance
+        # print('stla = {}, stlo = {}, evla = {}, evlo = {}'.format(stla,stlo,evla,evlo))
+
+        d = dist_client.distaz(stalat=stla,stalon=stlo,evtlat=evla,evtlon=evlo)
+
+        st_2[0].stats.sac.gcarc = d['distance'] # d.values returns the values from dictionary d produced by distaz. list converts this to a list attribute which can then be indexed to extract the great cricle distance in degrees
+        st_2[0].stats.sac.dist = d['distancemeters']/1000 # Distnace in kilometers
+        st_2[0].stats.sac.baz = d['backazimuth'] # Backzimuth (Reciever - SOurce)
+        st_2[0].stats.sac.az = d['azimuth'] # Azimuth (Source - Receiver)
+        st_2[0].write(tr_id, format='SAC',byteorder=1)
 
 # PsuedoCode - For developoment
 
