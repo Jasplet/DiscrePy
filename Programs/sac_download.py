@@ -75,7 +75,7 @@ class Downloader:
         """
         Function to download event information so we can get mroe accurate start times
         """
-        datetime = str(date) + "T" + str(time).zfill(4) #Combined date and time inputs for converstion t UTCDateTime object
+        datetime = str(self.data.DATE[i]) + "T" + self.data.TIME[i] #Combined date and time inputs for converstion t UTCDateTime object
         self.start = obspy.core.UTCDateTime(datetime) #iso8601=True
 
         try:
@@ -83,9 +83,9 @@ class Downloader:
             if len(cat) > 1:
                 print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
 
-            start.second = cat[0].origins[0].time.second
+            self.start.second = cat[0].origins[0].time.second
 
-            if start.minute != cat[0].origins[0].time.minute:
+            if self.start.minute != cat[0].origins[0].time.minute:
                 self.time = self.time[:2] + str(cat[0].origins[0].time.minute) # Time is hhmm so we subtract the old minute value and add the new one
 
         except FDSNNoDataException:
