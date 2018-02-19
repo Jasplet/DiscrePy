@@ -21,7 +21,7 @@
 import obspy as ob
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as ply #Just incase
+import matplotlib.pyplot as plt #Just incase
 import subprocess as sub
 from subprocess import CalledProcessError
 import os.path
