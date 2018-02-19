@@ -38,7 +38,17 @@ def main(event_list=None,batch=False):
                 for channel in ['BHN','BHE','BHZ']:
                     download_traces(channel)
         print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} aboarted as the data has already been downloaded'.format(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex))
+    elif batch is False:
+        station = input('Input Station Name > ')
+        Instance = Downloader(df,station)
 
+        for i in range(0,len(Instance.data)):
+            #Loop over events for the given station Instance
+            Instance.download_event_data()
+            for channel in ['BHN','BHE','BHZ']:
+                download_traces(channel)
+
+        
 class Downloader:
 
     def __init__(self,df,station):
