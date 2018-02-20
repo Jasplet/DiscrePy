@@ -34,11 +34,11 @@ def main(event_list=None,batch=False):
 #        for each unique station Code
             Instance = Downloader(df,station)
             stat_found = Instance.download_station_data()
-            if stat_found = True:
+            if stat_found is True:
                 for i in range(0,len(Instance.data)):
                 #Loop over events for the given station Instance
-                print(i)
-                Instance.download_event_data(i)
+
+                    Instance.download_event_data(i)
                 for channel in ['BHN','BHE','BHZ']:
                     Instance.download_traces(channel)
             else:
@@ -47,12 +47,12 @@ def main(event_list=None,batch=False):
         station = input('Input Station Name > ')
         Instance = Downloader(df,station)
         stat_found = Instance.download_station_data()
-        
-        for i in range(0,len(Instance.data)):
-            #Loop over events for the given station Instance
-            Instance.download_event_data(i)
-            for channel in ['BHN','BHE','BHZ']:
-                Instance.download_traces(channel)
+        if stat_found is True:
+            for i in range(0,len(Instance.data)):
+                #Loop over events for the given station Instance
+                Instance.download_event_data(i)
+                for channel in ['BHN','BHE','BHZ']:
+                    Instance.download_traces(channel)
 
         else:
             print('Station {} could not be found'.format(station))
@@ -71,11 +71,13 @@ class Downloader:
 #           Resets indexing of DataFrame
 
         try:
-            print('Make /Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}'.format(station))
+            #print('Make /Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}'.format(station))
             os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}'.format(station))
         except FileExistsError:
-            print('It already exists, Hooray! Less work for me!')
+            #print('It already exists, Hooray! Less work for me!')
+            pass
     #   Made
+
         self.outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
 
         self.attempts = 0 #Counter for how many attempted downloads there were
@@ -136,9 +138,9 @@ class Downloader:
 
         """
         tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_{:07d}_{}{:02d}_{}.sac".format(self.station,self.station,self.date,self.time,self.start.second,ch)
-        print("Looking for :", tr_id)
+        #print("Looking for :", tr_id)
         if os.path.isfile(tr_id) == True:
-            print("It exists. It was not downloaded") # File does not exist
+            #print("It exists. It was not downloaded") # File does not exist
             if ch == 'BHE':
                 self.outfile.write('{}\n'.format(tr_id[0:-7]))
                 self.ex += 1
