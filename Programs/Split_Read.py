@@ -56,6 +56,7 @@ def split_read(station,network='*'):
 
 def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fdsnx,ex,dwn,ts):
     ## Function to download and save traces for a pre-determined set of events
+<<<<<<< HEAD
 
 
     datetime = str(date) + "T" + str(time).zfill(4) #Combined date and time inputs for converstion t UTCDateTime object
@@ -139,6 +140,57 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
                         outfile.write('{}\n'.format(tr_id[0:-7]))
 
 
+=======
+    too_short = 0
+    no_dat = 0
+    for i in range(0, n_events):
+        # Test if trace is already downloaded and create a UTCDateTime object for the Starttime
+        ps = str(dates[i]) + "T" + str(times[i]).zfill(4)
+        start = obspy.core.UTCDateTime(ps) #iso8601=True
+        yr = str(start.year)
+        mon = str(start.month).zfill(2) # Converts Month to string. zfill ensures it is 2 characters by adding a leading zero if required
+        day = str(start.day).zfill(2)   # Day of event, this is to contruct expected
+
+        hr = str(start.hour).zfill(2) # Converts Hour to string. zfill ensures it is 2 characters by adding a leading zero if required
+        minu = str(start.minute).zfill(2)
+
+        client = obspy.clients.fdsn.Client("IRIS")
+        try:
+            cat = client.get_events(starttime=start-60,endtime=start+60 ,latitude=evla[i],longitude=evlo[i],maxradius=0.5) #Get event in order to get more accurate event times.
+            print("i tried. there are this many events", len(cat))
+            if len(cat) > 1:
+                print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
+
+            start.microsecond = cat[0].origins[0].time.microsecond
+            start.second = cat[0].origins[0].time.second
+            start.minute = cat[0].origins[0].time.minute
+            sec = str(start.second).zfill(2)
+        except FDSNNoDataException:
+            print("No Event Data Available")
+        except FDSNException:
+            print("FDSNException for get_events")
+        channel = ["BHN","BHZ","BHE"]
+        for ch in channel:
+
+            id_tst = "./Data/" + stat + "_" + yr + "_" + mon + "_" + day+"_" + hr + "_" + minu + "_" + sec + "_" + ch + ".sac"
+            print("Looking for :", id_tst)
+            if os.path.isfile(id_tst) == True:
+                print("It exists. It was not downloaded") # File does not exist
+            else:
+                print("It does not exist. Download attempted")
+                st = obspy.core.stream.Stream() # Initialises our stream variable
+                client = Client("IRIS")
+                #print("Event: ", i, ". Station: ", station, ". Channel: ", ch)
+                test_00 = obspy.core.UTCDateTime("2011-05-02T19:07:00") # This Criterion is ONLY for AAM
+                if start >= test_00:
+                 # Location "00" for AAM went live at 2011/05/02 (122) 19:07:00
+                 # Location "10" is for NEW
+                   loc = "10"
+                   # channel = "BH?"
+                elif start < obspy.core.UTCDateTime("2000-01-01T00:00:00"):
+                    loc = "--"
+                    # channel = "BH?"
+>>>>>>> master
                 else:
                     print("Trace is too short.")
                     ts += 1
