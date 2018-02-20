@@ -57,10 +57,12 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
 #           Iterate over stations in the station list.
             run_sheba(path,station,phase)
 
+            tidyup(path,station,phase)
+
     elif batch is False:
         station = input('Input Station Name > ')
         run_sheba(path,station,phase)
-
+        tidyup(path,station,phase)  
 
     end = time.time()
     runtime = end - start
