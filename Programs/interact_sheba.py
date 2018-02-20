@@ -33,7 +33,7 @@ import Split_Read as sr
 import Split_Measure as sm #Just in incase
 import plot as sp
 ##############################
-def main(phase='SKS',batch=False):
+def main(phase='SKS',batch=False,evt_sta_list=None):
     """
     Main - call this function to run the interface to sheba
     This function depends on the existence of a station list file specified by statlist and you have sac data alreayd downloaded
@@ -50,8 +50,8 @@ def main(phase='SKS',batch=False):
     ################## Start Process #############
     if batch is True:
 #       If processing of data for multiple stations is desired
-        statlist ='{}/Data/StationList.txt'.format(path)
-        stations = pd.read_csv(statlist,delim_whitespace=True).STAT
+        statlist ='{}/Data/{}'.format(path,evt_sta_list)
+        stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
 
         for station in stations:
 #           Iterate over stations in the station list.
