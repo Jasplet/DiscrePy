@@ -56,9 +56,6 @@ def split_read(station,network='*'):
 
 def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fdsnx,ex,dwn,ts):
     ## Function to download and save traces for a pre-determined set of events
-<<<<<<< HEAD
-
-
     datetime = str(date) + "T" + str(time).zfill(4) #Combined date and time inputs for converstion t UTCDateTime object
     start = obspy.core.UTCDateTime(datetime) #iso8601=True
 
@@ -100,102 +97,48 @@ def trace_download(date,time,evla,evlo,evdp,stla,stlo,station,network,outfile,fd
 
                 st = download_client.get_waveforms(network,station,'??',ch,start,start + 3000,attach_response=True)
 
-                if len(st) > 3:
-                    print("WARNING: More than three traces downloaded for event ", tr_id)
-                if ((st[0].stats.endtime - st[0].stats.starttime) >= 2999.0):
+            except FDSNNoDataException:
+                print("No Event Data Available")
 
-
-                    st[0].write('holder.sac', format='SAC',) # Writes traces as SAC files
-                    #st.plot()
-                    st_2 = obspy.core.read('holder.sac')
-                    #sac = AttribDict() # Creates a dictionary sacd to contain all the header information I want.
-                    ## Station Paramters
-                    st_2[0].stats.sac.stla = stla
-                    st_2[0].stats.sac.stlo = stlo
-                    ## Event Paramters
-                    st_2[0].stats.sac.evla = evla#cat[0].origins[0].latitude # Event latitude
-                    st_2[0].stats.sac.evlo = evlo#cat[0].origins[0].longitude # Event longitude
-                    st_2[0].stats.sac.evdp = evdp#cat[0].origins[0].depth/1000 # Event depth
-                    st_2[0].stats.sac.kstnm = '{:>8}'.format(station)
-                    dist_client = iris.Client() # Creates client to calculate event - station distance
-                    # print('stla = {}, stlo = {}, evla = {}, evlo = {}'.format(stla,stlo,evla,evlo))
-
-                    d = dist_client.distaz(stalat=stla,stalon=stlo,evtlat=evla,evtlon=evlo)
-
-                    st_2[0].stats.sac.gcarc = d['distance'] # d.values returns the values from dictionary d produced by distaz. list converts this to a list attribute which can then be indexed to extract the great cricle distance in degrees
-                    st_2[0].stats.sac.dist = d['distancemeters']/1000 # Distnace in kilometers
-                    st_2[0].stats.sac.baz = d['backazimuth'] # Backzimuth (Reciever - SOurce)
-                    st_2[0].stats.sac.az = d['azimuth'] # Azimuth (Source - Receiver)
-
-
-                    ## File Type
-                    #sacd.iftype = 1
-                    #print(st_2[0].stats)
-                    #st[0].stats.sac = sac
-                    #st_2.plot()
-                    st_2[0].write(tr_id, format='SAC',byteorder=1)
-                    # print("The trace ", tr_id, "was downloaded and saved!")
-                    dwn += 1
-                    if ch == 'BHE':
-                        outfile.write('{}\n'.format(tr_id[0:-7]))
-
-
-=======
-    too_short = 0
-    no_dat = 0
-    for i in range(0, n_events):
-        # Test if trace is already downloaded and create a UTCDateTime object for the Starttime
-        ps = str(dates[i]) + "T" + str(times[i]).zfill(4)
-        start = obspy.core.UTCDateTime(ps) #iso8601=True
-        yr = str(start.year)
-        mon = str(start.month).zfill(2) # Converts Month to string. zfill ensures it is 2 characters by adding a leading zero if required
-        day = str(start.day).zfill(2)   # Day of event, this is to contruct expected
-
-        hr = str(start.hour).zfill(2) # Converts Hour to string. zfill ensures it is 2 characters by adding a leading zero if required
-        minu = str(start.minute).zfill(2)
-
-        client = obspy.clients.fdsn.Client("IRIS")
-        try:
-            cat = client.get_events(starttime=start-60,endtime=start+60 ,latitude=evla[i],longitude=evlo[i],maxradius=0.5) #Get event in order to get more accurate event times.
-            print("i tried. there are this many events", len(cat))
-            if len(cat) > 1:
-                print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
-
-            start.microsecond = cat[0].origins[0].time.microsecond
-            start.second = cat[0].origins[0].time.second
-            start.minute = cat[0].origins[0].time.minute
-            sec = str(start.second).zfill(2)
-        except FDSNNoDataException:
-            print("No Event Data Available")
-        except FDSNException:
-            print("FDSNException for get_events")
-        channel = ["BHN","BHZ","BHE"]
-        for ch in channel:
-
-            id_tst = "./Data/" + stat + "_" + yr + "_" + mon + "_" + day+"_" + hr + "_" + minu + "_" + sec + "_" + ch + ".sac"
-            print("Looking for :", id_tst)
-            if os.path.isfile(id_tst) == True:
-                print("It exists. It was not downloaded") # File does not exist
-            else:
-                print("It does not exist. Download attempted")
-                st = obspy.core.stream.Stream() # Initialises our stream variable
-                client = Client("IRIS")
-                #print("Event: ", i, ". Station: ", station, ". Channel: ", ch)
-                test_00 = obspy.core.UTCDateTime("2011-05-02T19:07:00") # This Criterion is ONLY for AAM
-                if start >= test_00:
-                 # Location "00" for AAM went live at 2011/05/02 (122) 19:07:00
-                 # Location "10" is for NEW
-                   loc = "10"
-                   # channel = "BH?"
-                elif start < obspy.core.UTCDateTime("2000-01-01T00:00:00"):
-                    loc = "--"
-                    # channel = "BH?"
->>>>>>> master
-                else:
-                    print("Trace is too short.")
-                    ts += 1
             except FDSNException:
-                if ch == 'BHE':
-                    fdsnx += 1
+                print("FDSNException for get_events")
 
-    return dwn, fdsnx, ex,ts
+            if len(st) > 3:
+                print("WARNING: More than three traces downloaded for event ", tr_id)
+            if ((st[0].stats.endtime - st[0].stats.starttime) >= 2999.0):
+
+                st[0].write('holder.sac', format='SAC',) # Writes traces as SAC files
+                #st.plot()
+                st_2 = obspy.core.read('holder.sac')
+                #sac = AttribDict() # Creates a dictionary sacd to contain all the header information I want.
+                ## Station Paramters
+                st_2[0].stats.sac.stla = stla
+                st_2[0].stats.sac.stlo = stlo
+                ## Event Paramters
+                st_2[0].stats.sac.evla = evla#cat[0].origins[0].latitude # Event latitude
+                st_2[0].stats.sac.evlo = evlo#cat[0].origins[0].longitude # Event longitude
+                st_2[0].stats.sac.evdp = evdp#cat[0].origins[0].depth/1000 # Event depth
+                st_2[0].stats.sac.kstnm = '{:>8}'.format(station)
+                dist_client = iris.Client() # Creates client to calculate event - station distance
+                # print('stla = {}, stlo = {}, evla = {}, evlo = {}'.format(stla,stlo,evla,evlo))
+
+                d = dist_client.distaz(stalat=stla,stalon=stlo,evtlat=evla,evtlon=evlo)
+
+                st_2[0].stats.sac.gcarc = d['distance'] # d.values returns the values from dictionary d produced by distaz. list converts this to a list attribute which can then be indexed to extract the great cricle distance in degrees
+                st_2[0].stats.sac.dist = d['distancemeters']/1000 # Distnace in kilometers
+                st_2[0].stats.sac.baz = d['backazimuth'] # Backzimuth (Reciever - SOurce)
+                st_2[0].stats.sac.az = d['azimuth'] # Azimuth (Source - Receiver)
+                st_2[0].write(tr_id, format='SAC',byteorder=1)
+                # print("The trace ", tr_id, "was downloaded and saved!")
+                dwn += 1
+                if ch is 'BHE':
+                    outfile.write('{}\n'.format(tr_id[0:-7]))
+                else:
+                    pass
+
+            else:
+                print('Trace is too short')
+                ts +=1
+
+    return dwn,fdsnx, ex, ts
+#End of Program
