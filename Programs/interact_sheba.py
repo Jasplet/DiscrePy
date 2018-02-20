@@ -26,6 +26,7 @@ import subprocess as sub
 from subprocess import CalledProcessError
 import os.path
 import time
+import shlex
 ##############################
 #   Import other scripts in Programs/
 import Split_Read as sr
@@ -64,6 +65,16 @@ def main(phase='SKS',batch=False):
     end = time.time()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
+
+def tidyup(path,station,phase):
+    """
+    Function to tidy up the working directory after a sheba run. Do things like concatenate final result files together, move postscripts to the postscript folder etc.
+    Give the working directory a good clean basically
+    """
+
+    sub.call(shlex.split('{}/Sheba/tidyup_by_stat.sh {} {} {}'.format(path,station,phase,path)))
+
+
 
 def run_sheba(path,station,phase):
     """
@@ -271,12 +282,3 @@ class Interface:
             # print(out[0])
         except CalledProcessError as err:
             print(err)
-
-
-def tidy(station,phase):
-    """
-    Function to tidy up the working directory after a sheba run. Do things like concatenate final result files together, move postscripts to the postscript folder etc.
-    Give the working directory a good clean basically
-    """
-
-    sub.call(['cat','', '{}_{}*.final_result'.format(station,phase)])
