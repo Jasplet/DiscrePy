@@ -21,7 +21,7 @@
 import obspy as ob
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as ply #Just incase
+import matplotlib.pyplot as plt #Just incase
 import subprocess as sub
 from subprocess import CalledProcessError
 import os.path
@@ -59,6 +59,8 @@ def main(phase='SKS',batch=False):
     elif batch is False:
         station = input('Input Station Name > ')
         run_sheba(path,station,phase)
+
+
     end = time.time()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
@@ -72,15 +74,16 @@ def run_sheba(path,station,phase):
     #If the data has been downloaded. So lets look for directorys that exist
     dir_path = '{}/Data/SAC_files/{}'.format(path,station)
     if os.path.isdir(dir_path):
-        #Happy Days! The data directory exists!
+        #'Happy Days! The data directory exists!'
         i = 1 # Counter
         with open('{}/{}_downloaded_streams.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
             for line in reader.readlines():
                 line.strip('\n')
                 st_id = '{}BH?.sac'.format(str(line[0:-1]))
                 st = ob.read(st_id)
+
                 if len(st) is 3:
-                    Event = Interface(st)
+                    Event = Interface(st,station)
                     if Event.check_phase_dist(phase_to_check=phase) is True:
                         Event.process(station,phase)
                         outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
@@ -99,6 +102,7 @@ def run_sheba(path,station,phase):
 #                   Counter, i , for number of events processed
                     i +=1
                 else:
+                    print(' len(st) is not 3. Passing')
                     pass
     else:
         print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
@@ -109,9 +113,12 @@ class Interface:
     Class which will act as the interface to sheba.
     The "subprocess" sheba will be a bound method
     """
-    def __init__(self,st):
+    def __init__(self,st,station):
         # self.date = date
         # self.time = time
+        for i in [0,1,2]:
+            st[i].stats.sac.kstnm = '{:>8}'.format(st[i].stats.sac.kstnm)
+#§          Formats Station name in headers so that it is 8 characters long, with emtpy character fill with whitespaces
         self.BHE = st.select(channel='BHE')
         self.BHE[0].stats.sac.cmpinc = 90
         self.BHE[0].stats.sac.cmpaz = 90
@@ -123,6 +130,8 @@ class Interface:
         self.BHZ[0].stats.sac.cmpaz = 0
 #       Also lets load the gcarc from each stream, so we can test for whether SKKS should be measuable
         self.gcarc = (st[0].stats.sac.gcarc)
+
+        self.station = station
 #       As this gcarc is calculated in split_read.py I know that it should be the same for all three traces
 #       So for ease we will always read it from st[0]
 
@@ -134,7 +143,21 @@ class Interface:
         tr - trace object for which SKS arrival time will be predicted
         """
         model = ob.taup.tau.TauPyModel(model="iasp91")
-        traveltime = model.get_travel_times(self.BHN[0].stats.sac.evdp,self.BHN[0].stats.sac.gcarc,[phase])[0].time
+        # Add in a test for the case where depth has been gien in meters (as OBSPY IS DUMB AS HELL AND RETURNS DEPTH IN [m] FFS)
+        if self.BHN[0].stats.sac.evdp >= 1000:
+            #This might be a bit generous but my events shouldnt be shallower the ~ 1 km or deeper than 1000km anyway (and if this is the case than there is something SERIOUSLY wrong with our earth models)
+
+
+            traveltime = model.get_travel_times((self.BHN[0].stats.sac.evdp/1000),self.BHN[0].stats.sac.gcarc,[phase])[0].time
+        elif self.BHN[0].stats.sac.evdp != 0: # Theres an event where the event data couldnt be found so evdp was set to be 0
+            # Having a depth of zero will give us problems so NOW change it to 10.0km exactly (these traveltimes could be very dodgy)
+            err_out = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Events_with_evdp_of_0.txt','w+')
+            err_out.write('Station: {}, has event starting at {} with an evdp of 0!\n'.format(self.station,self.BHN[0].stats.starttime))
+
+            traveltime = model.get_travel_times(10,self.BHN[0].stats.sac.gcarc,[phase])[0].time
+
+        else:
+            traveltime = model.get_travel_times((self.BHN[0].stats.sac.evdp),self.BHN[0].stats.sac.gcarc,[phase])[0].time
 
         return traveltime
 
