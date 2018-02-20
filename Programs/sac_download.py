@@ -125,8 +125,11 @@ class Downloader:
             if self.start.minute != cat[0].origins[0].time.minute:
                 self.time = self.time[:2] + str(cat[0].origins[0].time.minute) # Time is hhmm so we subtract the old minute value and add the new one
 
-            self.evdp = cat[0].origins[0].depth/1000 # divide by 1000 to convert depth to [km[]
-
+            dep = cat[0].origins[0].depth
+            if dep is not None:
+                self.evdp = dep/1000.0 # divide by 1000 to convert depth to [km[]
+            else:
+                self.evdp = 10.0 #Hard code depth to 10.0 km if evdp cannot be found 
         except FDSNNoDataException:
             print("No Event Data Available")
             self.evdp = 0
