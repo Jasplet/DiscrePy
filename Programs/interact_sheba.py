@@ -57,18 +57,20 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
 #           Iterate over stations in the station list.
             run_sheba(path,station,phase)
 
-            tidyup(path,station,phase)
+            tidyup_by_stat(path,station,phase)
+
+        tidyup_final(path,phase)
 
     elif batch is False:
         station = input('Input Station Name > ')
         run_sheba(path,station,phase)
-        tidyup(path,station,phase)  
+        tidyup_by_stat(path,station,phase)
 
     end = time.time()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
 
-def tidyup(path,station,phase):
+def tidyup_by_stat(path,station,phase):
     """
     Function to tidy up the working directory after a sheba run. Do things like concatenate final result files together, move postscripts to the postscript folder etc.
     Give the working directory a good clean basically
@@ -76,7 +78,9 @@ def tidyup(path,station,phase):
 
     sub.call(shlex.split('{}/Sheba/tidyup_by_stat.sh {} {} {}'.format(path,station,phase,path)))
 
+def tidyup_final(path,phase):
 
+    sub.call(shlex.split('{}/Sheba/tidyup_by_stat.sh {} {}'.format(path,phase)))
 
 def run_sheba(path,station,phase):
     """
