@@ -59,7 +59,7 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
 
             tidyup_by_stat(path,station,phase)
 
-        tidyup_final(path,phase)
+        #tidyup_final(path,phase)
 
     elif batch is False:
         station = input('Input Station Name > ')
@@ -76,11 +76,11 @@ def tidyup_by_stat(path,station,phase):
     Give the working directory a good clean basically
     """
 
-    sub.call(shlex.split('{}/Sheba/tidyup_by_stat.sh {} {} {}'.format(path,station,phase,path)))
+    sub.call(shlex.split('{}/Sheba/Programs/tidyup_by_stat.sh {} {} {}'.format(path,station,phase,path)))
 
 def tidyup_final(path,phase):
 
-    sub.call(shlex.split('{}/Sheba/tidyup_by_stat.sh {} {}'.format(path,phase)))
+    sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} '.format(path,phase)))
 
 def run_sheba(path,station,phase):
     """
@@ -166,7 +166,7 @@ class Interface:
 
 
             traveltime = model.get_travel_times((self.BHN[0].stats.sac.evdp/1000),self.BHN[0].stats.sac.gcarc,[phase])[0].time
-        elif self.BHN[0].stats.sac.evdp != 0: # Theres an event where the event data couldnt be found so evdp was set to be 0
+        elif self.BHN[0].stats.sac.evdp == 0: # Theres an event where the event data couldnt be found so evdp was set to be 0
             # Having a depth of zero will give us problems so NOW change it to 10.0km exactly (these traveltimes could be very dodgy)
             err_out = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Events_with_evdp_of_0.txt','w+')
             err_out.write('Station: {}, has event starting at {} with an evdp of 0!\n'.format(self.station,self.BHN[0].stats.starttime))
