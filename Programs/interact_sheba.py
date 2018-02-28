@@ -31,7 +31,7 @@ import shlex
 #   Import other scripts in Programs/
 import Split_Read as sr
 import Split_Measure as sm #Just in incase
-import plot as sp
+#import plot as sp
 ##############################
 def main(phase='SKS',batch=False,evt_sta_list=None):
     """
