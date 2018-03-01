@@ -80,7 +80,7 @@ def tidyup_by_stat(path,station,phase):
 
 def tidyup_final(path,phase):
     """
-    Calls the bash script tidyup.sh to compile the by station results files into overall results. 
+    Calls the bash script tidyup.sh to compile the by station results files into overall results.
     """
     sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} '.format(path,phase)))
 
@@ -113,7 +113,7 @@ def run_sheba(path,station,phase):
                         except OSError:
                             print('Directory for writing outputs do not all exist. Initialising')
                             os.makedirs(outdir)
-                            Event.write_out(station,phase,i=i,path=outdir)
+                            Event.write_out(station,phase,line,i=i,path=outdir)
 
                         Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station,phase))
                     else:
@@ -239,7 +239,7 @@ class Interface:
         self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
         self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
 
-    def write_out(self,station,phase,i=0,path=None):
+    def write_out(self,phase,line,i=0,path=None):
         """
         Function to write the component seismograms to SAC files within the sheba directory structure so Sheba can access them
         station [str] - station code
@@ -252,13 +252,13 @@ class Interface:
 #       where a counter should be provided to prevent overwriting.
 
         if path is not None:
-            self.BHN.write('{}/{}_{}_{}.BHN'.format(path,station,phase,i),format='SAC',byteorder=1)
-            self.BHE.write('{}/{}_{}_{}.BHE'.format(path,station,phase,i),format='SAC',byteorder=1)
-            self.BHZ.write('{}/{}_{}_{}.BHZ'.format(path,station,phase,i),format='SAC',byteorder=1)
+            self.BHN.write('{}/{}{}.BHN'.format(path,line[0:-1],phase),format='SAC',byteorder=1)
+            self.BHE.write('{}/{}{}.BHE'.format(path,line[0:-1],phase),format='SAC',byteorder=1)
+            self.BHZ.write('{}/{}{}.BHZ'.format(path,line[0:-1],phase),format='SAC',byteorder=1)
         else:
-            self.BHN.write('{}.BHN'.format(station),format='SAC',byteorder=1)
-            self.BHE.write('{}.BHE'.format(station),format='SAC',byteorder=1)
-            self.BHZ.write('{}.BHZ'.format(station),format='SAC',byteorder=1)
+            self.BHN.write('{}.BHN'.format(line[0:-1]),format='SAC',byteorder=1)
+            self.BHE.write('{}.BHE'.format(line[0:-1]),format='SAC',byteorder=1)
+            self.BHZ.write('{}.BHZ'.format(line[0:-1]),format='SAC',byteorder=1)
 
 
 
