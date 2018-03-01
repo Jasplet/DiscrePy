@@ -79,7 +79,9 @@ def tidyup_by_stat(path,station,phase):
     sub.call(shlex.split('{}/Sheba/Programs/tidyup_by_stat.sh {} {} {}'.format(path,station,phase,path)))
 
 def tidyup_final(path,phase):
-
+    """
+    Calls the bash script tidyup.sh to compile the by station results files into overall results. 
+    """
     sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} '.format(path,phase)))
 
 def run_sheba(path,station,phase):
@@ -197,11 +199,10 @@ class Interface:
     def process(self,station,phase,c1=0.01,c2=0.5):
         """
         Function to bandpass filter and trim the components
-        t1 - [s] Lower bound of trim, time relative to event time
-        t2 - [s] Upper bound of trim, time relative to event time
+        Seismograms are trimmed so that they start 1 minute before the expected arrival and end 2 minutes after the arrival
         c1 - [Hz] Lower corner frequency
         c2 - [Hz] Upper corner frequency
-        By default traces will trim between 1300 - 1700s and will be filtered between 0.01Hz-0.5Hz
+        By default traces will be filtered between 0.01Hz-0.5Hz
         """
 
 
@@ -239,6 +240,13 @@ class Interface:
         self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
 
     def write_out(self,station,phase,i=0,path=None):
+        """
+        Function to write the component seismograms to SAC files within the sheba directory structure so Sheba can access them
+        station [str] - station code
+        phase [str] - phase code for which seismic phase splitting is being meausured
+        i [int] - counter for nukber of events (with the desired phase) at the station
+        path [str] - path that you want the seismogrmas saved to.
+        """
 #       Now write out the three processed components
 #       Naming depends on whether this is being executed as a test or within a loop
 #       where a counter should be provided to prevent overwriting.
