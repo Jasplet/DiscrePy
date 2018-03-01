@@ -98,6 +98,7 @@ def run_sheba(path,station,phase):
         with open('{}/{}_downloaded_streams.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
             for line in reader.readlines():
                 line.strip('\n')
+                label = line[56:-1] # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
                 st_id = '{}BH?.sac'.format(str(line[0:-1]))
                 st = ob.read(st_id)
 
@@ -109,13 +110,13 @@ def run_sheba(path,station,phase):
 
                         try:
 
-                            Event.write_out(phase,line,path=outdir)
+                            Event.write_out(phase,label,path=outdir)
                         except OSError:
                             print('Directory for writing outputs do not all exist. Initialising')
                             os.makedirs(outdir)
-                            Event.write_out(phase,line,path=outdir)
+                            Event.write_out(phase,label,path=outdir)
 
-                        Event.sheba(station,phase,line,path=outdir)
+                        Event.sheba(station,phase,label,i,path=outdir)
 
                         tidyup_by_stat(path,station,phase)
 
@@ -242,7 +243,7 @@ class Interface:
         self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
         self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
 
-    def write_out(self,phase,line,path=None):
+    def write_out(self,phase,label,path=None):
         """
         Function to write the component seismograms to SAC files within the sheba directory structure so Sheba can access them
         station [str] - station code
@@ -255,13 +256,13 @@ class Interface:
 #       where a counter should be provided to prevent overwriting.
 
         if path is not None:
-            self.BHN.write('{}/{}{}.BHN'.format(path,line[0:-1],phase),format='SAC',byteorder=1)
-            self.BHE.write('{}/{}{}.BHE'.format(path,line[0:-1],phase),format='SAC',byteorder=1)
-            self.BHZ.write('{}/{}{}.BHZ'.format(path,line[0:-1],phase),format='SAC',byteorder=1)
+            self.BHN.write('{}/{}{}.BHN'.format(path,label,phase),format='SAC',byteorder=1)
+            self.BHE.write('{}/{}{}.BHE'.format(path,label,phase),format='SAC',byteorder=1)
+            self.BHZ.write('{}/{}{}.BHZ'.format(path,label,phase),format='SAC',byteorder=1)
         else:
-            self.BHN.write('{}.BHN'.format(line[0:-1]),format='SAC',byteorder=1)
-            self.BHE.write('{}.BHE'.format(line[0:-1]),format='SAC',byteorder=1)
-            self.BHZ.write('{}.BHZ'.format(line[0:-1]),format='SAC',byteorder=1)
+            self.BHN.write('{}.BHN'.format(label),format='SAC',byteorder=1)
+            self.BHE.write('{}.BHE'.format(label),format='SAC',byteorder=1)
+            self.BHZ.write('{}.BHZ'.format(label),format='SAC',byteorder=1)
 
 
 
@@ -273,11 +274,11 @@ class Interface:
         st = self.BHN + self.BHE + self.BHZ
         st.plot(type='relative')
 
-    def sheba(self,station,phase,line,i = 0,path=None):
+    def sheba(self,station,phase,label,i = 0,path=None):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
-        print('Passing {} ({}) into Sheba'.format(line[0:-1],i))
+        print('Passing {} ({}) into Sheba'.format(label,i))
 
         p = sub.Popen(['sac'],
                      stdout = sub.PIPE,
