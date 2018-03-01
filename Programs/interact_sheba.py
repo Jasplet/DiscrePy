@@ -57,14 +57,14 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
 #           Iterate over stations in the station list.
             run_sheba(path,station,phase)
 
-            tidyup_by_stat(path,station,phase)
 
-        #tidyup_final(path,phase)
+
+        tidyup_final(path,phase)
 
     elif batch is False:
         station = input('Input Station Name > ')
         run_sheba(path,station,phase)
-        tidyup_by_stat(path,station,phase)
+
 
     end = time.time()
     runtime = end - start
@@ -109,13 +109,16 @@ def run_sheba(path,station,phase):
 
                         try:
 
-                            Event.write_out(station,phase,i=i,path=outdir)
+                            Event.write_out(phase,line,path=outdir)
                         except OSError:
                             print('Directory for writing outputs do not all exist. Initialising')
                             os.makedirs(outdir)
-                            Event.write_out(station,phase,line,i=i,path=outdir)
+                            Event.write_out(phase,line,path=outdir)
 
-                        Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station,phase))
+                        Event.sheba(station,phase,line,path=outdir)
+
+                        tidyup_by_stat(path,station,phase)
+
                     else:
                         pass
 #                   Counter, i , for number of events processed
@@ -239,7 +242,7 @@ class Interface:
         self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
         self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
 
-    def write_out(self,phase,line,i=0,path=None):
+    def write_out(self,phase,line,path=None):
         """
         Function to write the component seismograms to SAC files within the sheba directory structure so Sheba can access them
         station [str] - station code
@@ -270,11 +273,11 @@ class Interface:
         st = self.BHN + self.BHE + self.BHZ
         st.plot(type='relative')
 
-    def sheba(self,station,phase,i = 0,path=None):
+    def sheba(self,station,phase,line,i = 0,path=None):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
-        print('Passing {}_{}_{} into Sheba'.format(station,phase,i))
+        print('Passing {} ({}) into Sheba'.format(line[0:-1],i))
 
         p = sub.Popen(['sac'],
                      stdout = sub.PIPE,
