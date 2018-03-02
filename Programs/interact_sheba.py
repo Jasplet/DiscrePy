@@ -52,14 +52,14 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
 #       If processing of data for multiple stations is desired
         statlist ='{}/Data/{}'.format(path,evt_sta_list)
         stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
-
+        outfile = input('Enter end of SDB file name: ')
         for station in stations:
 #           Iterate over stations in the station list.
-            run_sheba(path,station,phase)
+            run_sheba(path,station,phase,outfile=outfile)
 
 
 
-        tidyup_final(path,phase)
+        tidyup_final(path,phase,outfile)
 
     elif batch is False:
         station = input('Input Station Name > ')
@@ -70,21 +70,21 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
 
-def tidyup_by_stat(path,station,phase):
+def tidyup_by_stat(path,station,phase,outfile):
     """
     Function to tidy up the working directory after a sheba run. Do things like concatenate final result files together, move postscripts to the postscript folder etc.
     Give the working directory a good clean basically
     """
 
-    sub.call(shlex.split('{}/Sheba/Programs/tidyup_by_stat.sh {} {} {}'.format(path,station,phase,path)))
+    sub.call(shlex.split('{}/Sheba/Programs/tidyup_by_stat.sh {} {} {} {}'.format(path,station,phase,path,outfile)))
 
-def tidyup_final(path,phase):
+def tidyup_final(path,phase,outfile):
     """
     Calls the bash script tidyup.sh to compile the by station results files into overall results.
     """
-    sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} '.format(path,phase)))
+    sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} {}'.format(path,phase,outfile)))
 
-def run_sheba(path,station,phase):
+def run_sheba(path,station,phase,outfile=None):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
@@ -98,7 +98,8 @@ def run_sheba(path,station,phase):
         with open('{}/{}_downloaded_streams.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
             for line in reader.readlines():
                 line.strip('\n')
-                label = line[56:-1] # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
+                label = line[55:-1].strip('/') # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
+                print(label)
                 st_id = '{}BH?.sac'.format(str(line[0:-1]))
                 st = ob.read(st_id)
 
@@ -118,7 +119,7 @@ def run_sheba(path,station,phase):
 
                         Event.sheba(station,phase,label,i,path=outdir)
 
-                        tidyup_by_stat(path,station,phase)
+                        tidyup_by_stat(path,station,phase,outfile)
 
                     else:
                         pass
@@ -293,8 +294,8 @@ class Interface:
         s = '''
         echo on\n
         SETMACRO /Users/ja17375/Ext_programs/macros
-        m sheba file {}_{}_{} plot yes pick no nwind 10 10 batch yes
-        '''.format(station,phase,i)
+        m sheba file {}{} plot yes pick no nwind 10 10 batch yes
+        '''.format(label,phase)
         try:
             out = p.communicate(s)
             # print(out[0])
