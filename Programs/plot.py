@@ -225,3 +225,27 @@ def coverage(evla,evlo,stla,stlo,stat):
     ax.set_title('Coverage for Station {}'.format(stat))
     ax.legend()
     plt.show()
+
+######################## Section for SDB plotting
+
+class SDB:
+    """
+    Class to hold a Splitting Database and generate a suite of useful plots based off the data.
+    """
+    def __init__(self,sdb,Q_threshold=None,gcarc_threshold=None):
+
+        self._raw = pd.read_csv(sdb,delim_whitespace=True)
+        #Load raw data from provided sdb file. This is going to be a hidden file as I will parse out useful columns to new attributes depending of provided kwargs
+
+         #if kwargs are none:
+        #Read Station Properties
+        self.stla = self._raw.STLA.values
+        self.stlo = self._raw.STLO.values
+        #Read Event Origin Properties
+        self.evla = self._raw.EVLA.values
+        self.evlo = self._raw.EVLO.values
+        self.evdp = self._raw.EVDP.values
+        self.dist = self._raw.DIST.values
+        self.date = self._raw.DATE.values
+        self.time = self._raw.TIME.values
+        #Read Splitting Parameters
