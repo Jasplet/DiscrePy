@@ -1,3 +1,4 @@
+
 #! /usr/bin/env python
 ### Script containing varous plotting functions for splitting Measurements
 import pandas as pd
@@ -21,4 +22,28 @@ class SDB:
         #Load raw data from provided sdb file. This is going to be a hidden file as I will parse out useful columns to new attributes depending of provided kwargs
 
          #if kwargs are none:
-        self.data = self._raw
+        self.sdb = self._raw
+        self.pp = pd.read_csv('{}.pp'.format(sdb),delim_whitespace=True)
+        ## Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
+
+    def main(self):
+        """
+        Main Function of the Class
+        """
+
+    def match(self,sigma=2):
+        """
+        Funntion to see if the SKS and SKKS splititng measurements for a pair of measurements match within error
+
+        Default error for this kind of anlysis is 2-sigma. Sheba returns 1 sigma so the DFAST and DTLAG need to be scaled appropriatly.
+        """
+        #First lets extract the raw values of the data that we need
+        SKS_fast = self.data.FAST_SKS.values
+        SKS_dfast = self.data.DFAST_SKS.values
+        SKS_tlag = self.data.TLAG_SKS.values
+        SKS_dtlag = self.data.DTLAG_SKS.values
+        #Niw for SKKS
+        SKKS_fast = self.data.FAST_SKKS.values
+        SKKS_dfast = self.data.DFAST_SKKS.values
+        SKKS_tlag = self.data.TLAG_SKKS.values
+        SKKS_dtlag = self.data.DTLAG_SKKS.values
