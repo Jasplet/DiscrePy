@@ -47,3 +47,13 @@ class SDB:
         SKKS_dfast = self.data.DFAST_SKKS.values
         SKKS_tlag = self.data.TLAG_SKKS.values
         SKKS_dtlag = self.data.DTLAG_SKKS.values
+        # Now set the SKS and SKKS 2-sigma rnages
+        lbf_SKS = SKS_fast - sigma*SKS_dfast
+        ubf_SKS = SKS_fast + sigma*SKS_dfast
+        lbf_SKKS = SKKS_fast - sigma*SKKS_dfast
+        ubf_SKKS = SKKS_fast + sigma*SKKS_dfast
+
+        lbt_SKS = SKS_tlag - sigma*SKS_dtlag
+        ubt_SKS = SKS_tlag - sigma*SKS_dtlag
+        lbt_SKKS = SKKS_tlag - sigma*SKKS_dtlag
+        ubt_SKKS = SKKS_tlag - sigma*SKKS_dtlag
