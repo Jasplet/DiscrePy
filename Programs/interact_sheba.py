@@ -27,7 +27,7 @@ from subprocess import CalledProcessError
 import os.path
 import time
 import shlex
-from multiprocessing import Pool, current_procces
+from multiprocessing import Pool, current_process
 import contextlib
 ##############################
 #   Import other scripts in Programs/
@@ -99,6 +99,8 @@ def run_sheba(path,station,phase,outfile=None):
 
     #Each station SHOULD have its own directory within Data/SAC_files
     #If the data has been downloaded. So lets look for directorys that exist
+    print("Worker {} calculating square of {}".format(current_process().pid, station))
+
     dir_path = '{}/Data/SAC_files/{}'.format(path,station)
     if os.path.isdir(dir_path):
         #'Happy Days! The data directory exists!'
