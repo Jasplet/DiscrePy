@@ -27,6 +27,8 @@ from subprocess import CalledProcessError
 import os.path
 import time
 import shlex
+from multiprocessing import Pool, current_procces
+import contextlib
 ##############################
 #   Import other scripts in Programs/
 import Split_Read as sr
@@ -50,12 +52,16 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
     ################## Start Process #############
     if batch is True:
 #       If processing of data for multiple stations is desired
-        statlist ='{}/Data/{}'.format(path,evt_sta_list)
-        stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
-        outfile = input('Enter end of SDB file name: ')
-        for station in stations:
+
+        if __name__ is __main__:
+            ## Set of pool for mapping
+
+            statlist ='{}/Data/{}'.format(path,evt_sta_list)
+            stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
+            outfile = input('Enter end of SDB file name: ')
+            with contextlib.closing( Pool() ) as pool:
 #           Iterate over stations in the station list.
-            run_sheba(path,station,phase,outfile=outfile)
+                pool.map(run_sheba,path,station,phase,outfile)
 
 
 
@@ -69,6 +75,8 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
     end = time.time()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
+
+
 
 def tidyup_by_stat(path,station,phase,outfile):
     """
