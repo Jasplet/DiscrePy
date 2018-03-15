@@ -19,6 +19,7 @@ from obspy.clients.fdsn.header import (FDSNException)
 from obspy.clients.fdsn.header import (FDSNNoDataException)
 from obspy.core import AttribDict
 from obspy.clients import iris
+from multiprocessing import Pool, current_process
 ####################################
 def main(event_list=None,batch=False):
     """
@@ -129,26 +130,27 @@ class Downloader:
             if dep is not None:
                 self.evdp = dep/1000.0 # divide by 1000 to convert depth to [km[]
             else:
-                self.evdp = 10.0 #Hard code depth to 10.0 km if evdp cannot be found 
+                self.evdp = 10.0 #Hard code depth to 10.0 km if evdp cannot be found
         except FDSNNoDataException:
-            print("No Event Data Available")
+            #print("No Event Data Available")
             self.evdp = 0
         except FDSNException:
-            print("FDSNException for get_events")
+            #print("FDSNException for get_events")
+            pass
 
     def download_traces(self,ch):
         """
 
         """
         tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_{:07d}_{}{:02d}_{}.sac".format(self.station,self.station,self.date,self.time,self.start.second,ch)
-        #print("Looking for :", tr_id)
+        print("Looking for :", tr_id)
         if os.path.isfile(tr_id) == True:
-            #print("It exists. It was not downloaded") # File does not exist
+            print("It exists. It was not downloaded") # File does not exist
             if ch == 'BHE':
                 self.outfile.write('{}\n'.format(tr_id[0:-7]))
                 self.ex += 1
         else:
-            #print("It exists. Download attempted")
+            print("It doesnt exists. Download attempted")
             st = obspy.core.stream.Stream() # Initialises our stream variable
             try:
                 if self.network is 'BK':
@@ -168,7 +170,7 @@ class Downloader:
                         self.outfile.write('{}\n'.format(tr_id[0:-7]))
 
                 else:
-                    print("Trace is too short.")
+                    #print("Trace is too short.")
                     self.ts += 1
             except FDSNException:
                 if ch == 'BHE':
