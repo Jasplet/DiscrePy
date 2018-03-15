@@ -53,7 +53,7 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
     if batch is True:
 #       If processing of data for multiple stations is desired
 
-        if __name__ is __main__:
+        if __name__ is 'interact_sheba':
             ## Set of pool for mapping
 
             statlist ='{}/Data/{}'.format(path,evt_sta_list)
@@ -61,11 +61,13 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
             outfile = input('Enter end of SDB file name: ')
             with contextlib.closing( Pool() ) as pool:
 #           Iterate over stations in the station list.
-                pool.map(run_sheba,path,station,phase,outfile)
+                multi_sheba = lambda stations: run_sheba(path=path,phase=phase,outfile=outfile)
+                pool.map(run_sheba,stations)
+
+            #tidyup_final(path,phase,outfile)
+        print(__name__)
 
 
-
-        tidyup_final(path,phase,outfile)
 
     elif batch is False:
         station = input('Input Station Name > ')
@@ -92,14 +94,14 @@ def tidyup_final(path,phase,outfile):
     """
     sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} {}'.format(path,phase,outfile)))
 
-def run_sheba(path,station,phase,outfile=None):
+def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKS',outfile='null_results'):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
-
+    print('Worker {} running sheba for station {}'.format(current_process().pid,station))
     #Each station SHOULD have its own directory within Data/SAC_files
     #If the data has been downloaded. So lets look for directorys that exist
-    print("Worker {} calculating square of {}".format(current_process().pid, station))
+    
 
     dir_path = '{}/Data/SAC_files/{}'.format(path,station)
     if os.path.isdir(dir_path):
@@ -129,7 +131,7 @@ def run_sheba(path,station,phase,outfile=None):
 
                         Event.sheba(station,phase,label,i,path=outdir)
 
-                        tidyup_by_stat(path,station,phase,outfile)
+                        #tidyup_by_stat(path,station,phase,outfile)
 
                     else:
                         pass
