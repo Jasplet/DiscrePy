@@ -74,10 +74,10 @@ class SDB:
             SKKS_pp_lat = self.pp.lat_SKKS.values[i]
             SKKS_pp_lon = self.pp.lon_SKKS.values[i]
             #print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKKS[i],SKS_fast[i],ubf_SKKS[i],lbt_SKKS[i],SKS_tlag[i],ubt_SKKS[i]))
-            if (lbf_SKKS[i] <= SKS_fast[i] <= ubf_SKKS[i] ) and (lbt_SKKS[i] <= SKS_tlag[i] <= ubt_SKKS[i]):
+            if (lbf_SKKS[i] <= ubf_SKS[i]) or (lbf_SKS[i] <= ubf_SKKS[i])
                 # Do the Fast and Tlag measured for SKS sit within the error bars for SKKS?
                 #print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKKS[i],SKS_fast[i],ubf_SKKS[i],lbt_SKKS[i],SKS_tlag[i],ubt_SKKS[i]))
-                if (lbf_SKS[i] <= SKKS_fast[i] <= ubf_SKS[i]) and (lbt_SKS[i] <= SKKS_tlag[i] <= ubt_SKS[i]):
+                if (lbt_SKKS[i] <= ubt_SKS[i]) and (lbt_SKS[i] <= ubt_SKKS[i])
                     # Do the Fast and Tlag measured for SKKS sit within the 2-sigma error bars for SKS?
                     print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKS[i],SKKS_fast[i],ubf_SKS[i],lbt_SKS[i],SKKS_tlag[i],ubt_SKS[i]))
                     outfile.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i]))
