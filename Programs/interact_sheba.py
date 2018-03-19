@@ -94,14 +94,14 @@ def tidyup_final(path,phase,outfile):
     """
     sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} {}'.format(path,phase,outfile)))
 
-def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKS',outfile='null_results'):
+def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKKS',outfile='null_results'):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
     print('Worker {} running sheba for station {}'.format(current_process().pid,station))
     #Each station SHOULD have its own directory within Data/SAC_files
     #If the data has been downloaded. So lets look for directorys that exist
-    
+
 
     dir_path = '{}/Data/SAC_files/{}'.format(path,station)
     if os.path.isdir(dir_path):
