@@ -19,11 +19,23 @@ from obspy.clients.fdsn.header import (FDSNException)
 from obspy.clients.fdsn.header import (FDSNNoDataException)
 from obspy.core import AttribDict
 from obspy.clients import iris
+
 from multiprocessing import Pool, current_process
+import contextlib
 ####################################
 def main(event_list=None,batch=False):
     """
     Main Routine for this program. Holds highest level logic
+
+    event_list - [str] path to the event list that you want to download data for IF running in batch mode.
+
+    batch - [bool] True/False switch. If true then sac_download will loop over all stations detected in the event list attempts to downlaod data for them
+
+    The event list must be a space delimted text file with the columns for station code, event time and even lat/long in the following format:
+    STAT DATE TIME EVLA EVLO
+    EX01 1900001 1234 56.78 90.12
+
+    Note that Date has the format yyyyjjj and TIME has the format hhmm. Sac_download will search for the event and add in seconds to origin time
     """
 
     # Reads our event list as a pandas datatframe
@@ -31,34 +43,58 @@ def main(event_list=None,batch=False):
     # The converters kwarg fr TIME will stop pandas from stripping off the leading zeros (but time is now a string)
 
     if batch is True:
-        for station in df.STAT.unique():
-#        for each unique station Code
-            Instance = Downloader(df,station)
-            stat_found = Instance.download_station_data()
-            if stat_found is True:
-                for i in range(0,len(Instance.data)):
-                #Loop over events for the given station Instance
 
-                    Instance.download_event_data(i)
-                for channel in ['BHN','BHE','BHZ']:
-                    Instance.download_traces(channel)
-            else:
-                print('Station {} could not be found'.format(station))
+        stations = df.STAT.unique() # Identify the unique stations provided in the event staton list
+        for station in stations:
+            run_download(df,station)
+
+        # for station in df.STAT.unique():
+#        for each unique station Code
+            # Instance = Downloader(df,station)
+            # stat_found = Instance.download_station_data()
+            # if stat_found is True:
+            #     for i in range(0,len(Instance.data)):
+            #     #Loop over events for the given station Instance
+            #
+            #         Instance.download_event_data(i)
+            #     for channel in ['BHN','BHE','BHZ']:
+            #         Instance.download_traces(channel)
+            # else:
+            #     print('Station {} could not be found'.format(station))
     elif batch is False:
         station = input('Input Station Name > ')
-        Instance = Downloader(df,station)
-        stat_found = Instance.download_station_data()
-        if stat_found is True:
-            for i in range(0,len(Instance.data)):
-                #Loop over events for the given station Instance
-                Instance.download_event_data(i)
-                for channel in ['BHN','BHE','BHZ']:
-                    Instance.download_traces(channel)
+        run_download(df,station)
+        # Instance = Downloader(df,station)
+        # stat_found = Instance.download_station_data()
+        # if stat_found is True:
+        #     for i in range(0,len(Instance.data)):
+        #         #Loop over events for the given station Instance
+        #         Instance.download_event_data(i)
+        #         for channel in ['BHN','BHE','BHZ']:
+        # #             Instance.download_traces(channel)
+        #
+        # else:
+        #     print('Station {} could not be found'.format(station))
 
-        else:
-            print('Station {} could not be found'.format(station))
+    print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} have already been downloaded'.format(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex))
+    
 
-    print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} aboarted as the data has already been downloaded'.format(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex))
+def run_download(df,station):
+    """
+    Function that runs the downloading process for a given station (or stations)
+    """
+
+    Instance = Downloader(df,station)
+    stat_found = Instance.download_station_data()
+    if stat_found is True:
+        for i in range(0,len(Instance.data)):
+        #Loop over events for the given station Instance
+
+            Instance.download_event_data(i)
+        for channel in ['BHN','BHE','BHZ']:
+            Instance.download_traces(channel)
+    else:
+        print('Station {} could not be found'.format(station))
 
 
 class Downloader:
@@ -110,12 +146,8 @@ class Downloader:
         self.evlo = self.data.EVLO[i]
         self.date = self.data.DATE[i]
         self.time = self.data.TIME[i]
-
         datetime = str(self.date) + "T" + self.time #Combined date and time inputs for converstion t UTCDateTime object
         self.start = obspy.core.UTCDateTime(datetime) #iso8601=True
-
-
-
         try:
             cat = self.fdsnclient.get_events(starttime=self.start-60,endtime=self.start+60 ,latitude=self.evla,longitude=self.evlo,maxradius=0.5) #Get event in order to get more accurate event times.
             if len(cat) > 1:
@@ -140,7 +172,7 @@ class Downloader:
 
     def download_traces(self,ch):
         """
-
+        Function that downloads the traces for a given event and station
         """
         tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_{:07d}_{}{:02d}_{}.sac".format(self.station,self.station,self.date,self.time,self.start.second,ch)
         print("Looking for :", tr_id)
