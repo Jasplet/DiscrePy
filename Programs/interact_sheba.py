@@ -63,7 +63,7 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
 #           Iterate over stations in the station list.
                 multi_sheba = lambda stations: run_sheba(path=path,phase=phase,outfile=outfile)
                 pool.map(run_sheba,stations)
-
+#               pool.map(tidyup,stations) ??? Maybe this would work???
             #tidyup_final(path,phase,outfile)
         print(__name__)
 
