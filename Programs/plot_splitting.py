@@ -25,24 +25,23 @@ def load(stat,phase):
     split =(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].FAST,data[(data.QUAL != 'n')].DFAST,data[(data.QUAL != 'n')].TLAG,data[(data.QUAL != 'n')].DTLAG,data[(data.QUAL != 'n')].EVLO,data[(data.QUAL != 'n')].EVLA)
     return data,stat_loc,null,split # also return data so not to break SKS_plot
 
-def SKS_plot(stat,title1,phase='SKS'):
+def SKS_plot(stat,title1=None,phase='SKS'):
     """
     Function to make diagnostice plots for a given file of splitting measuremtns
     """
-    data= load(stat,phase)
+    data, stat_loc, null, split= load(stat,phase)
 
     fig,axs = plt.subplots(2, 2,sharex='col',figsize=(10,10))
 
 
-    axs[0,0].errorbar(null[0],null[1],yerr=null[2],fmt='kx',elinewidth=0.5,label='Null')
-    axs[0,0].errorbar(split[0].split[1],yerr=split[2],fmt='ko',elinewidth=0.5,label='Split')
+    axs[0,0].errorbar(null[0],null[1],yerr=null[2],fmt='kx',elinewidth=0.5,label='Null Measurement')
+    axs[0,0].errorbar(split[0],split[1],yerr=split[2],fmt='ko',elinewidth=0.5,label='Split')
     axs[0,0].legend(loc=2)
 
     axs[0,0].set_ylabel('Fast Direction (deg)')
     axs[0,0].set_ylim([-90,90])
     axs[0,0].set_yticks(np.arange(-90,91,30))
-    axs[0,0].set_title('{} - Fast Direction'.format(title1))
-
+    axs[0,0].set_title('Splitting from Broadband Data - Fast Direction')
     axs[0,1].errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_FAST,yerr=data[(data.QUAL == 'n')].WL_DFAST,fmt='kx',elinewidth=0.5)
     axs[0,1].errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_FAST,yerr=data[(data.QUAL != 'n')].WL_DFAST,fmt='ko',elinewidth=0.5)
     axs[0,1].set_ylim([-90,90])
@@ -55,7 +54,7 @@ def SKS_plot(stat,title1,phase='SKS'):
     plot_lag(axs[1,0],split[0],split[3],split[4],fmt='ko')
     # axs[1,0].set_ylabel('Tlag (s)')
     # axs[1,0].set_ylim([0,4])
-    # axs[1,0].set_title('{} - Lag Time'.format(title1))
+    axs[1,0].set_title('Splitting from Broadband Data - Lag Time'.format(title1))
 
     axs[1,1].errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_TLAG,yerr=data[(data.QUAL == 'n')].WL_DTLAG,fmt='kx',elinewidth=0.5)
     axs[1,1].errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_TLAG,yerr=data[(data.QUAL != 'n')].WL_DTLAG,fmt='ko',elinewidth=0.5)
