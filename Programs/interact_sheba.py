@@ -85,13 +85,14 @@ def tidyup_by_stat(path,station,phase,outfile):
     Function to tidy up the working directory after a sheba run. Do things like concatenate final result files together, move postscripts to the postscript folder etc.
     Give the working directory a good clean basically
     """
-
+ ## This needs to be reworked to be in python so that I can actually get this to work
     sub.call(shlex.split('{}/Sheba/Programs/tidyup_by_stat.sh {} {} {} {}'.format(path,station,phase,path,outfile)))
 
 def tidyup_final(path,phase,outfile):
     """
     Calls the bash script tidyup.sh to compile the by station results files into overall results.
     """
+    ## This needs to be reworked in Python (get rid of call to bash function) so this will work in the new, parallel, framework!!!
     sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} {}'.format(path,phase,outfile)))
 
 def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKKS',outfile='null_results'):
