@@ -41,13 +41,18 @@ def main(event_list=None,batch=False):
     # Reads our event list as a pandas datatframe
     df = pd.read_csv(event_list,delim_whitespace=True,converters={'TIME': lambda x: str(x)})
     # The converters kwarg fr TIME will stop pandas from stripping off the leading zeros (but time is now a string)
-
+    (attempts,dwn,fdsnx,ts,ex) = 0,0,0,0,0
     if batch is True:
 
         stations = df.STAT.unique() # Identify the unique stations provided in the event staton list
         for station in stations:
-            run_download(df,station)
+            (a,d,fd,t,x)= run_download(df,station)
 
+            attempts += a
+            dwn += d
+            fdsnx += fd
+            ts += t
+            ex += x
         # for station in df.STAT.unique():
 #        for each unique station Code
             # Instance = Downloader(df,station)
@@ -63,7 +68,7 @@ def main(event_list=None,batch=False):
             #     print('Station {} could not be found'.format(station))
     elif batch is False:
         station = input('Input Station Name > ')
-        run_download(df,station)
+        (attempts,dwn,fdsnx,ts,ex) = run_download(df,station)
         # Instance = Downloader(df,station)
         # stat_found = Instance.download_station_data()
         # if stat_found is True:
@@ -76,8 +81,9 @@ def main(event_list=None,batch=False):
         # else:
         #     print('Station {} could not be found'.format(station))
 
-    print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} have already been downloaded'.format(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex))
-    
+    print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} have already been downloaded'.format(attempts,dwn,fdsnx,ts,ex))
+
+
 
 def run_download(df,station):
     """
@@ -93,9 +99,11 @@ def run_download(df,station):
             Instance.download_event_data(i)
         for channel in ['BHN','BHE','BHZ']:
             Instance.download_traces(channel)
+
     else:
         print('Station {} could not be found'.format(station))
 
+    return(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex)
 
 class Downloader:
 
@@ -176,6 +184,10 @@ class Downloader:
         """
         tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_{:07d}_{}{:02d}_{}.sac".format(self.station,self.station,self.date,self.time,self.start.second,ch)
         print("Looking for :", tr_id)
+
+        if ch == 'BHE':
+            self.attempts += 1 # Counts the number of traces that downloads are attempted for
+
         if os.path.isfile(tr_id) == True:
             print("It exists. It was not downloaded") # File does not exist
             if ch == 'BHE':
@@ -194,6 +206,9 @@ class Downloader:
 
                 if len(st) > 3:
                     print("WARNING: More than three traces downloaded for event ", tr_id)
+                elif len(st) < 3:
+                    self.ts += 1
+
                 if ((st[0].stats.endtime - st[0].stats.starttime) >= 2999.0):
 
                     self.write_st(st,tr_id)
@@ -203,7 +218,8 @@ class Downloader:
 
                 else:
                     #print("Trace is too short.")
-                    self.ts += 1
+                    if ch == 'BHE':
+                        self.ts += 1
             except FDSNException:
                 if ch == 'BHE':
                     self.fdsnx += 1
