@@ -86,7 +86,15 @@ def tidyup_by_stat(path,station,phase,outfile):
     Give the working directory a good clean basically
     """
  ## This needs to be reworked to be in python so that I can actually get this to work
-    sub.call(shlex.split('{}/Sheba/Programs/tidyup_by_stat.sh {} {} {} {}'.format(path,station,phase,path,outfile)))
+    # sub.call(shlex.split('{}/Sheba/Programs/tidyup_by_stat.sh {} {} {} {}'.format(path,station,phase,path,outfile)))
+    with open('ZENO__{}_sheba.final_result') as reader:
+         head  = reader.readline() # Get the header line out the way
+
+         for line in reader.readlines():
+             t = line.strip().split()
+            print(t)
+
+
 
 def tidyup_final(path,phase,outfile):
     """
@@ -132,7 +140,7 @@ def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKKS',ou
 
                         Event.sheba(station,phase,label,i,path=outdir)
 
-                        #tidyup_by_stat(path,station,phase,outfile)
+                        #tidyup_by_stat(path,station,phase,label,outfile)
 
                     else:
                         pass
