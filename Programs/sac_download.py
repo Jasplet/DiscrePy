@@ -19,7 +19,7 @@ from obspy.clients.fdsn.header import (FDSNException)
 from obspy.clients.fdsn.header import (FDSNNoDataException)
 from obspy.core import AttribDict
 from obspy.clients import iris
-
+import time
 from multiprocessing import Pool, current_process
 import contextlib
 ####################################
@@ -37,7 +37,10 @@ def main(event_list=None,batch=False):
 
     Note that Date has the format yyyyjjj and TIME has the format hhmm. Sac_download will search for the event and add in seconds to origin time
     """
-
+    print('Have you checked the downloaded streams file names you want to use??? [10 s pause]')
+    time.sleep(10)
+    print('Ok now lets get started')
+    start = time.time()
     # Reads our event list as a pandas datatframe
     df = pd.read_csv(event_list,delim_whitespace=True,converters={'TIME': lambda x: str(x)})
     # The converters kwarg fr TIME will stop pandas from stripping off the leading zeros (but time is now a string)
@@ -82,31 +85,33 @@ def main(event_list=None,batch=False):
         #     print('Station {} could not be found'.format(station))
 
     print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} have already been downloaded'.format(attempts,dwn,fdsnx,ts,ex))
-
+    end = time.time()
+    runtime = end - start
+    print('Runtime was {}\n'.format(runtime))
 
 
 def run_download(df,station):
     """
     Function that runs the downloading process for a given station (or stations)
     """
-    
+
     Instance = Downloader(df,station)
     stat_found = Instance.download_station_data()
     if stat_found is True:
         for i in range(0,len(Instance.data)):
-        k +=1
+        
         #Loop over events for the given station Instance
 
             Instance.download_event_data(i)
             for channel in ['BHN','BHE','BHZ']:
-                print('It {}, ch {}, {} {} '.format(i,channel,Instance.date, Instance.time))
+
                 Instance.download_traces(channel)
 
     else:
 
         print('Station {} could not be found'.format(station))
 
-
+    print('It {}, stat {}'.format(Instance.attempts,station))
     return(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex)
 
 class Downloader:
@@ -127,7 +132,7 @@ class Downloader:
             pass
     #   Made
 
-        self.outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_downloaded_streams.txt'.format(station,station),'w+')
+        self.outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_downloaded_streams_Jacks_Nulls.txt'.format(station,station),'w+')
 
         self.attempts = 0 #Counter for how many attempted downloads there were
         self.fdsnx = 0 #Counter for how many attempts hit a FDSNNoDataException
@@ -187,18 +192,18 @@ class Downloader:
         Function that downloads the traces for a given event and station
         """
         tr_id = "/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_{:07d}_{}{:02d}_{}.sac".format(self.station,self.station,self.date,self.time,self.start.second,ch)
-        print("Looking for :", tr_id)
+        #print("Looking for :", tr_id)
 
         if ch == 'BHE':
             self.attempts += 1 # Counts the number of traces that downloads are attempted for
 
         if os.path.isfile(tr_id) == True:
-            print("It exists. It was not downloaded") # File does not exist
+            print("{} exists. It was not downloaded".format(tr_id)) # File does not exist
             if ch == 'BHE':
                 self.outfile.write('{}\n'.format(tr_id[0:-7]))
                 self.ex += 1
         else:
-            print("It doesnt exists. Download attempted")
+            #print("It doesnt exists. Download attempted")
             st = obspy.core.stream.Stream() # Initialises our stream variable
             try:
                 if self.network is 'BK':
