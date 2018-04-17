@@ -54,14 +54,15 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
     ################## Start Process #############
     if batch is True:
 #       If processing of data for multiple stations is desired
-
-        if __name__ is 'interact_sheba':
+        print(__name__)
+        if __name__ == 'interact_sheba':
             ## Set of pool for mapping
-
+            print('hi')
             statlist ='{}/Data/{}'.format(path,evt_sta_list)
+            print('Processing Data from the Event-Station List {}'.format(statlist))
             stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
             out_pre = input('Enter SDB file name: ')
-            outfile = '{}/Sheba/Results/{}_{}_sheba_results.sdb'.format(path,phase,out_pre)
+            outfile = '{}/Sheba/Results/{}_{}_sheba_results.sdb'.format(path,out_pre,phase)
             with contextlib.closing( Pool() ) as pool:
 #           Iterate over stations in the station list.
                 multi_sheba = lambda stations: run_sheba(path=path,phase=phase,outfile=outfile)
@@ -69,8 +70,6 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
 #               pool.map(tidyup,stations) ??? Maybe this would work???
 
             tidyup(path,phase,outfile)
-        print(__name__)
-
 
 
     elif batch is False:
