@@ -82,7 +82,7 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
     print('The runtime of main is {} seconds'.format(runtime))
 
 
-def tidyup(path,station,phase,outfile):
+def tidyup(path,phase,outfile):
     """
     Function to tidy up the working directory after a sheba run. Do things like concatenate final result files together, move postscripts to the postscript folder etc.
     Give the working directory a good clean basically
@@ -147,7 +147,7 @@ def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKKS',ou
                     Event = Interface(st,station)
                     if Event.check_phase_dist(phase_to_check=phase) is True:
                         Event.process(station,phase)
-                        outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
+                        outdir = '{}/Sheba/Runs/Jacks_Nulls_Test/{}/{}'.format(path,station,phase)
 
                         try:
 
