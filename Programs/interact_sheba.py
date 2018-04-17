@@ -29,6 +29,8 @@ import time
 import shlex
 from multiprocessing import Pool, current_process
 import contextlib
+import fileinput
+from glob import glob
 ##############################
 #   Import other scripts in Programs/
 import Split_Read as sr
@@ -58,13 +60,15 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
 
             statlist ='{}/Data/{}'.format(path,evt_sta_list)
             stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
-            outfile = input('Enter end of SDB file name: ')
+            out_pre = input('Enter SDB file name: ')
+            outfile = '{}/Sheba/Results/{}_{}_sheba_results.sdb'.format(path,phase,out_pre)
             with contextlib.closing( Pool() ) as pool:
 #           Iterate over stations in the station list.
                 multi_sheba = lambda stations: run_sheba(path=path,phase=phase,outfile=outfile)
                 pool.map(run_sheba,stations)
 #               pool.map(tidyup,stations) ??? Maybe this would work???
-            #tidyup_final(path,phase,outfile)
+
+            tidyup(path,phase,outfile)
         print(__name__)
 
 
@@ -79,22 +83,38 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
     print('The runtime of main is {} seconds'.format(runtime))
 
 
-
-def tidyup_by_stat(path,station,phase,outfile):
+def tidyup(path,station,phase,outfile):
     """
     Function to tidy up the working directory after a sheba run. Do things like concatenate final result files together, move postscripts to the postscript folder etc.
     Give the working directory a good clean basically
     """
  ## This needs to be reworked to be in python so that I can actually get this to work
     # sub.call(shlex.split('{}/Sheba/Programs/tidyup_by_stat.sh {} {} {} {}'.format(path,station,phase,path,outfile)))
-    with open('ZENO__{}_sheba.final_result') as reader:
-         head  = reader.readline() # Get the header line out the way
 
-         for line in reader.readlines():
-             t = line.strip().split()
-            print(t)
+    fnames = glob('{}/Sheba/SAC/{}/{}/*final_result'.format(path,station,phase))
+    results = []
+    for file in fnames:
 
+        with open(file,'r') as input:
+             head = input.readline()
+             h = head.split()
+             h.remove('%')
+             i = h.index('STAT')
+             h[2],h[3:i+1]= h[i],h[2:i]
+             header = ' '.join(h)
 
+             for line in input.readlines():
+                r = line.split()
+                r.remove('%')
+                r[2],r[3:i+1] = r[i],r[2:i]
+                result = ' '.join(r)
+                results.append(result)
+
+    results.insert(0,header)
+    print('Writing Results to {}',format(outfile))
+    with open(outfile,'w') as writer:
+        for r in results:
+            writer.write(str(r) + '\n')
 
 def tidyup_final(path,phase,outfile):
     """
