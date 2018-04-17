@@ -89,19 +89,23 @@ def run_download(df,station):
     """
     Function that runs the downloading process for a given station (or stations)
     """
-
+    
     Instance = Downloader(df,station)
     stat_found = Instance.download_station_data()
     if stat_found is True:
         for i in range(0,len(Instance.data)):
+        k +=1
         #Loop over events for the given station Instance
 
             Instance.download_event_data(i)
-        for channel in ['BHN','BHE','BHZ']:
-            Instance.download_traces(channel)
+            for channel in ['BHN','BHE','BHZ']:
+                print('It {}, ch {}, {} {} '.format(i,channel,Instance.date, Instance.time))
+                Instance.download_traces(channel)
 
     else:
+
         print('Station {} could not be found'.format(station))
+
 
     return(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex)
 
