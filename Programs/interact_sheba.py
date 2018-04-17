@@ -68,8 +68,8 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
                 multi_sheba = lambda stations: run_sheba(path=path,phase=phase,outfile=outfile)
                 pool.map(run_sheba,stations)
 #               pool.map(tidyup,stations) ??? Maybe this would work???
-
-            tidyup(path,phase,outfile)
+            tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Nulls_Test'
+            tidyup(tidy_path,phase,outfile)
 
 
     elif batch is False:
