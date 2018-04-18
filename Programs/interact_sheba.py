@@ -77,7 +77,7 @@ def main(phases=['SKS','SKKS'],batch=False,evt_sta_list=None):
     end = time.time()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
-
+    
 
 def tidyup(path,phase,outfile):
     """
@@ -114,13 +114,6 @@ def tidyup(path,phase,outfile):
     with open('{}.sdb'.format(outfile),'w') as writer:
         for r in results:
             writer.write(str(r) + '\n')
-
-def tidyup_final(path,phase,outfile):
-    """
-    Calls the bash script tidyup.sh to compile the by station results files into overall results.
-    """
-    ## This needs to be reworked in Python (get rid of call to bash function) so this will work in the new, parallel, framework!!!
-    sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} {}'.format(path,phase,outfile)))
 
 def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phases=['SKS','SKKS'],outfile='null_results'):
     """
