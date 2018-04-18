@@ -19,9 +19,7 @@
 ##############################
 #   Standard Packages - all freely available
 import obspy as ob
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt #Just incase
 import subprocess as sub
 from subprocess import CalledProcessError
 import os.path
@@ -29,13 +27,9 @@ import time
 import shlex
 from multiprocessing import Pool, current_process
 import contextlib
-import fileinput
 from glob import glob
 ##############################
-#   Import other scripts in Programs/
-import Split_Read as sr
-import Split_Measure as sm #Just in incase
-#import plot as sp
+# Begin Program
 ##############################
 def main(phase='SKS',batch=False,evt_sta_list=None):
     """
@@ -56,19 +50,20 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
 #       If processing of data for multiple stations is desired
         print(__name__)
         if __name__ == 'interact_sheba':
-            ## Set of pool for mapping
+            ## Set of pool for mapping
             print('hi')
             statlist ='{}/Data/{}'.format(path,evt_sta_list)
             print('Processing Data from the Event-Station List {}'.format(statlist))
             stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
+
             out_pre = input('Enter SDB file name: ')
             outfile = '{}/Sheba/Results/{}_{}_sheba_results.sdb'.format(path,out_pre,phase)
             with contextlib.closing( Pool() ) as pool:
 #           Iterate over stations in the station list.
-                multi_sheba = lambda stations: run_sheba(path=path,phase=phase,outfile=outfile)
+
                 pool.map(run_sheba,stations)
 #               pool.map(tidyup,stations) ??? Maybe this would work???
-            tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Nulls_Test'
+            tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Nulls_SKS'
             tidyup(tidy_path,phase,outfile)
 
 
@@ -90,10 +85,10 @@ def tidyup(path,phase,outfile):
  ## This needs to be reworked to be in python so that I can actually get this to work
     # sub.call(shlex.split('{}/Sheba/Programs/tidyup_by_stat.sh {} {} {} {}'.format(path,station,phase,path,outfile)))
 
-    fnames = glob('{}/Sheba/SAC/{}/{}/*final_result'.format(path,station,phase))
+    fnames = glob('{}/*/{}/*final_result'.format(path,phase))
+    print(fnames)
     results = []
     for file in fnames:
-
         with open(file,'r') as input:
              head = input.readline()
              h = head.split()
@@ -101,6 +96,7 @@ def tidyup(path,phase,outfile):
              i = h.index('STAT')
              h[2],h[3:i+1]= h[i],h[2:i]
              header = ' '.join(h)
+
 
              for line in input.readlines():
                 r = line.split()
@@ -110,8 +106,8 @@ def tidyup(path,phase,outfile):
                 results.append(result)
 
     results.insert(0,header)
-    print('Writing Results to {}',format(outfile))
-    with open(outfile,'w') as writer:
+    print('Writing Results to {}.sdb in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
+    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}.sdb'.format(outfile),'w') as writer:
         for r in results:
             writer.write(str(r) + '\n')
 
@@ -122,7 +118,7 @@ def tidyup_final(path,phase,outfile):
     ## This needs to be reworked in Python (get rid of call to bash function) so this will work in the new, parallel, framework!!!
     sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} {}'.format(path,phase,outfile)))
 
-def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKKS',outfile='null_results'):
+def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKS',outfile='null_results'):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
@@ -135,7 +131,7 @@ def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKKS',ou
     if os.path.isdir(dir_path):
         #'Happy Days! The data directory exists!'
         i = 1 # Counter
-        with open('{}/{}_downloaded_streams.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
+        with open('{}/{}_downloaded_streams_Jacks_Nulls.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
             for line in reader.readlines():
                 line.strip('\n')
                 label = line[55:-1].strip('/') # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
@@ -147,13 +143,13 @@ def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKKS',ou
                     Event = Interface(st,station)
                     if Event.check_phase_dist(phase_to_check=phase) is True:
                         Event.process(station,phase)
-                        outdir = '{}/Sheba/Runs/Jacks_Nulls_Test/{}/{}'.format(path,station,phase)
+                        outdir = '{}/Sheba/Runs/Jacks_Nulls_SKS/{}/{}'.format(path,station,phase)
 
                         try:
 
                             Event.write_out(phase,label,path=outdir)
                         except OSError:
-                            print('Directory for writing outputs do not all exist. Initialising')
+                            print('Directory {} writing outputs do not all exist. Initialising'.format(outdir))
                             os.makedirs(outdir)
                             Event.write_out(phase,label,path=outdir)
 
