@@ -57,7 +57,7 @@ def main(phases=['SKS','SKKS'],batch=False,evt_sta_list=None):
             stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
 
             out_pre = input('Enter SDB file name: ')
-            outfile = ['{}/Sheba/Results/{}_{}_sheba_results.sdb'.format(path,out_pre,phase) for phase in phases]
+
             with contextlib.closing( Pool() ) as pool:
 #           Iterate over stations in the station list.
 
@@ -65,7 +65,8 @@ def main(phases=['SKS','SKKS'],batch=False,evt_sta_list=None):
 #               pool.map(tidyup,stations) ??? Maybe this would work???
         for phase in phases:
             """ Loop over phases process and tidyup results """
-            tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Nulls_{}'.format(phase)
+            tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Nulls'
+            outfile = '{}_{}_sheba_results.sdb'.format(phase,out_pre)
             tidyup(tidy_path,phase,outfile)
 
 
@@ -77,7 +78,7 @@ def main(phases=['SKS','SKKS'],batch=False,evt_sta_list=None):
     end = time.time()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
-    
+
 
 def tidyup(path,phase,outfile):
     """
@@ -111,7 +112,7 @@ def tidyup(path,phase,outfile):
 
     results.insert(0,header)
     print('Writing Results to {}.sdb in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
-    with open('{}.sdb'.format(outfile),'w') as writer:
+    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}.sdb'.format(outfile),'w') as writer:
         for r in results:
             writer.write(str(r) + '\n')
 
@@ -142,7 +143,7 @@ def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phases=['SKS','
                         print(phase)
                         if Event.check_phase_dist(phase_to_check=phase) is True:
                             Event.process(station,phase)
-                            outdir = '{}/Sheba/Runs/Jacks_Nulls_SKS/{}/{}'.format(path,station,phase)
+                            outdir = '{}/Sheba/Runs/Jacks_Nulls/{}/{}'.format(path,station,phase)
 
                             try:
 
