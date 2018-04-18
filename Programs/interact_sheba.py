@@ -51,7 +51,7 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
         print(__name__)
         if __name__ == 'interact_sheba':
             ## Set of pool for mapping
-            print('hi')
+        
             statlist ='{}/Data/{}'.format(path,evt_sta_list)
             print('Processing Data from the Event-Station List {}'.format(statlist))
             stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
