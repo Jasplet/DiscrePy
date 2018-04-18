@@ -99,7 +99,7 @@ def run_download(df,station):
     stat_found = Instance.download_station_data()
     if stat_found is True:
         for i in range(0,len(Instance.data)):
-        
+
         #Loop over events for the given station Instance
 
             Instance.download_event_data(i)
@@ -132,7 +132,7 @@ class Downloader:
             pass
     #   Made
 
-        self.outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_downloaded_streams_Jacks_Nulls.txt'.format(station,station),'w+')
+        self.outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_downloaded_streams_Jacks_Split.txt'.format(station,station),'w+')
 
         self.attempts = 0 #Counter for how many attempted downloads there were
         self.fdsnx = 0 #Counter for how many attempts hit a FDSNNoDataException
