@@ -31,7 +31,7 @@ from glob import glob
 ##############################
 # Begin Program
 ##############################
-def main(phase='SKS',batch=False,evt_sta_list=None):
+def main(phases=['SKS','SKKS'],batch=False,evt_sta_list=None):
     """
     Main - call this function to run the interface to sheba
     This function depends on the existence of a station list file specified by statlist and you have sac data alreayd downloaded
@@ -51,25 +51,27 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
         print(__name__)
         if __name__ == 'interact_sheba':
             ## Set of pool for mapping
-        
+
             statlist ='{}/Data/{}'.format(path,evt_sta_list)
             print('Processing Data from the Event-Station List {}'.format(statlist))
             stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
 
             out_pre = input('Enter SDB file name: ')
-            outfile = '{}/Sheba/Results/{}_{}_sheba_results.sdb'.format(path,out_pre,phase)
+            outfile = ['{}/Sheba/Results/{}_{}_sheba_results.sdb'.format(path,out_pre,phase) for phase in phases]
             with contextlib.closing( Pool() ) as pool:
 #           Iterate over stations in the station list.
 
                 pool.map(run_sheba,stations)
 #               pool.map(tidyup,stations) ??? Maybe this would work???
-            tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Nulls_SKS'
+        for phase in phases:
+            """ Loop over phases process and tidyup results """
+            tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Nulls_{}'.format(phase)
             tidyup(tidy_path,phase,outfile)
 
 
     elif batch is False:
         station = input('Input Station Name > ')
-        run_sheba(path,station,phase)
+        [run_sheba(path,station,phase) for phase in phases]
 
 
     end = time.time()
@@ -79,12 +81,14 @@ def main(phase='SKS',batch=False,evt_sta_list=None):
 
 def tidyup(path,phase,outfile):
     """
-    Function to tidy up the working directory after a sheba run. Do things like concatenate final result files together, move postscripts to the postscript folder etc.
-    Give the working directory a good clean basically
-    """
- ## This needs to be reworked to be in python so that I can actually get this to work
-    # sub.call(shlex.split('{}/Sheba/Programs/tidyup_by_stat.sh {} {} {} {}'.format(path,station,phase,path,outfile)))
+    Function to collect .final_result files output from Sheba into the Run directory. Results are written in the SBD format to Sheba/Results
 
+    path - [str]: path to the Run directory (e.g. /users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Run_Name)
+
+    phase - Phase that you want to collect results for
+
+    outfile - [str]: outfile name (including full path)
+    """
     fnames = glob('{}/*/{}/*final_result'.format(path,phase))
     print(fnames)
     results = []
@@ -107,7 +111,7 @@ def tidyup(path,phase,outfile):
 
     results.insert(0,header)
     print('Writing Results to {}.sdb in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
-    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}.sdb'.format(outfile),'w') as writer:
+    with open('{}.sdb'.format(outfile),'w') as writer:
         for r in results:
             writer.write(str(r) + '\n')
 
@@ -118,7 +122,7 @@ def tidyup_final(path,phase,outfile):
     ## This needs to be reworked in Python (get rid of call to bash function) so this will work in the new, parallel, framework!!!
     sub.call(shlex.split('{}/Sheba/Programs/tidyup.sh {} {}'.format(path,phase,outfile)))
 
-def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKS',outfile='null_results'):
+def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phases=['SKS','SKKS'],outfile='null_results'):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
@@ -141,26 +145,28 @@ def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phase='SKS',out
 
                 if len(st) is 3:
                     Event = Interface(st,station)
-                    if Event.check_phase_dist(phase_to_check=phase) is True:
-                        Event.process(station,phase)
-                        outdir = '{}/Sheba/Runs/Jacks_Nulls_SKS/{}/{}'.format(path,station,phase)
+                    for phase in phases:
+                        print(phase)
+                        if Event.check_phase_dist(phase_to_check=phase) is True:
+                            Event.process(station,phase)
+                            outdir = '{}/Sheba/Runs/Jacks_Nulls_SKS/{}/{}'.format(path,station,phase)
 
-                        try:
+                            try:
 
-                            Event.write_out(phase,label,path=outdir)
-                        except OSError:
-                            print('Directory {} writing outputs do not all exist. Initialising'.format(outdir))
-                            os.makedirs(outdir)
-                            Event.write_out(phase,label,path=outdir)
+                                Event.write_out(phase,label,path=outdir)
+                            except OSError:
+                                print('Directory {} writing outputs do not all exist. Initialising'.format(outdir))
+                                os.makedirs(outdir)
+                                Event.write_out(phase,label,path=outdir)
 
-                        Event.sheba(station,phase,label,i,path=outdir)
+                            Event.sheba(station,phase,label,i,path=outdir)
 
-                        #tidyup_by_stat(path,station,phase,label,outfile)
+                            #tidyup_by_stat(path,station,phase,label,outfile)
 
-                    else:
-                        pass
-#                   Counter, i , for number of events processed
-                    i +=1
+                        else:
+                            pass
+    #                   Counter, i , for number of events processed
+                        i +=1
                 else:
                     print(' len(st) is not 3. Passing')
                     pass
