@@ -97,24 +97,35 @@ def tidyup(path,phase,outfile):
     outfile - [str]: outfile name (including full path)
     """
     fnames = glob('{}/*/{}/*final_result'.format(path,phase))
+
     #print(fnames)
     results = []
-    for file in fnames:
-        with open(file,'r') as input:
+    for i,file in enumerate(fnames):
+        f_stat = fnames[i].rstrip('final_result') + 'stats'
+        with open(file,'r') as input, open(f_stat,'r') as stats:
              head = input.readline()
+             head_s = stats.readline()
              h = head.split()
+             s = head_s.split()
              h.remove('%')
-             i = h.index('STAT')
-             h[2],h[3:i+1]= h[i],h[2:i]
-             header = ' '.join(h)
-
+             s.remove('%')
+             del s[0:2] ,s[-1]
+             j = h.index('STAT')
+             h[2],h[3:j+1]= h[j],h[2:j]
+             header = ' '.join(h) + ' ' + ' '.join(s)
+             print(header)
 
              for line in input.readlines():
+                s = stats.readline().split() # Read the next line from the Stats file (should have the same number of lines as final_result)
                 r = line.split()
                 r.remove('%')
-                r[2],r[3:i+1] = r[i],r[2:i]
-                result = ' '.join(r)
+                s.remove('%')
+                del s[0:2] ,s[-1]
+                r[2],r[3:j+1] = r[j],r[2:j]
+                result = ' '.join(r) + ' ' + ' '.join(s)
                 results.append(result)
+
+
 
     results.insert(0,header)
     print('Writing Results to {}.sdb in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
