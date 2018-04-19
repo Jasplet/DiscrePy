@@ -19,25 +19,30 @@
 ##############################
 #   Standard Packages - all freely available
 import obspy as ob
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt #Just incase
 import subprocess as sub
 from subprocess import CalledProcessError
 import os.path
 import time
+import shlex
+from multiprocessing import Pool, current_process
+import contextlib
+from glob import glob
 ##############################
-#   Import other scripts in Programs/
-import Split_Read as sr
-import Split_Measure as sm #Just in incase
-import plot as sp
+# Begin Program
 ##############################
-def main(phase='SKS',batch=False):
+def main(phases=['SKS','SKKS'],batch=False,evt_sta_list=None):
     """
     Main - call this function to run the interface to sheba
     This function depends on the existence of a station list file specified by statlist and you have sac data alreayd downloaded
     Path should point to the directory that you want the sheba processing directories to be stored under
 
+    Phases - [list]: Phases that you want to process for shear wave splitting using sheba. Traces should contain the expected arrivals. Interact sheb will loop over all phases provided and run sheba accordingly
+
+    Batch - [bool]: T- run in batch mode (multi station), using pythons multiprocessing library to improve performance. F - run for a single station
+
+    evt_sta_list - [str]: string pointing to the location of the event station list. This list should contain the a date/time and station that corresponds to the event time and station where arrivals are obseverd.
+                          This list is used to
     """
    #First Indentify the possible station that we could have data for
    #This way we know what directory paths to look in for the sac files
@@ -49,61 +54,133 @@ def main(phase='SKS',batch=False):
     ################## Start Process #############
     if batch is True:
 #       If processing of data for multiple stations is desired
-        statlist ='{}/Data/StationList.txt'.format(path)
-        stations = pd.read_csv(statlist,delim_whitespace=True).STAT
+        #print(__name__)
+        if __name__ == 'interact_sheba':
+            ## Set of pool for mapping
 
-        for station in stations:
+            statlist ='{}/Data/{}'.format(path,evt_sta_list)
+            print('Processing Data from the Event-Station List {}'.format(statlist))
+            stations = pd.read_csv(statlist,delim_whitespace=True).STAT.unique()
+
+            out_pre = input('Enter SDB file name: ')
+
+            with contextlib.closing( Pool() ) as pool:
 #           Iterate over stations in the station list.
-            run_sheba(path,station,phase)
+
+                pool.map(run_sheba,stations)
+#               pool.map(tidyup,stations) ??? Maybe this would work???
+        for phase in phases:
+            """ Loop over phases process and tidyup results """
+            tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
+            outfile = '{}_{}_sheba_results.sdb'.format(phase,out_pre)
+            tidyup(tidy_path,phase,outfile)
+
 
     elif batch is False:
         station = input('Input Station Name > ')
-        run_sheba(path,station,phase)
+        run_sheba(station,path=path,phases=phases)
 
 
     end = time.time()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
 
-def run_sheba(path,station,phase):
+
+def tidyup(path,phase,outfile):
+    """
+    Function to collect .final_result files output from Sheba into the Run directory. Results are written in the SBD format to Sheba/Results
+
+    path - [str]: path to the Run directory (e.g. /users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Run_Name)
+
+    phase - Phase that you want to collect results for
+
+    outfile - [str]: outfile name (including full path)
+    """
+    fnames = glob('{}/*/{}/*final_result'.format(path,phase))
+
+    #print(fnames)
+    results = []
+    for i,file in enumerate(fnames):
+        f_stat = fnames[i].rstrip('final_result') + 'stats'
+        with open(file,'r') as input, open(f_stat,'r') as stats:
+             head = input.readline()
+             head_s = stats.readline()
+             h = head.split()
+             s = head_s.split()
+             h.remove('%')
+             s.remove('%')
+             del s[0:2] ,s[-1]
+             j = h.index('STAT')
+             h[2],h[3:j+1]= h[j],h[2:j]
+             header = ' '.join(h) + ' ' + ' '.join(s)
+             print(header)
+
+             for line in input.readlines():
+                s = stats.readline().split() # Read the next line from the Stats file (should have the same number of lines as final_result)
+                r = line.split()
+                r.remove('%')
+                s.remove('%')
+                del s[0:2] ,s[-1]
+                r[2],r[3:j+1] = r[j],r[2:j]
+                result = ' '.join(r) + ' ' + ' '.join(s)
+                results.append(result)
+
+
+
+    results.insert(0,header)
+    print('Writing Results to {}.sdb in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
+    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}.sdb'.format(outfile),'w') as writer:
+        for r in results:
+            writer.write(str(r) + '\n')
+
+def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phases=['SKS','SKKS'],outfile='split_results'):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
 
     #Each station SHOULD have its own directory within Data/SAC_files
     #If the data has been downloaded. So lets look for directorys that exist
+
+
     dir_path = '{}/Data/SAC_files/{}'.format(path,station)
     if os.path.isdir(dir_path):
         #'Happy Days! The data directory exists!'
-        i = 1 # Counter
-        with open('{}/{}_downloaded_streams.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
+
+        with open('{}/{}_downloaded_streams_Jacks_Split.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
             for line in reader.readlines():
-                line.strip('\n')
-                st_id = '{}BH?.sac'.format(str(line[0:-1]))
-                st = ob.read(st_id)
+                for phase in phases:
+                    #print(phase)
+                    line.strip('\n')
+                    label = line[55:-1].strip('/') # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
 
-                if len(st) is 3:
-                    Event = Interface(st,station)
-                    if Event.check_phase_dist(phase_to_check=phase) is True:
-                        Event.process(station,phase)
-                        outdir = '{}/Sheba/SAC/{}/{}'.format(path,station,phase)
+                    st_id = '{}BH?.sac'.format(str(line[0:-1]))
+                    st = ob.read(st_id)
 
-                        try:
+                    if len(st) is 3:
+                        Event = Interface(st,station)
 
-                            Event.write_out(station,phase,i=i,path=outdir)
-                        except OSError:
-                            print('Directory for writing outputs do not all exist. Initialising')
-                            os.makedirs(outdir)
-                            Event.write_out(station,phase,i=i,path=outdir)
+                        if Event.check_phase_dist(phase_to_check=phase) is True:
+                            Event.process(station,phase)
+                            outdir = '{}/Sheba/Runs/Jacks_Split/{}/{}'.format(path,station,phase)
 
-                        Event.sheba(station,phase,i=i,path='{}/Sheba/SAC/{}/{}'.format(path,station,phase))
+                            try:
+
+                                Event.write_out(phase,label,path=outdir)
+                            except OSError:
+                                print('Directory {} writing outputs do not all exist. Initialising'.format(outdir))
+                                os.makedirs(outdir)
+                                Event.write_out(phase,label,path=outdir)
+
+                            Event.sheba(station,phase,label,path=outdir)
+
+                            #tidyup_by_stat(path,station,phase,label,outfile)
+
+                        else:
+                            pass
+
                     else:
+                        print(' len(st) is not 3. Passing')
                         pass
-#                   Counter, i , for number of events processed
-                    i +=1
-                else:
-                    print(' len(st) is not 3. Passing')
-                    pass
     else:
         print('The directory {}/Data/SAC_files/{} does not exists'.format(path,station))
         pass
@@ -149,7 +226,7 @@ class Interface:
 
 
             traveltime = model.get_travel_times((self.BHN[0].stats.sac.evdp/1000),self.BHN[0].stats.sac.gcarc,[phase])[0].time
-        elif self.BHN[0].stats.sac.evdp != 0: # Theres an event where the event data couldnt be found so evdp was set to be 0
+        elif self.BHN[0].stats.sac.evdp == 0: # Theres an event where the event data couldnt be found so evdp was set to be 0
             # Having a depth of zero will give us problems so NOW change it to 10.0km exactly (these traveltimes could be very dodgy)
             err_out = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Events_with_evdp_of_0.txt','w+')
             err_out.write('Station: {}, has event starting at {} with an evdp of 0!\n'.format(self.station,self.BHN[0].stats.starttime))
@@ -171,7 +248,7 @@ class Interface:
             if self.gcarc >= 105.0:
                 return True
             else:
-                print('Event-Station distance less than 105 deg, too short for SKKS')
+                #print('Event-Station distance less than 105 deg, too short for SKKS')
                 return False
         else:
             print('Phase not SKS or SKKS')
@@ -180,26 +257,27 @@ class Interface:
     def process(self,station,phase,c1=0.01,c2=0.5):
         """
         Function to bandpass filter and trim the components
-        t1 - [s] Lower bound of trim, time relative to event time
-        t2 - [s] Upper bound of trim, time relative to event time
+        Seismograms are trimmed so that they start 1 minute before the expected arrival and end 2 minutes after the arrival
         c1 - [Hz] Lower corner frequency
         c2 - [Hz] Upper corner frequency
-        By default traces will trim between 1300 - 1700s and will be filtered between 0.01Hz-0.5Hz
+        By default traces will be filtered between 0.01Hz-0.5Hz
         """
 
 
 #       De-mean and detrend each component
-        # self.BHN.detrend(type='demean') #demeans the component
-        # self.BHE.detrend(type='demean')
-        # self.BHZ.detrend(type='demean')
-#       Detrend
-        # self.BHN.detrend(type='simple') #De-trends component
-        # self.BHE.detrend(type='simple') #De-trends component
-        # self.BHZ.detrend(type='simple') #De-trends component
+#         self.BHN.detrend(type='demean') #demeans the component
+#         self.BHE.detrend(type='demean')
+#         self.BHZ.detrend(type='demean')
+#         print(self.BHN)
+# #       Detrend
+#         self.BHN.detrend(type='simple') #De-trends component
+#         self.BHE.detrend(type='simple') #De-trends component
+#         self.BHZ.detrend(type='simple') #De-trends component
 #       Filter each component. Bandpass flag gives a bandpass-butterworth filter
         self.BHN.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
         self.BHE.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
         self.BHZ.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
+
 #       Now trim each component to the input length
 #       To ensure that we contain the phase information completlely lets model the arrival using TauP
         tt = self.model_traveltimes(phase)
@@ -221,19 +299,27 @@ class Interface:
         self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
         self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
 
-    def write_out(self,station,phase,i=0,path=None):
+
+    def write_out(self,phase,label,path=None):
+        """
+        Function to write the component seismograms to SAC files within the sheba directory structure so Sheba can access them
+        station [str] - station code
+        phase [str] - phase code for which seismic phase splitting is being meausured
+        i [int] - counter for nukber of events (with the desired phase) at the station
+        path [str] - path that you want the seismogrmas saved to.
+        """
 #       Now write out the three processed components
 #       Naming depends on whether this is being executed as a test or within a loop
 #       where a counter should be provided to prevent overwriting.
 
         if path is not None:
-            self.BHN.write('{}/{}_{}_{}.BHN'.format(path,station,phase,i),format='SAC',byteorder=1)
-            self.BHE.write('{}/{}_{}_{}.BHE'.format(path,station,phase,i),format='SAC',byteorder=1)
-            self.BHZ.write('{}/{}_{}_{}.BHZ'.format(path,station,phase,i),format='SAC',byteorder=1)
+            self.BHN.write('{}/{}{}.BHN'.format(path,label,phase),format='SAC',byteorder=1)
+            self.BHE.write('{}/{}{}.BHE'.format(path,label,phase),format='SAC',byteorder=1)
+            self.BHZ.write('{}/{}{}.BHZ'.format(path,label,phase),format='SAC',byteorder=1)
         else:
-            self.BHN.write('{}.BHN'.format(station),format='SAC',byteorder=1)
-            self.BHE.write('{}.BHE'.format(station),format='SAC',byteorder=1)
-            self.BHZ.write('{}.BHZ'.format(station),format='SAC',byteorder=1)
+            self.BHN.write('{}.BHN'.format(label),format='SAC',byteorder=1)
+            self.BHE.write('{}.BHE'.format(label),format='SAC',byteorder=1)
+            self.BHZ.write('{}.BHZ'.format(label),format='SAC',byteorder=1)
 
 
 
@@ -245,11 +331,11 @@ class Interface:
         st = self.BHN + self.BHE + self.BHZ
         st.plot(type='relative')
 
-    def sheba(self,station,phase,i = 0,path=None):
+    def sheba(self,station,phase,label,i = 0,path=None):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
-        print('Passing {}_{}_{} into Sheba'.format(station,phase,i))
+        print('Worker {} Passing {} into Sheba for {}'.format(current_process().pid,label,phase))
 
         p = sub.Popen(['sac'],
                      stdout = sub.PIPE,
@@ -264,19 +350,10 @@ class Interface:
         s = '''
         echo on\n
         SETMACRO /Users/ja17375/Ext_programs/macros
-        m sheba file {}_{}_{} plot yes pick no nwind 10 10 batch yes
-        '''.format(station,phase,i)
+        m sheba file {}{} plot yes pick no nwind 10 10 batch yes
+        '''.format(label,phase)
         try:
             out = p.communicate(s)
             # print(out[0])
         except CalledProcessError as err:
             print(err)
-
-
-def tidy(station,phase):
-    """
-    Function to tidy up the working directory after a sheba run. Do things like concatenate final result files together, move postscripts to the postscript folder etc.
-    Give the working directory a good clean basically
-    """
-
-    sub.call(['cat','', '{}_{}*.final_result'.format(station,phase)])

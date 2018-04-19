@@ -7,7 +7,7 @@ import cartopy.crs as cart
 import cartopy
 import matplotlib.gridspec as gridspec
 import obspy
-
+from obspy import taup
 
 def load(stat,phase):
 
@@ -25,29 +25,28 @@ def load(stat,phase):
     split =(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].FAST,data[(data.QUAL != 'n')].DFAST,data[(data.QUAL != 'n')].TLAG,data[(data.QUAL != 'n')].DTLAG,data[(data.QUAL != 'n')].EVLO,data[(data.QUAL != 'n')].EVLA)
     return data,stat_loc,null,split # also return data so not to break SKS_plot
 
-def SKS_plot(stat,title1,phase='SKS'):
+def SKS_plot(stat,title1=None,phase='SKS'):
     """
     Function to make diagnostice plots for a given file of splitting measuremtns
     """
-    stat_loc, = load(stat,phase)
+    data, stat_loc, null, split= load(stat,phase)
 
     fig,axs = plt.subplots(2, 2,sharex='col',figsize=(10,10))
 
 
-    axs[0,0].errorbar(null[0],null[1],yerr=null[2],fmt='kx',elinewidth=0.5,label='Null')
-    axs[0,0].errorbar(split[0].split[1],yerr=split[2],fmt='ko',elinewidth=0.5,label='Split')
+    axs[0,0].errorbar(null[0],null[1],yerr=null[2],fmt='kx',elinewidth=0.5,label='Null Measurement')
+    axs[0,0].errorbar(split[0],split[1],yerr=split[2],fmt='ko',elinewidth=0.5,label='Split')
     axs[0,0].legend(loc=2)
 
     axs[0,0].set_ylabel('Fast Direction (deg)')
     axs[0,0].set_ylim([-90,90])
     axs[0,0].set_yticks(np.arange(-90,91,30))
-    axs[0,0].set_title('{} - Fast Direction'.format(title1))
-
+    axs[0,0].set_title('Splitting from Broadband Data - Fast Direction')
     axs[0,1].errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_FAST,yerr=data[(data.QUAL == 'n')].WL_DFAST,fmt='kx',elinewidth=0.5)
     axs[0,1].errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_FAST,yerr=data[(data.QUAL != 'n')].WL_DFAST,fmt='ko',elinewidth=0.5)
     axs[0,1].set_ylim([-90,90])
     axs[0,1].set_yticks(np.arange(-90,91,30))
-    axs[0,1].set_title('Jacks(Sheba) - Fast Direction')
+    axs[0,1].set_title('Walpole et al. (2014)- Fast Direction')
     axs[0,1].set_xlabel('Back Azimuth')
     axs[0,1].set_ylabel('Fast Direction (deg)')
 
@@ -55,14 +54,14 @@ def SKS_plot(stat,title1,phase='SKS'):
     plot_lag(axs[1,0],split[0],split[3],split[4],fmt='ko')
     # axs[1,0].set_ylabel('Tlag (s)')
     # axs[1,0].set_ylim([0,4])
-    # axs[1,0].set_title('{} - Lag Time'.format(title1))
+    axs[1,0].set_title('Splitting from Broadband Data - Lag Time'.format(title1))
 
     axs[1,1].errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_TLAG,yerr=data[(data.QUAL == 'n')].WL_DTLAG,fmt='kx',elinewidth=0.5)
     axs[1,1].errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_TLAG,yerr=data[(data.QUAL != 'n')].WL_DTLAG,fmt='ko',elinewidth=0.5)
     axs[1,1].set_ylim([0,4])
     axs[1,1].set_ylabel('Tlag (s)')
     axs[1,1].set_xlabel('Back Azimuth')
-    axs[1,1].set_title('Jacks(Sheba) - Lag Time')
+    axs[1,1].set_title('Walpole et al. (2014) - Lag Time')
 
     plt.tight_layout()
     plt.show()
@@ -145,7 +144,7 @@ def SKS_SKKS_plot(stat,save=False):
     ax1.legend()
     # _lag(ax1,data.BAZ,data.TLAG,data.DTLAG,'kx')
     # _fast(ax2,data.BAZ,data.FAST,data.DFAST,'kx')
-    # coverage(ax3,data.EVLA,data.EVLO,data.STLA[0],data.STLO[0],stat)
+    #coverage(ax3,data.EVLA,data.EVLO,data.STLA[0],data.STLO[0],stat)
     # plt.show()
     ax2.errorbar(SKS_null[0],SKS_null[3],yerr = SKS_null[4],fmt='ro',elinewidth=0.5,label='SKS (null)')
     ax2.errorbar(SKKS_null[0],SKKS_null[3],yerr = SKKS_null[4],fmt='bo',elinewidth=0.5,label='SKKS (null)')
@@ -168,6 +167,7 @@ def SKS_SKKS_plot(stat,save=False):
     ax3.plot(SKKS_split[5],SKKS_split[6],'bx',markersize = 5,transform = cart.Geodetic(),label='Null SKKS Locations')
     # ax.set_xticks([-130,-125,-120,-115,-110,-105,-100], crs=proj)
     # ax.set_yticks([30,35,40,45,50,55,60], crs=proj)
+    ax3.plot([SKS_data.STLO,SKS_data.EVLO],[SKS_data.STLA,SKS_data.EVLA],'-k',transform = cart.Geodetic())
     ax3.plot(SKS_data.STLO,SKS_data.STLA,'kv',transform=cart.Geodetic(),markersize=10,label='Station {}'.format(stat))
     ax3.set_title('SKS/SKKS coverage for Station {}'.format(stat))
     ax3.legend()
@@ -225,3 +225,5 @@ def coverage(evla,evlo,stla,stlo,stat):
     ax.set_title('Coverage for Station {}'.format(stat))
     ax.legend()
     plt.show()
+
+######################## Section for SDB plotting
