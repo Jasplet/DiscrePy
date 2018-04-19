@@ -64,7 +64,7 @@ def main(phases=['SKS','SKKS'],batch=False,evt_sta_list=None):
 
             out_pre = input('Enter SDB file name: ')
 
-            with contextlib.closing( Pool() ) as pool:
+            with contextlib.closing( Pool(processes = 4) ) as pool:
 #           Iterate over stations in the station list.
 
                 pool.map(run_sheba,stations)
