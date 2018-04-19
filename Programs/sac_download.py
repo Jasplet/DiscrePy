@@ -37,8 +37,8 @@ def main(event_list=None,batch=False):
 
     Note that Date has the format yyyyjjj and TIME has the format hhmm. Sac_download will search for the event and add in seconds to origin time
     """
-    print('Have you checked the downloaded streams file names you want to use??? [10 s pause]')
-    time.sleep(10)
+    #print('Have you checked the downloaded streams file names you want to use??? [10 s pause]')
+    ext = input('Enter unique identifier for the _downloaded_streams files: ')
     print('Ok now lets get started')
     start = time.time()
     # Reads our event list as a pandas datatframe
@@ -49,7 +49,7 @@ def main(event_list=None,batch=False):
 
         stations = df.STAT.unique() # Identify the unique stations provided in the event staton list
         for station in stations:
-            (a,d,fd,t,x)= run_download(df,station)
+            (a,d,fd,t,x)= run_download(df,station,ext)
 
             attempts += a
             dwn += d
@@ -71,7 +71,7 @@ def main(event_list=None,batch=False):
             #     print('Station {} could not be found'.format(station))
     elif batch is False:
         station = input('Input Station Name > ')
-        (attempts,dwn,fdsnx,ts,ex) = run_download(df,station)
+        (attempts,dwn,fdsnx,ts,ex) = run_download(df,station,ext)
         # Instance = Downloader(df,station)
         # stat_found = Instance.download_station_data()
         # if stat_found is True:
@@ -90,16 +90,20 @@ def main(event_list=None,batch=False):
     print('Runtime was {}\n'.format(runtime))
 
 
-def run_download(df,station):
+def run_download(df,station,ext):
     """
     Function that runs the downloading process for a given station (or stations)
     """
 
     Instance = Downloader(df,station)
+    if Instance.attempts == 0:
+        ''' i.e is this the first attempt?  '''
+        # print(Instance.attempts)
+        Instance.outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_downloaded_streams_{}.txt'.format(station,station,ext),'w+')
     stat_found = Instance.download_station_data()
     if stat_found is True:
         for i in range(0,len(Instance.data)):
-
+            print(station)
         #Loop over events for the given station Instance
 
             Instance.download_event_data(i)
@@ -132,7 +136,7 @@ class Downloader:
             pass
     #   Made
 
-        self.outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_downloaded_streams_Jacks_Split.txt'.format(station,station),'w+')
+        #self.outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_downloaded_streams_Jacks_Split.txt'.format(station,station),'w+')
 
         self.attempts = 0 #Counter for how many attempted downloads there were
         self.fdsnx = 0 #Counter for how many attempts hit a FDSNNoDataException
@@ -198,7 +202,8 @@ class Downloader:
             self.attempts += 1 # Counts the number of traces that downloads are attempted for
 
         if os.path.isfile(tr_id) == True:
-            print("{} exists. It was not downloaded".format(tr_id)) # File does not exist
+            #print("{} exists. It was not downloaded".format(tr_id)) # File does not exist
+
             if ch == 'BHE':
                 self.outfile.write('{}\n'.format(tr_id[0:-7]))
                 self.ex += 1
@@ -221,8 +226,9 @@ class Downloader:
                 if ((st[0].stats.endtime - st[0].stats.starttime) >= 2999.0):
 
                     self.write_st(st,tr_id)
-                    self.dwn += 1
+
                     if ch == 'BHE':
+                        self.dwn += 1
                         self.outfile.write('{}\n'.format(tr_id[0:-7]))
 
                 else:
