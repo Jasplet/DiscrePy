@@ -61,7 +61,7 @@ def tidyup(path,phase,outfile):
              j = h.index('STAT')
              h[2],h[3:j+1]= h[j],h[2:j]
              header = ' '.join(h) + ' ' + ' '.join(s)
-             print(header)
+             # print(header)
 
              for line in input.readlines():
                 s = stats.readline().split() # Read the next line from the Stats file (should have the same number of lines as final_result)
@@ -75,11 +75,11 @@ def tidyup(path,phase,outfile):
 
     results.insert(0,header)
     print('Writing Results to {}.sdb in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
-    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}.sdb'.format(outfile),'w') as writer:
+    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile),'w') as writer:
         for r in results:
             writer.write(str(r) + '\n')
 
-def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phases=['SKS','SKKS'],outfile='split_results'):
+def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phases=['SKKS'],outfile='split_results'):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
@@ -332,19 +332,19 @@ if __name__ == '__main__':
     # Get the user to input the outfile name they want (Phase label will be added later)
     out_pre = input('Enter SDB file name: ')
     ################### SET THE PHASES TO BE PROCESSED HERE #############################
-    phases = ['SKS','SKKS']
+    phases = sys.argv[2]
 
     ######################################################################################
     ############### Run Sheba - using parallel processing with Pool ######################
     ######################################################################################
-    with contextlib.closing( Pool(processes = 7) ) as pool:
+    with contextlib.closing( Pool(processes = 4) ) as pool:
     #           Iterate over stations in the station list.
         pool.map(run_sheba,stations)
     #               pool.map(tidyup,stations) ??? Maybe this would work???
     for phase in phases:
         """ Loop over phases process and tidyup results """
         tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
-        outfile = '{}_{}_sheba_results.sdb'.format(phase,out_pre)
+        outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
         tidyup(tidy_path,phase,outfile)
 
     ######################################################################################
