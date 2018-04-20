@@ -48,8 +48,10 @@ def tidyup(path,phase,outfile):
     """
     fnames = glob('{}/*/{}/*final_result'.format(path,phase))
     results = []
+    print(fnames)
     for i,file in enumerate(fnames):
         f_stat = fnames[i].rstrip('final_result') + 'stats'
+
         with open(file,'r') as input, open(f_stat,'r') as stats:
              head = input.readline()
              head_s = stats.readline()
@@ -92,7 +94,7 @@ def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phases=['SKKS']
         with open('{}/{}_downloaded_streams_Jacks_Split.txt'.format(dir_path,station),'r') as reader: # NEW_read_stream.txt is a textfile containing filenames of streams which have been read and saved by Split_Read for this station. s
             for line in reader.readlines():
                 for phase in phases:
-                    #print(phase)
+                    print(phase)
                     line.strip('\n')
                     label = line[55:-1].strip('/') # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
                     st_id = '{}BH?.sac'.format(str(line[0:-1]))
@@ -101,7 +103,7 @@ def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phases=['SKKS']
                         Event = Interface(st,station)
                         if Event.check_phase_dist(phase_to_check=phase) is True:
                             Event.process(station,phase)
-                            outdir = '{}/Sheba/Runs/Jacks_Split/{}/{}'.format(path,station,phase)
+                            outdir = '{}/Sheba/Runs/Test/{}/{}'.format(path,station,phase)
                             try:
                                 Event.write_out(phase,label,path=outdir)
                             except OSError:
@@ -189,7 +191,7 @@ class Interface:
                 #print('Event-Station distance less than 105 deg, too short for SKKS')
                 return False
         else:
-            print('Phase not SKS or SKKS')
+            print('Phase {} not SKS or SKKS'.format(phase_to_check))
             return False
 
     def process(self,station,phase,c1=0.01,c2=0.5):
@@ -332,7 +334,7 @@ if __name__ == '__main__':
     # Get the user to input the outfile name they want (Phase label will be added later)
     out_pre = input('Enter SDB file name: ')
     ################### SET THE PHASES TO BE PROCESSED HERE #############################
-    phases = sys.argv[2]
+    phase = 'SKKS'
 
     ######################################################################################
     ############### Run Sheba - using parallel processing with Pool ######################
@@ -341,11 +343,11 @@ if __name__ == '__main__':
     #           Iterate over stations in the station list.
         pool.map(run_sheba,stations)
     #               pool.map(tidyup,stations) ??? Maybe this would work???
-    for phase in phases:
-        """ Loop over phases process and tidyup results """
-        tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
-        outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
-        tidyup(tidy_path,phase,outfile)
+    #for phase in phases:
+    """ Loop over phases process and tidyup results """
+    tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Test'
+    outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
+    tidyup(tidy_path,phase,outfile)
 
     ######################################################################################
     # End Timing of run
