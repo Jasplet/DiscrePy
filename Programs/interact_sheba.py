@@ -19,6 +19,7 @@
 ##############################
 #   Standard Packages - all freely available
 import obspy as ob
+import obspy.taup
 import pandas as pd
 import subprocess as sub
 from subprocess import CalledProcessError
@@ -72,7 +73,7 @@ def main(phases=['SKS','SKKS'],batch=False,evt_sta_list=None):
         for phase in phases:
             """ Loop over phases process and tidyup results """
             tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
-            outfile = '{}_{}_sheba_results.sdb'.format(phase,out_pre)
+            outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
             tidyup(tidy_path,phase,outfile)
 
 
@@ -128,8 +129,8 @@ def tidyup(path,phase,outfile):
 
 
     results.insert(0,header)
-    print('Writing Results to {}.sdb in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
-    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}.sdb'.format(outfile),'w') as writer:
+    print('Writing Results to {} in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
+    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile),'w') as writer:
         for r in results:
             writer.write(str(r) + '\n')
 
