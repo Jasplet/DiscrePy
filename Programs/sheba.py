@@ -103,7 +103,7 @@ def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phases=['SKKS']
                         Event = Interface(st,station)
                         if Event.check_phase_dist(phase_to_check=phase) is True:
                             Event.process(station,phase)
-                            outdir = '{}/Sheba/Runs/Test/{}/{}'.format(path,station,phase)
+                            outdir = '{}/Sheba/Runs/Jacks_Split_2/{}/{}'.format(path,station,phase)
                             try:
                                 Event.write_out(phase,label,path=outdir)
                             except OSError:
@@ -275,7 +275,7 @@ class Interface:
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
-        print('Worker {} Passing {} into Sheba for {}. Time is {}'.format(current_process().pid,label,phase,time.time()))
+        print('Worker {} Passing {} into Sheba for {}. Time is {}'.format(current_process().pid,label,phase,time.localtime()))
 
         p = sub.Popen(['sac'],
                      stdout = sub.PIPE,
@@ -339,13 +339,13 @@ if __name__ == '__main__':
     ######################################################################################
     ############### Run Sheba - using parallel processing with Pool ######################
     ######################################################################################
-    with contextlib.closing( Pool(processes = 4) ) as pool:
+    with contextlib.closing( Pool(processes = 8) ) as pool:
     #           Iterate over stations in the station list.
         pool.map(run_sheba,stations)
     #               pool.map(tidyup,stations) ??? Maybe this would work???
     #for phase in phases:
     """ Loop over phases process and tidyup results """
-    tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Test'
+    tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split_2'
     outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
     tidyup(tidy_path,phase,outfile)
 
