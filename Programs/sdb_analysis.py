@@ -9,24 +9,27 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import obspy
 from obspy import taup
-import os
+import os.path
 from subprocess import call
-from multiprocessing import Pool
+import shelx
 
 
 
-class SDB:
+class Pairs:
     """
-    Class to hold a Splitting Database (and Pierce Points) and generate a suite of useful plots based off the data.
+    Class to hold a .pairs Database (and Pierce Points) and generate a suite of useful plots based off the data.
     """
     def __init__(self,sdb,Q_threshold=None,gcarc_threshold=None):
 
-        self._raw = pd.read_csv('{}.sdb'.format(sdb),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
+        self.pairs = pd.read_csv('{}.pairs'.format(sdb),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
         #Load raw data from provided sdb file. This is going to be a hidden file as I will parse out useful columns to new attributes depending of provided kwargs
 
          #if kwargs are none:
-        self.sdb = self._raw
-        self.pp = pd.read_csv('{}.pp'.format(sdb),delim_whitespace=True)
+        if os.isfile('{}.pp'.format(sdb)):
+            self.pp = pd.read_csv('{}.pp'.format(sdb),delim_whitespace=True)
+        else:
+            print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(sdb))
+                    p = call(shelx.split('pierce.sh {}'))
         ## Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
     def main(self):
@@ -41,15 +44,15 @@ class SDB:
         Default error for this kind of anlysis is 2-sigma. Sheba returns 1 sigma so the DFAST and DTLAG need to be scaled appropriatly.
         """
         #First lets extract the raw values of the data that we need
-        SKS_fast = self.sdb.FAST_SKS.values
-        SKS_dfast = self.sdb.DFAST_SKS.values
-        SKS_tlag = self.sdb.TLAG_SKS.values
-        SKS_dtlag = self.sdb.DTLAG_SKS.values
+        SKS_fast = self.pairs.FAST_SKS.values
+        SKS_dfast = self.pairs.DFAST_SKS.values
+        SKS_tlag = self.pairs.TLAG_SKS.values
+        SKS_dtlag = self.pairs.DTLAG_SKS.values
         #Niw for SKKS
-        SKKS_fast = self.sdb.FAST_SKKS.values
-        SKKS_dfast = self.sdb.DFAST_SKKS.values
-        SKKS_tlag = self.sdb.TLAG_SKKS.values
-        SKKS_dtlag = self.sdb.DTLAG_SKKS.values
+        SKKS_fast = self.pairs.FAST_SKKS.values
+        SKKS_dfast = self.pairs.DFAST_SKKS.values
+        SKKS_tlag = self.pairs.TLAG_SKKS.values
+        SKKS_dtlag = self.pairs.DTLAG_SKKS.values
         # Now set the SKS and SKKS 2-sigma rnages
         lbf_SKS = SKS_fast - sigma*SKS_dfast
         ubf_SKS = SKS_fast + sigma*SKS_dfast
@@ -61,20 +64,20 @@ class SDB:
         lbt_SKKS = SKKS_tlag - sigma*SKKS_dtlag
         ubt_SKKS = SKKS_tlag + sigma*SKKS_dtlag
 
-        outfile = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}_matches.sdb'.format(file),'w+')
-        outfile2 = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}_diffs.sdb'.format(file),'w+')
+        outfile = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}_matches.pairs'.format(file),'w+')
+        outfile2 = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}_diffs.pairs'.format(file),'w+')
         mspp1 = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}_matches.mspp'.format(file),'w+')
         mspp2 = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}_diffs.mspp'.format(file),'w+')
         outfile.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG\n')
         outfile2.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG\n')
         for i,value in enumerate(SKS_fast):
-            date = self.sdb.DATE.values[i]
-            time = self.sdb.TIME.values[i]
-            stat = self.sdb.STAT.values[i]
-            evla = self.sdb.EVLA.values[i]
-            evlo = self.sdb.EVLO.values[i]
-            stla = self.sdb.STLA.values[i]
-            stlo = self.sdb.STLO.values[i]
+            date = self.pairs.DATE.values[i]
+            time = self.pairs.TIME.values[i]
+            stat = self.pairs.STAT.values[i]
+            evla = self.pairs.EVLA.values[i]
+            evlo = self.pairs.EVLO.values[i]
+            stla = self.pairs.STLA.values[i]
+            stlo = self.pairs.STLO.values[i]
             SKS_pp_lat = self.pp.lat_SKS.values[i]
             SKS_pp_lon = self.pp.lon_SKS.values[i]
             SKKS_pp_lat = self.pp.lat_SKKS.values[i]
@@ -124,7 +127,7 @@ class SDB:
 
         mk_sacfiles_mypath = lambda stat,date,time : mk_sacfiles('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files',stat,date,time)
         cp_sacfiles_mypath = lambda sacfile: cp_sacfile(sacfile,mypath,outdir)
-        sacfiles = list(map(mk_sacfiles_mypath,self.sdb.STAT,self.sdb.DATE,self.sdb.TIME))
+        sacfiles = list(map(mk_sacfiles_mypath,self.pairs.STAT,self.pairs.DATE,self.pairs.TIME))
 
         for file in sacfiles:
             cp_sacfile(file,mypath,outdir)
