@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 import obspy.core.utcdatetime
 import os.path
-from obspy.clients.fdsn import Client
+from obspy.clients.fdsn.client import Client
 from obspy.clients.fdsn.header import (FDSNException)
 from obspy.clients.fdsn.header import (FDSNNoDataException)
 from obspy.core import AttribDict
@@ -103,7 +103,7 @@ def run_download(df,station,ext):
     stat_found = Instance.download_station_data()
     if stat_found is True:
         for i in range(0,len(Instance.data)):
-            print(station)
+            print(station, Instance.data.DATE[i])
         #Loop over events for the given station Instance
 
             Instance.download_event_data(i)
@@ -143,6 +143,7 @@ class Downloader:
         self.dwn = 0 #Counter for how many events were downloaded
         self.ex = 0 #Counter for how many event already exist in filesystem and therefore werent downloaded
         self.ts = 0 #Counter for events who;s traces are too short.
+        self.fdsnclient_evt = Client('IRIS') # Serparate client for events (hopefully to get round the "no event avialbel bug")
         self.fdsnclient = Client('IRIS')
 #       Download Station Data
 
@@ -170,7 +171,7 @@ class Downloader:
         datetime = str(self.date) + "T" + self.time #Combined date and time inputs for converstion t UTCDateTime object
         self.start = obspy.core.UTCDateTime(datetime) #iso8601=True
         try:
-            cat = self.fdsnclient.get_events(starttime=self.start-60,endtime=self.start+60 ,latitude=self.evla,longitude=self.evlo,maxradius=0.5) #Get event in order to get more accurate event times.
+            cat = self.fdsnclient_evt.get_events(starttime=self.start-60,endtime=self.start+60 ,latitude=self.evla,longitude=self.evlo,maxradius=0.5) #Get event in order to get more accurate event times.
             if len(cat) > 1:
                 print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
 
