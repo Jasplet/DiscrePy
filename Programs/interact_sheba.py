@@ -114,7 +114,7 @@ def tidyup(path,phase,outfile):
              j = h.index('STAT')
              h[2],h[3:j+1]= h[j],h[2:j]
              header = ' '.join(h) + ' ' + ' '.join(s)
-             print(header)
+             #print(header)
 
              for line in input.readlines():
                 s = stats.readline().split() # Read the next line from the Stats file (should have the same number of lines as final_result)
