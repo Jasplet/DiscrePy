@@ -77,7 +77,7 @@ def tidyup(path,phase,outfile):
                 results.append(result)
 
     results.insert(0,header)
-    print('Writing Results to {}.sdb in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
+    print('Writing Results to {} in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
     with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile),'w') as writer:
         for r in results:
             writer.write(str(r) + '\n')
