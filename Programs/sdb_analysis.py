@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import obspy
 from obspy import taup
-import os.path
+import os
 from subprocess import call
-import shelx
+import shlex
 
 
 
@@ -19,18 +19,21 @@ class Pairs:
     """
     Class to hold a .pairs Database (and Pierce Points) and generate a suite of useful plots based off the data.
     """
-    def __init__(self,sdb,Q_threshold=None,gcarc_threshold=None):
+    def __init__(self,pf,Q_threshold=None,gcarc_threshold=None):
 
-        self.pairs = pd.read_csv('{}.pairs'.format(sdb),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
+        self.pairs = pd.read_csv('{}'.format(pf),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
         #Load raw data from provided sdb file. This is going to be a hidden file as I will parse out useful columns to new attributes depending of provided kwargs
 
-         #if kwargs are none:
-        if os.isfile('{}.pp'.format(sdb)):
-            self.pp = pd.read_csv('{}.pp'.format(sdb),delim_whitespace=True)
+         #if kwargs are none:\
+
+        if os.path.isfile('{}.pp'.format(pf[:-6])):
+            #print(pf[:-6])
+            self.pp = pd.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
         else:
-            print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(sdb))
-                    p = call(shelx.split('pierce.sh {}'))
-        ## Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
+            print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(pf[:-6]))
+            p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(pf)))
+            self.pp = self.pp = pd.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
+        # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
     def main(self):
         """
@@ -82,6 +85,7 @@ class Pairs:
             SKS_pp_lon = self.pp.lon_SKS.values[i]
             SKKS_pp_lat = self.pp.lat_SKKS.values[i]
             SKKS_pp_lon = self.pp.lon_SKKS.values[i]
+            print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
             #print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKKS[i],SKS_fast[i],ubf_SKKS[i],lbt_SKKS[i],SKS_tlag[i],ubt_SKKS[i]))
             if (lbf_SKKS[i] <= ubf_SKS[i]) or (lbf_SKS[i] <= ubf_SKKS[i]):
                 # Do the Fast and Tlag measured for SKS sit within the error bars for SKKS?
