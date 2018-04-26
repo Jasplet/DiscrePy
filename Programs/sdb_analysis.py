@@ -1,16 +1,8 @@
-
 #! /usr/bin/env python
 ### Script containing varous plotting functions for splitting Measurements
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+import pandas
 import sys
-import matplotlib.gridspec as gridspec
-import obspy
-from obspy import taup
 import os
-from subprocess import call
-import shlex
 
 def make_pairs(path,sdb_stem):
     """
@@ -49,23 +41,23 @@ class Pairs:
     """
     def __init__(self,pf,Q_threshold=None,gcarc_threshold=None):
 
-        self.pairs = pd.read_csv('{}'.format(pf),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
+        self.pairs = pandas.read_csv('{}'.format(pf),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
         #Load raw data from provided .pairs file. This is going to be a hidden file as I will parse out useful columns to new attributes depending of provided kwargs
 
          #if kwargs are none:\
 
         if os.path.isfile('{}.pp'.format(pf[:-6])):
             #print(pf[:-6])
-            self.pp = pd.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
+            self.pp = pandas.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(pf[:-6]))
             p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(pf)))
-            self.pp = self.pp = pd.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
+            self.pp = self.pp = pandas.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
         # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
 
 
-    def match(self,path,filestem,sigma=2):
+    def match(self,file,sigma=2):
         """
         Funntion to see if the SKS and SKKS splititng measurements for a pair of measurements match within error
 
@@ -92,10 +84,10 @@ class Pairs:
         lbt_SKKS = SKKS_tlag - sigma*SKKS_dtlag
         ubt_SKKS = SKKS_tlag + sigma*SKKS_dtlag
 
-        outfile = open('{}/{}_matches.pairs'.format(path,filestem),'w+')
-        outfile2 = open('{}/{}_diffs.pairs'.format(path,filestem),'w+')
-        mspp1 = open('{}/{}_matches.mspp'.format(path,filestem),'w+')
-        mspp2 = open('{}/{}_diffs.mspp'.format(path,filestem),'w+')
+        outfile = open('{}_matches.pairs'.format(file),'w+')
+        outfile2 = open('{}_diffs.pairs'.format(file),'w+')
+        mspp1 = open('{}_matches.mspp'.format(file),'w+')
+        mspp2 = open('{}_diffs.mspp'.format(file),'w+')
         outfile.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG\n')
         outfile2.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG\n')
         for i,value in enumerate(SKS_fast):
@@ -110,7 +102,7 @@ class Pairs:
             SKS_pp_lon = self.pp.lon_SKS.values[i]
             SKKS_pp_lat = self.pp.lat_SKKS.values[i]
             SKKS_pp_lon = self.pp.lon_SKKS.values[i]
-            print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
+            #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
             #print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKKS[i],SKS_fast[i],ubf_SKKS[i],lbt_SKKS[i],SKS_tlag[i],ubt_SKKS[i]))
             if (lbf_SKKS[i] <= ubf_SKS[i]) or (lbf_SKS[i] <= ubf_SKKS[i]):
                 # Do the Fast and Tlag measured for SKS sit within the error bars for SKKS?
@@ -172,7 +164,7 @@ if __name__ == '__main__':
         sdb_stem = input('Input the stem of the SKS and SKKS sdb files you want to analse \n > ')
 
 
-    elif len(sys.argv == 3):
+    elif len(sys.argv) == 3:
         path = sys.argv[1]
         sdb_stem = sys.argv[2]
 
@@ -188,6 +180,6 @@ if __name__ == '__main__':
     # Now lets read the pairs
     pair_file = '{}/{}_SKS_SKKS.pairs'.format(path,sdb_stem)
     p = Pairs(pair_file)
-    p.match(path,pair_file[:-6])
+    p.match(pair_file[:-6])
 
     print('End')
