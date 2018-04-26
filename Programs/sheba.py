@@ -82,7 +82,7 @@ def tidyup(path,phase,outfile):
         for r in results:
             writer.write(str(r) + '\n')
 
-def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Test',phases=['SKS']):
+def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split',phases=['SKS','SKKS']):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
@@ -285,7 +285,7 @@ class Interface:
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
-        #print('Worker {} Passing {} into Sheba for {}. Time is {}'.format(current_process().pid,label,phase,time.localtime()))
+        print('Worker {} Passing {} into Sheba for {}. Time is {}'.format(current_process().pid,label,phase,time.ctime()))
 
         p = sub.Popen(['sac'],
                      stdout = sub.PIPE,
@@ -350,7 +350,7 @@ if __name__ == '__main__':
     # Get the user to input the outfile name they want (Phase label will be added later)
     out_pre = input('Enter SDB file name: ')
     ################### SET THE PHASES TO BE PROCESSED HERE #############################
-    phase = 'SKS'
+    phases = ['SKS','SKKS']
 
     ######################################################################################
     ############### Run Sheba - using parallel processing with Pool ######################
@@ -365,11 +365,11 @@ if __name__ == '__main__':
     # for i,file in enumerate(files):
     #     run_sheba(file,'/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Test',phases= ['SKKS'])
     #     print('Iteration: {}. File: {}'.format(i,file))
-    #for phase in phases:
-    """ Loop over phases process and tidyup results """
-    tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Test'
-    outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
-    tidyup(tidy_path,phase,outfile)
+    for phase in phases:
+        """ Loop over phases process and tidyup results """
+        tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
+        outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
+        tidyup(tidy_path,phase,outfile)
 
     ######################################################################################
     # End Timing of run
