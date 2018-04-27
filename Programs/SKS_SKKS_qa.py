@@ -4,24 +4,29 @@
 #### Import Modules
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-#import cartopy.crs as cart
-#import cartopy
-import matplotlib.gridspec as gridspec
+import splitwavepy
+import obspy
+from obspy import UTCDateTime
+from obspy.taup import TauPyModel
 import obspy
 from obspy import taup
 import os
 import sys
 
 
-def measure_sks_skks(filestem,outputdir,):
+def measure_sks_skks(file,outputdir,windows):
     """
     Function to measure SWS using the eigenvalue, transverse minimisation and cross correlation methods
     This is done using the devel release of splitwave py (Needs to run from the splitwavepy environment)
     """
-    st = obspy.read(directory + filestem + '[N,E].sac')
-    f_check_SKS = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}/{}/SKS/{}SKS_sheba.final_result'.format(run,st[0].stats.station,phase,filestem)
-    f_check_SKKS =  '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}/{}/SKKS/{}SKKS_sheba.final_result'.format(run,st[0].stats.station,phase,filestem)
+    filestem = file[55:]
+    try:
+        st = obspy.read('{}??_BH[N,E].sac'.format(file))
+    except Exception:
+        print(Exception)
+        st = obspy.read('{}_??????_BH[N,E].sac'.format(file[:-5]))
+    f_check_SKS = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split/{}/SKS/{}SKS_sheba.final_result'.format(st[0].stats.station,filestem)
+    f_check_SKKS =  '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split/{}/SKKS/{}SKKS_sheba.final_result'.format(st[0].stats.station,filestem)
     # apply a bandpass filter
     st.filter("bandpass",freqmin=0.01,freqmax=0.5)
 
@@ -45,14 +50,14 @@ def measure_sks_skks(filestem,outputdir,):
 
     # trim around SKS and SKKS
 
-    wbeg_sks = evtime + line['WBEG_SKS']
-    wend_sks = evtime + line['WEND_SKS']
-    wbeg_skks = evtime + line['WBEG_SKKS']
-    wend_skks = evtime + line['WEND_SKKS']
+    wbeg_sks = evtime + windows[0]
+    wend_sks = evtime + windows[1]
+    wbeg_skks = evtime + windows[2]
+    wend_skks = evtime + windows[3]
     st.trim(wbeg_sks - 30, wend_skks + 30)
 
     # put data into splitwavepy object
-    data = splitwavepy.Data(st[1].data, st[0].data, delta=st[0].stats.delta)
+    data = splitwavepy.Data(st.select(channel='BHN')[0].data, st.select(channel='BHE')[0].data, delta=st.select(channel='BHN')[0].stats.delta)
     # add the SAC header info
     data.sacinfo = st[0].stats.sac
     #
@@ -70,47 +75,37 @@ def measure_sks_skks(filestem,outputdir,):
 
     # measure sks splitting
     data.set_window(30, 30+(wend_sks-wbeg_sks))
-    data.EigenM(lags=(4,), bootstrap=True).save('{}/{}.sks.eigm'.format(outputdir,filestem))
-    data.TransM(lags=(4,), pol=baz, bootstrap=True).save('{}/{}.sks.trnm'.format(outputdir,filestem))
-    data.XcorrM(lags=(4,), bootstrap=True).save('{}/{}.sks.xcrm'.format(outputdir,filestem))
+    data.EigenM(lags=(4,), bootstrap=True).save('{}/{}_sks.eigm'.format(outputdir,filestem))
+    data.TransM(lags=(4,), pol=baz, bootstrap=True).save('{}/{}_sks.trnm'.format(outputdir,filestem))
+    data.XcorrM(lags=(4,), bootstrap=True).save('{}/{}_sks.xcrm'.format(outputdir,filestem))
 
     # measure skks splitting
     data.set_window(30+(wbeg_skks-wbeg_sks), 30+(wend_skks-wbeg_sks))
-    data.EigenM(lags=(4,), bootstrap=True).save('{}/{}.skks.eigm'.format(outputdir,filestem))
-    data.TransM(lags=(4,), pol=baz, bootstrap=True).save('{}/{}.skks.trnm'.format(outputdir,filestem))
-    data.XcorrM(lags=(4,), bootstrap=True).save('{}/{}.skks.xcrm'.format(outputdir,filestem))
+    data.EigenM(lags=(4,), bootstrap=True).save('{}/{}_skks.eigm'.format(outputdir,filestem))
+    data.TransM(lags=(4,), pol=baz, bootstrap=True).save('{}/{}_skks.trnm'.format(outputdir,filestem))
+    data.XcorrM(lags=(4,), bootstrap=True).save('{}/{}_skks.xcrm'.format(outputdir,filestem))
 
 # Loop through files
 
 if __name__ == '__main__':
-    print('Hello, this is inspecter.py')
-
-    # Read in the matched SKS SKKS pairs
-    pairs = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(sys.argv[1]))
+    print('Hello, this is SKS_SKKS_qa.py')
+    #
+    results_dir = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Split'
     # Define which directory the SAC files are saved in
-    data_dir = '/Users/ja17375/Shear_Wave_Splitting/Sheba'
+    data_dir = '/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files'
     # Define Output dir
-    outputdir = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split/QA'
+    outputdir = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split/SplitWavePy'
     # Test to see if the out dir exists (and if not make it!)
     if os.path.isdir(outputdir) is False:
+        print('Outdir:{} Exists? {}'.format(outputdir, os.path.isdir(outputdir)))
         os.makedirs(outputdir)
 
+    # Read in the matched SKS SKKS pairs
+    pairs = pd.read_csv('{}/{}'.format(results_dir,sys.argv[1]),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
 
-    evt_list = sys.argv[2]
-    file_list ='/Users/ja17375/Shear_Wave_Splitting/Data/{}'.format(evt_list)
-    # echo out where I expect the staiton list to be
-    print('Processing Data from the Downloaded Event List {}'.format(file_list))
-    files = []
-    with open(file_list,'r') as reader:
-        for line in reader.readlines():
-            f = line.strip('\n')
-            files.append(f)
-
-    for file in files:
-        filestem = file[55:].strip('/')
-
-        splitstem = filestem.split('_')
-        line = pairs[(pairs['STAT'] == splitstem[0].encode('ascii')) &
-                    (pairs['DATE'] == int(splitstem[1])) ]
-
-        measure_sks_skks(filestem)
+    for i in range(0,len(pairs)):
+        file = '{}/{}/{}_{}_{}'.format(data_dir,pairs.STAT[i],pairs.STAT[i],pairs.DATE[i],pairs.TIME[i])
+        #print(file[:-5])
+        #print('Iteration: {}, File {}'.format(i,file[55:]))
+        windows = [pairs.WBEG_SKS[i],pairs.WEND_SKS[i],pairs.WBEG_SKKS[i],pairs.WEND_SKKS[i]]
+        measure_sks_skks(file,outputdir,windows)
