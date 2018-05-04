@@ -153,6 +153,11 @@ class Pairs:
         for file in sacfiles:
             cp_sacfile(file,mypath,outdir)
 
+
+
+
+
+
 #####################################################################################################
 # Top level where script is invoked from command line
 if __name__ == '__main__':
