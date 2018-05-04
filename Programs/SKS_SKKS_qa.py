@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #  Inspecter.py
-#  A program to loop through and visiualy inspect/ assign data qauility and qulaitvative matching to SKS-SKKS pairs
+'''A program to loop through and visiualy inspect/ assign data qauility and qulaitvative matching to SKS-SKKS pairs'''
 #### Import Modules
 import pandas as pd
 import numpy as np
