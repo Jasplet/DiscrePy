@@ -9,6 +9,8 @@ def plotall(filestem):
     plt.figure(figsize=(15,10))
     gs = gridspec.GridSpec(7, 6)
     ax0 = plt.subplot(gs[0, :])
+    plt.ion()
+    plt.show()
 
     # plot trace at top (this will put sks windows in automatically)
     sks = sw.load(filestem + '_sks.trnm')
@@ -82,9 +84,17 @@ def plotall(filestem):
     #     labelbottom='off')
 
     plt.tight_layout()
+    plt.draw()
+    qual = input('Data Quality ([g]ood/[o]k/[p]oor) \n >')
+    plt.draw()
+    disc  = input('Are SKS/SKKS discrepant (can add comments)? ([y]es/[n]o/[u]ndeterminable) \n ?')
+    plt.close()
 
-    plt.show()
+
+    return qual,disc
 
 if __name__ == '__main__':
     # print(sys.argv[1])
+
     plotall(sys.argv[1])
+    plt.show()
