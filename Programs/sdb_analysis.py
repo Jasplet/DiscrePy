@@ -3,6 +3,8 @@
 import pandas
 import sys
 import os
+import shlex
+from subprocess import call
 
 def make_pairs(path,sdb_stem):
     """
