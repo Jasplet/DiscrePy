@@ -1,4 +1,5 @@
-#! /usr/bin/env python
+#! /anaconda3/envs/splitwavepy/bin/python
+
 # Welcome to discre.py. This script (or maybe module??) is for testing whether
 # SKS SKKS pairs exhibit matching or discrepent splitting. This will be done
 # by using the splitting measured for each phase to correct the splitting on
@@ -13,3 +14,4 @@ import matplotlib.pyplot as plt
 
 ###############################################################################
 # Intial devel work to be done in devel_disrepy.ipynb
+print('Hello World')
