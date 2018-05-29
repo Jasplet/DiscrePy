@@ -40,7 +40,7 @@ def benchmark(path):
         except Exception:
             print(Exception)
             fstem2 =  '{}_{}'.format(stat,date)
-            st = ob.read('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_??????_BH[N,E].sac'.format(stat,fstem2))
+            st = ob.read('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_*_BH[N,E].sac'.format(stat,fstem2))
         #print(st)
         st.filter('bandpass',freqmin=0.01,freqmax=0.5)
 
@@ -74,11 +74,11 @@ def diag_plot(sheba,swp,baz):
     Function to make diagnostice plots for a given file of splitting measuremtns
     """
 
-    fig,axs = plt.subplots(2, 1,sharex='col',figsize=(10,10))
+    fig,axs = plt.subplots(2, 2,sharex='col',figsize=(10,10))
 
-    plt.subplot(211)
+    plt.subplot(221)
     plt.errorbar(baz,sheba[0],yerr=sheba[1],fmt='kx',elinewidth=0.5,label='Sheba')
-    plt.errorbar(baz,swp[0],yerr=swp[1],elinewidth=0.5,label='SplitWavePy')
+
     plt.legend(loc=2)
 
     plt.ylabel('Fast Direction (deg)')
@@ -86,15 +86,27 @@ def diag_plot(sheba,swp,baz):
     plt.yticks(np.arange(-90,91,30))
     plt.title(r'Comparison of $\phi$)')
 
-    plt.subplot(212)
+    plt.subplot(222)
     plt.errorbar(baz,sheba[2],yerr=sheba[3],fmt='kx',elinewidth=0.5,label='Sheba')
-    plt.errorbar(baz,swp[2],yerr=swp[3],elinewidth=0.5,label='SplitWavePy')
+
     plt.ylim([0,4])
     plt.yticks(np.arange(0,4,0.5))
-    plt.title(r'Comparison of $\delta t$')
+    plt.title(r'$\delta t$')
     plt.xlabel('Back Azimuth (deg)')
     plt.ylabel(r'$\delta t$')
 
+    plt.subplot(223)
+    plt.errorbar(baz,swp[0],yerr=swp[1],fmt='bo',elinewidth=0.5,label='SplitWavePy')
+    plt.legend(loc=2)
+    plt.ylabel('Fast Direction (deg)')
+    plt.ylim([-90,90])
+    plt.yticks(np.arange(-90,91,30))
+
+    plt.subplot(224)
+    plt.errorbar(baz,swp[2],yerr=swp[3],fmt='bo',elinewidth=0.5,label='SplitWavePy')
+    plt.title(r'$\delta t$')
+    plt.xlabel('Back Azimuth (deg)')
+    plt.ylabel(r'$\delta t$'
 
     plt.tight_layout()
     plt.show()
