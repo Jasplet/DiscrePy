@@ -84,14 +84,14 @@ def diag_plot(sheba,swp,baz):
     plt.ylabel('Fast Direction (deg)')
     plt.ylim([-90,90])
     plt.yticks(np.arange(-90,91,30))
-    plt.title(r'Comparison of $\phi$)')
+    plt.title(r'$\phi$ from Sheba')
 
     plt.subplot(222)
     plt.errorbar(baz,sheba[2],yerr=sheba[3],fmt='kx',elinewidth=0.5,label='Sheba')
 
     plt.ylim([0,4])
     plt.yticks(np.arange(0,4,0.5))
-    plt.title(r'$\delta t$')
+    plt.title(r'$\delta t$ from Sheba')
     plt.xlabel('Back Azimuth (deg)')
     plt.ylabel(r'$\delta t$')
 
@@ -101,13 +101,14 @@ def diag_plot(sheba,swp,baz):
     plt.ylabel('Fast Direction (deg)')
     plt.ylim([-90,90])
     plt.yticks(np.arange(-90,91,30))
+    plt.title(r'$\phi$ from SplitwavePy')
 
     plt.subplot(224)
     plt.errorbar(baz,swp[2],yerr=swp[3],fmt='bo',elinewidth=0.5,label='SplitWavePy')
-    plt.title(r'$\delta t$')
+    plt.title(r'$\delta t$ from SplitwavePy')
     plt.xlabel('Back Azimuth (deg)')
-    plt.ylabel(r'$\delta t$'
-
+    plt.ylabel(r'$\delta t$')
+    '
     plt.tight_layout()
     plt.show()
 
