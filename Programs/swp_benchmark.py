@@ -35,13 +35,13 @@ def benchmark(path):
         date,time,stat = sheba.DATE[i], sheba.TIME[i], sheba.STAT[i]
         fstem = '{}_{}_{}'.format(stat,date,time)
         try:
-            st = sm.read_sac('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}*'.format(stat,fstem))
+            st = ob.read('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}??_BH[N,E].sac'.format(stat,fstem))
 
         except Exception:
             print(Exception)
-            fstem2 = fstem[0:-1]
-            st = sm.read_sac('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}*'.format(stat,fstem2))
-
+            fstem2 =  '{}_{}'.format(stat,date)
+            st = ob.read('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_??????_BH[N,E].sac'.format(stat,fstem2))
+        #print(st)
         st.filter('bandpass',freqmin=0.01,freqmax=0.5)
 
         attribs = st[0].stats.sac
@@ -69,14 +69,14 @@ def benchmark(path):
     print('{} sheba results, {} swp results'.format(len(sheba_results[0]),len(swp_results[0])))
     return sheba_results,swp_results,baz
 
-def diag_plot(sheba,swp):
+def diag_plot(sheba,swp,baz):
     """
     Function to make diagnostice plots for a given file of splitting measuremtns
     """
 
     fig,axs = plt.subplots(2, 1,sharex='col',figsize=(10,10))
 
-    plt.subplot(221)
+    plt.subplot(211)
     plt.errorbar(baz,sheba[0],yerr=sheba[1],fmt='kx',elinewidth=0.5,label='Sheba')
     plt.errorbar(baz,swp[0],yerr=swp[1],elinewidth=0.5,label='SplitWavePy')
     plt.legend(loc=2)
@@ -84,31 +84,16 @@ def diag_plot(sheba,swp):
     plt.ylabel('Fast Direction (deg)')
     plt.ylim([-90,90])
     plt.yticks(np.arange(-90,91,30))
-    plt.title(r'Fast Direction ($\phi$)')
+    plt.title(r'Comparison of $\phi$)')
 
-    plt.subplot(223)
-    plt.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_FAST,yerr=data[(data.QUAL == 'n')].WL_DFAST,fmt='kx',elinewidth=0.5)
-    plt.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_FAST,yerr=data[(data.QUAL != 'n')].WL_DFAST,fmt='ko',elinewidth=0.5)
-    plt.ylim([-90,90])
-    plt.yticks(np.arange(-90,91,30))
-    plt.title('Jacks(Sheba) - Fast Direction')
-    plt.xlabel('Back Azimuth')
-    plt.ylabel('Fast Direction (deg)')
-
-    plt.subplot(222)
-    plt.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].TLAG,yerr=data[(data.QUAL == 'n')].DTLAG,fmt='kx',elinewidth=0.5)
-    plt.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].TLAG,yerr=data[(data.QUAL != 'n')].DTLAG,fmt='ko',elinewidth=0.5)
-    plt.ylabel('Tlag (s)')
+    plt.subplot(212)
+    plt.errorbar(baz,sheba[2],yerr=sheba[3],fmt='kx',elinewidth=0.5,label='Sheba')
+    plt.errorbar(baz,swp[2],yerr=swp[3],elinewidth=0.5,label='SplitWavePy')
     plt.ylim([0,4])
-    plt.title('{} - Lag Time'.format(title1))
-
-    plt.subplot(224)
-    plt.errorbar(data[(data.QUAL == 'n')].BAZ,data[(data.QUAL == 'n')].WL_TLAG,yerr=data[(data.QUAL == 'n')].WL_DTLAG,fmt='kx',elinewidth=0.5)
-    plt.errorbar(data[(data.QUAL != 'n')].BAZ,data[(data.QUAL != 'n')].WL_TLAG,yerr=data[(data.QUAL != 'n')].WL_DTLAG,fmt='ko',elinewidth=0.5)
-    plt.ylim([0,4])
-    plt.ylabel('Tlag (s)')
-    plt.xlabel('Back Azimuth')
-    plt.title('Jacks(Sheba) - Lag Time')
+    plt.yticks(np.arange(0,4,0.5))
+    plt.title(r'Comparison of $\delta t$')
+    plt.xlabel('Back Azimuth (deg)')
+    plt.ylabel(r'$\delta t$')
 
 
     plt.tight_layout()
@@ -117,3 +102,4 @@ def diag_plot(sheba,swp):
 if __name__ == '__main__':
 
     sheba,swp,baz = benchmark('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Split/Jacks_Split_SKS_sheba_results.sdb')
+    diag_plot(sheba,swp,baz)
