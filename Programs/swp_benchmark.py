@@ -77,9 +77,9 @@ def diag_plot(sheba,swp,baz):
     fig,axs = plt.subplots(2, 2,sharex='col',figsize=(10,10))
 
     plt.subplot(221)
-    plt.errorbar(baz,sheba[0],yerr=sheba[1],fmt='kx',elinewidth=0.5,label='Sheba')
-
-    plt.legend(loc=2)
+    #plt.errorbar(baz,sheba[0],yerr=sheba[1],fmt='kx',elinewidth=0.5,label='Sheba')
+    plt.plot(baz,sheba[0],'kx')
+    #plt.legend(loc=2)
 
     plt.ylabel('Fast Direction (deg)')
     plt.ylim([-90,90])
@@ -87,7 +87,8 @@ def diag_plot(sheba,swp,baz):
     plt.title(r'$\phi$ from Sheba')
 
     plt.subplot(222)
-    plt.errorbar(baz,sheba[2],yerr=sheba[3],fmt='kx',elinewidth=0.5,label='Sheba')
+    #plt.errorbar(baz,sheba[2],yerr=sheba[3],fmt='kx',elinewidth=0.5,label='Sheba')
+    plt.plot(baz,sheba[2],'kx')
 
     plt.ylim([0,4])
     plt.yticks(np.arange(0,4,0.5))
@@ -96,19 +97,47 @@ def diag_plot(sheba,swp,baz):
     plt.ylabel(r'$\delta t$')
 
     plt.subplot(223)
-    plt.errorbar(baz,swp[0],yerr=swp[1],fmt='bo',elinewidth=0.5,label='SplitWavePy')
-    plt.legend(loc=2)
+    #plt.errorbar(baz,swp[0],yerr=swp[1],fmt='bx',elinewidth=0.5,label='SplitWavePy')
+    plt.plot(baz,swp[0],'bx')
+
+    #plt.legend(loc=2)
     plt.ylabel('Fast Direction (deg)')
     plt.ylim([-90,90])
     plt.yticks(np.arange(-90,91,30))
     plt.title(r'$\phi$ from SplitwavePy')
 
     plt.subplot(224)
-    plt.errorbar(baz,swp[2],yerr=swp[3],fmt='bo',elinewidth=0.5,label='SplitWavePy')
+    #plt.errorbar(baz,swp[2],yerr=swp[3],fmt='bx',elinewidth=0.5,label='SplitWavePy')
+    plt.plot(baz,swp[2],'bx')
+
     plt.title(r'$\delta t$ from SplitwavePy')
     plt.xlabel('Back Azimuth (deg)')
     plt.ylabel(r'$\delta t$')
-    '
+    plt.ylim([0,4])
+    plt.tight_layout()
+    plt.show()
+
+def fast_lag_plot(sheba,swp):
+    """
+    Plot fast v lag for swp and sheba
+    """
+    fig,axs = plt.subplots(2,1,sharex='col',figsize=(8,8))
+    # Plot tlag on x and fast on y ( so it looks a bit like a lambda surface)
+    plt.subplot(211)
+    # For sheba results
+    plt.plot(sheba[2],sheba[0],'kx')
+    plt.xlim([0,4])
+    plt.ylim([-90,90])
+    plt.yticks(np.arange(-90,91,30))
+    plt.title(r'$\phi$ v $\delta t$ for SHEBA results')
+
+    plt.subplot(212)
+    # For splitwave py results
+    plt.plot(swp[2],swp[0],'bx')
+    plt.xlim([0,4])
+    plt.ylim([-90,90])
+    plt.yticks(np.arange(-90,91,30))
+    plt.title(r'$\phi$ v $\delta t$ for SplitWavePy results')
     plt.tight_layout()
     plt.show()
 
@@ -116,3 +145,4 @@ if __name__ == '__main__':
 
     sheba,swp,baz = benchmark('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Split/Jacks_Split_SKS_sheba_results.sdb')
     diag_plot(sheba,swp,baz)
+    fast_lag_plot(sheba,swp)
