@@ -75,15 +75,15 @@ def measure_sks_skks(file,outputdir,windows):
 
     # measure sks splitting
     data.set_window(30, 30+(wend_sks-wbeg_sks))
-    data.EigenM(lags=(4,), bootstrap=True).save('{}/{}_sks.eigm'.format(outputdir,filestem))
-    data.TransM(lags=(4,), pol=baz, bootstrap=True).save('{}/{}_sks.trnm'.format(outputdir,filestem))
-    data.XcorrM(lags=(4,), bootstrap=True).save('{}/{}_sks.xcrm'.format(outputdir,filestem))
+    data.SC(lags=(4,), bootstrap=True).save('{}/{}_sks.eigm'.format(outputdir,filestem))
+    data.SC(lags=(4,), pol=baz, bootstrap=True).save('{}/{}_sks.trnm'.format(outputdir,filestem))
+    data.XC(lags=(4,), bootstrap=True).save('{}/{}_sks.xcrm'.format(outputdir,filestem))
 
     # measure skks splitting
     data.set_window(30+(wbeg_skks-wbeg_sks), 30+(wend_skks-wbeg_sks))
-    data.EigenM(lags=(4,), bootstrap=True).save('{}/{}_skks.eigm'.format(outputdir,filestem))
-    data.TransM(lags=(4,), pol=baz, bootstrap=True).save('{}/{}_skks.trnm'.format(outputdir,filestem))
-    data.XcorrM(lags=(4,), bootstrap=True).save('{}/{}_skks.xcrm'.format(outputdir,filestem))
+    data.SC(lags=(4,), bootstrap=True).save('{}/{}_skks.eigm'.format(outputdir,filestem))
+    data.SC(lags=(4,), pol=baz, bootstrap=True).save('{}/{}_skks.trnm'.format(outputdir,filestem))
+    data.XC(lags=(4,), bootstrap=True).save('{}/{}_skks.xcrm'.format(outputdir,filestem))
 
 # Loop through files
 
