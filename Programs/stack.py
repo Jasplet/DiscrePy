@@ -82,7 +82,7 @@ class Stacker:
             l = sol.strip('\n').split(' ')[2]
             dl = sol.strip('\n').split(' ')[3]
             lam2 = sol.strip('\n').split(' ')[-1]
-
+            print('lambda 2 value is {}'.format(lam2))
             self.sol = [f,df,l,dl,lam2]
 
     def copy_files(self,sks,skks):
