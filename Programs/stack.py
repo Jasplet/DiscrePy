@@ -60,7 +60,7 @@ class Stacker:
         self.make_infile()
 #       Perform stack
         self.stack()
-
+        self.collect()
 
     def stack(self):
         print('Stacking')
@@ -77,12 +77,13 @@ class Stacker:
         with open('{}/sheba_stack.sol'.format(self.path)) as reader:
             header = reader.readline()
             sol = reader.readline()
-            self.fast = sol.strip('\n').split(' ')[0]
-            self.dfast = sol.strip('\n').split(' ')[1]
-            self.lag = sol.strip('\n').split(' ')[2]
-            self.dlag = sol.strip('\n').split(' ')[3]
-            self.lam2 = sol.strip('\n').split(' ')[-1]
+            f = sol.strip('\n').split(' ')[0]
+            df = sol.strip('\n').split(' ')[1]
+            l = sol.strip('\n').split(' ')[2]
+            dl = sol.strip('\n').split(' ')[3]
+            lam2 = sol.strip('\n').split(' ')[-1]
 
+            self.sol = [f,df,l,dl,lam2]
 
     def copy_files(self,sks,skks):
         ''' Copies lambda 2 files to corrrect place for stacking '''
