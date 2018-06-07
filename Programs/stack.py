@@ -60,7 +60,8 @@ class Stacker:
         self.make_infile()
 #       Perform stack
         self.stack()
-        print(self.path)
+
+
     def stack(self):
         print('Stacking')
         p=sub.Popen(['sheba_stack'],stdout = sub.PIPE,
@@ -70,6 +71,18 @@ class Stacker:
                                     encoding='utf8')
 
         p.communicate('-wgt one')
+
+    def collect(self):
+        ''' Collects lambda2 value and solution of the stacked surface '''
+        with open('{}/sheba_stack.sol'.format(self.path)) as reader:
+            header = reader.readline()
+            sol = reader.readline()
+            self.fast = sol.strip('\n').split(' ')[0]
+            self.dfast = sol.strip('\n').split(' ')[1]
+            self.lag = sol.strip('\n').split(' ')[2]
+            self.dlag = sol.strip('\n').split(' ')[3]
+            self.lam2 = sol.strip('\n').split(' ')[-1]
+
 
     def copy_files(self,sks,skks):
         ''' Copies lambda 2 files to corrrect place for stacking '''
