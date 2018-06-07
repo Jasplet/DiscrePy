@@ -46,7 +46,7 @@ class Stacker:
         elif os.path.isfile(lam2_skks) is False:
             raise NameError('Lambda 2 (for sks) provided does not exist')
         else:
-            print('Lambda 2 sufraces exist')
+            print('Lambda 2 surfaces exist')
     #   Isolate filestems of lambda 2 surfaces
 
         self.sks = lam2_sks.split('/')[-1]
@@ -63,7 +63,7 @@ class Stacker:
         self.collect()
 
     def stack(self):
-        print('Stacking')
+        #print('Stacking')
         p=sub.Popen(['sheba_stack'],stdout = sub.PIPE,
                                     stdin  = sub.PIPE,
                                     stderr = sub.STDOUT,
@@ -97,4 +97,4 @@ class Stacker:
             writer.write('{} \n'.format(self.sks))
             writer.write(self.skks)
 
-        print('sheba_stack.in written to {}'.format(os.getcwd()))
+        #print('sheba_stack.in written to {}'.format(self.path))
