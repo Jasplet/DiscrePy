@@ -46,7 +46,7 @@ class Stacker:
         elif os.path.isfile(lam2_skks) is False:
             raise NameError('Lambda 2 (for sks) provided does not exist')
         else:
-            print('Lambda 2 surfaces exist')
+            print('Lambda 2 sufraces exist')
     #   Isolate filestems of lambda 2 surfaces
 
         self.sks = lam2_sks.split('/')[-1]
@@ -63,7 +63,7 @@ class Stacker:
         self.collect()
 
     def stack(self):
-        #print('Stacking')
+        print('Stacking')
         p=sub.Popen(['sheba_stack'],stdout = sub.PIPE,
                                     stdin  = sub.PIPE,
                                     stderr = sub.STDOUT,
@@ -83,7 +83,7 @@ class Stacker:
             dl = sol.strip('\n').split(' ')[3]
             lam2 = sol.strip('\n').split(' ')[-1]
             print('lambda 2 value is {}'.format(lam2))
-            self.sol = [f,df,l,dl,lam2]
+            self.sol = [f,df,l,dl,float(lam2)]
 
     def copy_files(self,sks,skks):
         ''' Copies lambda 2 files to corrrect place for stacking '''
@@ -97,4 +97,4 @@ class Stacker:
             writer.write('{} \n'.format(self.sks))
             writer.write(self.skks)
 
-        #print('sheba_stack.in written to {}'.format(self.path))
+        print('sheba_stack.in written to {}'.format(self.path))
