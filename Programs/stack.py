@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 import subprocess as sub
 import os
+from os import path
+import shutil
 ##########################################
 
 # Identify pairs that we want to stack
@@ -39,9 +41,9 @@ class Stacker:
         These should be provided as FULL PATHS !
         '''
 
-        if os.isfile(lam2_sks) is False:
+        if os.path.isfile(lam2_sks) is False:
             raise NameError('Lambda 2 (for sks) provided does not exist')
-        elif os.isfile(lam2_skks) is False:
+        elif os.path.isfile(lam2_skks) is False:
             raise NameError('Lambda 2 (for sks) provided does not exist')
         else:
             print('Lambda 2 sufraces exist')
@@ -50,23 +52,35 @@ class Stacker:
         self.sks = lam2_sks.split('/')[-1]
         self.skks = lam2_skks.split('/')[-1]
 
-        path_stem = t.split('/')[0:6]
+        path_stem = lam2_sks.split('/')[0:8]
         self.path = '/'.join(path_stem)
-
+        #Copy lam2 files to where we want to work on them
+        self.copy_files(lam2_sks,lam2_skks)
+#       Make infile
+        self.make_infile()
+#       Perform stack
+        self.stack()
+        print(self.path)
     def stack(self):
-
+        print('Stacking')
         p=sub.Popen(['sheba_stack'],stdout = sub.PIPE,
                                     stdin  = sub.PIPE,
                                     stderr = sub.STDOUT,
-                                    cwd = path,
-                                    encoding='utf8'))
+                                    cwd = self.path,
+                                    encoding='utf8')
 
         p.communicate('-wgt one')
 
+    def copy_files(self,sks,skks):
+        ''' Copies lambda 2 files to corrrect place for stacking '''
+        sub.call(['cp',sks,self.path])
+        sub.call(['cp',skks,self.path])
+
+
     def make_infile(self):
         ''' Makes the sheba_stack.in file thats required '''
-        with open('sheba_stack.in','w') as writer:
-            writer.write(self.sks)
+        with open('{}/sheba_stack.in'.format(self.path),'w') as writer:
+            writer.write('{} \n'.format(self.sks))
             writer.write(self.skks)
 
         print('sheba_stack.in written to {}'.format(os.getcwd()))
