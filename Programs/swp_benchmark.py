@@ -169,6 +169,22 @@ def sheba_v_swp(sheba,swp):
 
     plt.show()
 
+def plot_polar(sheba,swp):
+    """
+    Plot splitting results in polar co-ordinates where theta = fast and r = lag
+    """
+
+    ax = plt.subplot(111,projection='polar')
+    ax.plot(np.radians(sheba[0]),sheba[1],'r.',label='Sheba')
+    ax.plot(np.radians(swp[0]),swp[1],'b.',label='SplitWavePy')
+    ax.set_rmax(4.5)
+    ax.set_rticks(np.arange(0,4.5,1.5))
+    ax.grid(True)
+    ax.set_title('Sheba and SplitWavePy Resuts')
+    ax.legend(loc=0)
+
+    plt.show()
+
 def fast_lag_plot(sheba_lag,sheba_fast,swp_lag,swp_fast):
     """
     Plot fast v lag for swp and sheba
