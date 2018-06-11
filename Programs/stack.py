@@ -13,6 +13,7 @@ import subprocess as sub
 import os
 from os import path
 import shutil
+import matplotlib.pyplot as plt
 ##########################################
 
 # Identify pairs that we want to stack
@@ -98,3 +99,48 @@ class Stacker:
             writer.write(self.skks)
 
         print('sheba_stack.in written to {}'.format(self.path))
+
+########
+
+def plot_stack():
+    ''' Function to read a sheba stack .sol and. err file and plot the stacked SKS and SKKS surfaces -  Adapted from plot_sheba_stack.m by J Wookey'''
+
+    # Read solution
+    with open('sheba_stack.sol','r') as reader:
+        head = reader.readline()  #Reads headers
+        S = reader.readline().split() # Reads solution
+
+        fast,dfast = S[0], S[1]
+        lag,dlag = S[2],S[3]
+        nsurf = S[4]
+        lag_step = S[5]
+        lam2 = S[6]
+
+    # Read surface
+    err = np.loadtxt('sheba_stack.err')
+
+
+    nfast,nlag = err.shape ;
+
+    lag_max = (nlag-1) * lag_step ;
+    [T,F] = np.meshgrid(np.arange(0,lag_max,lag_step),np.arange(-90,90,1)) ;
+#
+# %   figure
+#    [C,h] = contour(TLAG,FAST,ERR,[1,1],'k-') ;
+#    set(h,'LineWidth',2)
+#    hold on
+#    [C,h] = contour(TLAG,FAST,ERR,[1,2,3,4,5,10,15,20,50,100],'k-') ;
+#    clabel(C,h) ;
+#
+#    plot([tlag-dtlag;tlag+dtlag],[fast;fast],'b-')
+#    plot([tlag ;tlag ],[fast-dfast;fast+dfast],'b-')
+#
+#    axis([0 tlag_max -90 90]) ;
+#    xlabel('TLAG (SEC)','FontSize',12,'FontWeight','bold') ;
+#    ylabel('FAST (DEG)','FontSize',12,'FontWeight','bold') ;
+#
+#
+#    figure
+#
+#    pcolor(TLAG,FAST,ERR)
+#    colorbar
