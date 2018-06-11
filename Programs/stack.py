@@ -102,7 +102,7 @@ class Stacker:
 
 ########
 
-def plot_stack():
+def plot_stack(batch=False):
     ''' Function to read a sheba stack .sol and. err file and plot the stacked SKS and SKKS surfaces -  Adapted from plot_sheba_stack.m by J Wookey'''
 
     # Read solution
@@ -110,10 +110,10 @@ def plot_stack():
         head = reader.readline()  #Reads headers
         S = reader.readline().split() # Reads solution
 
-        fast,dfast = S[0], S[1]
-        lag,dlag = S[2],S[3]
-        nsurf = S[4]
-        lag_step = S[5]
+        fast,dfast = float(S[0]), float(S[1])
+        lag,dlag = float(S[2]),float(S[3])
+        nsurf = float(S[4])
+        lag_step = float(S[5])
         lam2 = S[6]
 
     # Read surface
@@ -122,9 +122,20 @@ def plot_stack():
 
     nfast,nlag = err.shape ;
 
-    lag_max = (nlag-1) * lag_step ;
-    [T,F] = np.meshgrid(np.arange(0,lag_max,lag_step),np.arange(-90,90,1)) ;
-#
+    lag_max = (nlag) * lag_step ;
+    [T,F] = np.meshgrid(np.arange(0,lag_max,lag_step),np.arange(-90,91,1)) ;
+    fig = plt.figure(1)
+    C = plt.contour(T,F,err,[1,2,3,4,5,10,15,20,50,100],colors='k')
+    plt.ylabel(r'Fast,$\phi$, (deg)')
+    plt.xlabel(r'Lag ,$\delta$ t, (sec)')
+    plt.plot([lag-dlag,lag+dlag],[fast,fast],'b-')
+    plt.plot([lag,lag],[fast-dfast,fast+dfast],'b-')
+    plt.clabel(C,C.levels,inline=True,fmt ='%2.0f')
+
+    if batch is False:
+        plt.show()
+    else:
+        return fig
 # %   figure
 #    [C,h] = contour(TLAG,FAST,ERR,[1,1],'k-') ;
 #    set(h,'LineWidth',2)
