@@ -67,12 +67,12 @@ class Inspecter:
                     qual = self.qual[i]
                     disc = self
             else:
-                print('Event {} Date: {} Time: {}, Stat: {}'.format(i,row.DATE,row.TIME,row.STAT))
+                print('Event {} Date: {} Time: {}, Stat: {} SNR_SKS: {} SNR_SKKS: {}'.format(i,row.DATE,row.TIME,row.STAT,row.SNR_SKS,row.SNR_SKKS))
 
-                if row.SNR_SKS <= 10 or row.SNR_SKKS <= 10:
+                if row.SNR_SKS <= 1 or row.SNR_SKKS <= 1:
                     #Test to see if Signal-to-Noise is too high
                     print('SNR for SKS or SKKS less that 10, auto-reject')
-                    qaul = 'p'
+                    qual = 'p'
                     disc = 'SNR <=10'
 
                 else:
@@ -99,7 +99,7 @@ class Inspecter:
         print('{} accepted'.format(len(self.accepted_i)))
         accepted_pairs = self.pairs.iloc[self.accepted_i,:]
         #print(accepted_pairs)
-        accepted_pairs.to_csv('{}/Accepted_SKS_SKKS.pairs'.format(self.result_path),sep=' ',index=False,mode='a+')
+        accepted_pairs.to_csv('{}/accepted_SKS_SKKS.pairs'.format(self.result_path),sep=' ',index=False,mode='a+')
 
 if __name__ == '__main__' :
     print('Hello World, this is quality_check.py. You are running me from the command line')

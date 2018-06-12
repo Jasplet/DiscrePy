@@ -5,6 +5,7 @@ import sys
 import os
 import shlex
 from subprocess import call
+import matplotlib.pyplot as plt
 
 def make_pairs(path,sdb_stem):
     """
@@ -126,6 +127,24 @@ class Pairs:
         outfile2.close()
         mspp1.close()
         mspp2.close()
+
+    def plot_SNR(self):
+        '''
+        Make plots of SNR v dfast. In the style of phi_i v SNR from Restivo and Helffrich (2006)
+        '''
+        fig, (ax1,ax2) = plt.subplots(nrows=1,ncols=2,sharey='row',figsize=(6,6))
+        #Plot SNR for SKS
+        ax1.plot(self.pairs.SNR_SKS,self.pairs.DFAST_SKS,'k.')
+        ax1.set_ylabel('dfast')
+        ax1.set_xlabel('S/N ratio')
+        ax1.set_title('d fast SKS determination dependance on S/N')
+        #Plot SNR for SKKS
+        ax2.plot(self.pairs.SNR_SKKS,self.pairs.DFAST_SKKS,'k.')
+        ax2.set_ylabel('dfast')
+        ax2.set_xlabel('S/N ratio')
+        ax2.set_title('d fast SKKS determination dependance on S/N')
+
+        plt.show()
 
     def package(self,outdir,mypath='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'):
         '''

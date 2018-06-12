@@ -17,7 +17,7 @@ import os.path
 
 ###################################################
 
-def splitting(station,switch,files,phase):
+def splitting(station,files,switch='off',phase='SKS'):
     """
     Measures SKS splitting for all streams listed in a ttext file at the provided path. These streams must be saved as SAC files.abs
     This function is the primary part of this module/package/script/thing, all the pther functions support this one.

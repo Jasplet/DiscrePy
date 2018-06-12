@@ -3,12 +3,13 @@ import sys
 import splitwavepy as sw
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
+import numpy as np
 
 def plotall(filestem):
 
     plt.figure(figsize=(15,10))
     gs = gridspec.GridSpec(7, 6)
-    ax0 = plt.subplot(gs[0, :])
+    ax0 = plt.subplot(gs[0, 0:5])
     plt.ion()
     plt.show()
 
@@ -20,6 +21,17 @@ def plotall(filestem):
     ax0.axvline(skks.data.wbeg(), linewidth=1, color='k')
     ax0.axvline(skks.data.wend(), linewidth=1, color='k')
 
+     # plot FFT power spectrum from radial component
+    ax06 = plt.subplot(gs[0,5])
+    power0 = np.abs(np.fft.fft(sks.srcpoldata().data()[0]))**2
+    power1 = np.abs(np.fft.fft(sks.srcpoldata().data()[1]))**2
+    freq = np.fft.fftfreq(sks.srcpoldata().data().shape[1], sks.srcpoldata().delta)
+    ax06.fill_between(freq, power0, label='rad', alpha=0.5)
+    ax06.fill_between(freq, power1, label='trans', alpha=0.5)
+    ax06.set_xlim(0, 0.6)
+    ax06.set_xlabel('Frequency (Hz)')
+    ax06.set_ylabel('Power')
+    ax06.legend()
 
     # now start plotting particle motions and error surf
     ax10 = plt.subplot(gs[1,0])

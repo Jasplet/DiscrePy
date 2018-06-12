@@ -42,9 +42,7 @@ def tidyup(path,phase,outfile):
     Function to collect .final_result files output from Sheba into the Run directory. Results are written in the SBD format to Sheba/Results
 
     path - [str]: path to the Run directory (e.g. /users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Run_Name)
-
     phase - Phase that you want to collect results for
-
     outfile - [str]: outfile name (including full path)
     """
     fnames = glob('{}/*/{}/*final_result'.format(path,phase))
@@ -52,7 +50,6 @@ def tidyup(path,phase,outfile):
     #print(fnames)
     for i,file in enumerate(fnames):
         f_stat = fnames[i].rstrip('final_result') + 'stats'
-
         with open(file,'r') as input, open(f_stat,'r') as stats:
              head = input.readline()
              head_s = stats.readline()
@@ -64,7 +61,6 @@ def tidyup(path,phase,outfile):
              j = h.index('STAT')
              h[2],h[3:j+1]= h[j],h[2:j]
              header = ' '.join(h) + ' ' + ' '.join(s)
-             # print(header)
 
              for line in input.readlines():
                 s = stats.readline().split() # Read the next line from the Stats file (should have the same number of lines as final_result)
@@ -90,23 +86,18 @@ def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/J
     #If the data has been downloaded. So lets look for directorys that exist
     dir_path = filepath[:55]
     if os.path.isdir(dir_path):
-
         #'Happy Days! The data directory exists!'
         for phase in phases:
             #print(phase)
-
             label = filepath[55:].strip('/') # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
             #print(label)
-
             st_id = '{}BH?.sac'.format(filepath)
             st = ob.read(st_id)
             station = st[0].stats.station
             f_check = '{}/{}/{}/{}{}_sheba.final_result'.format(runpath,station,phase,label,phase)
 
-
             if os.path.isfile(f_check) == True:
                 print('File has already been processed: {} '.format(f_check))
-
             else:
                 #print('File to process: {} '.format(f_check))
                 if len(st) is 3:
@@ -122,12 +113,9 @@ def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/J
                             Event.write_out(phase,label,path=outdir)
 
                         Event.sheba(station,phase,label,path=outdir)
-
                         #tidyup_by_stat(path,station,phase,label,outfile)
-
                     else:
                         pass
-
                 else:
                     print(' len(st) is not 3. Passing')
                     pass
@@ -157,7 +145,6 @@ class Interface:
         self.BHZ[0].stats.sac.cmpaz = 0
 #       Also lets load the gcarc from each stream, so we can test for whether SKKS should be measuable
         self.gcarc = (st[0].stats.sac.gcarc)
-
         self.station = st[0].stats.station
 #       As this gcarc is calculated in split_read.py I know that it should be the same for all three traces
 #       So for ease we will always read it from st[0]
@@ -166,23 +153,18 @@ class Interface:
         """
         Function to run TauP traveltime models for the SKS phase.
         Returns SKS predictided arrivals (seconds), origin time of the event (t0) as a UTCDateTime obejct and the SKS arrival as a UTCDateTime object
-
         tr - trace object for which SKS arrival time will be predicted
         """
         model = ob.taup.tau.TauPyModel(model="iasp91")
         # Add in a test for the case where depth has been gien in meters (as OBSPY IS DUMB AS HELL AND RETURNS DEPTH IN [m] FFS)
         if self.BHN[0].stats.sac.evdp >= 1000:
             #This might be a bit generous but my events shouldnt be shallower the ~ 1 km or deeper than 1000km anyway (and if this is the case than there is something SERIOUSLY wrong with our earth models)
-
-
             traveltime = model.get_travel_times((self.BHN[0].stats.sac.evdp/1000),self.BHN[0].stats.sac.gcarc,[phase])[0].time
         elif self.BHN[0].stats.sac.evdp == 0: # Theres an event where the event data couldnt be found so evdp was set to be 0
             # Having a depth of zero will give us problems so NOW change it to 10.0km exactly (these traveltimes could be very dodgy)
             err_out = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Events_with_evdp_of_0.txt','w+')
             err_out.write('Station: {}, has event starting at {} with an evdp of 0!\n'.format(self.station,self.BHN[0].stats.starttime))
-
             traveltime = model.get_travel_times(10,self.BHN[0].stats.sac.gcarc,[phase])[0].time
-
         else:
             traveltime = model.get_travel_times((self.BHN[0].stats.sac.evdp),self.BHN[0].stats.sac.gcarc,[phase])[0].time
 
@@ -212,8 +194,6 @@ class Interface:
         c2 - [Hz] Upper corner frequency
         By default traces will be filtered between 0.01Hz-0.5Hz
         """
-
-
       # De-mean and detrend each component
         self.BHN.detrend(type='demean') #demeans the component
         self.BHE.detrend(type='demean')
@@ -227,7 +207,6 @@ class Interface:
         self.BHN.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
         self.BHE.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
         self.BHZ.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
-
 #       Now trim each component to the input length
 #       To ensure that we contain the phase information completlely lets model the arrival using TauP
         tt = self.model_traveltimes(phase)
@@ -249,7 +228,6 @@ class Interface:
         self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
         self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
 
-
     def write_out(self,phase,label,path=None):
         """
         Function to write the component seismograms to SAC files within the sheba directory structure so Sheba can access them
@@ -261,7 +239,6 @@ class Interface:
 #       Now write out the three processed components
 #       Naming depends on whether this is being executed as a test or within a loop
 #       where a counter should be provided to prevent overwriting.
-
         if path is not None:
             self.BHN.write('{}/{}{}.BHN'.format(path,label,phase),format='SAC',byteorder=1)
             self.BHE.write('{}/{}{}.BHE'.format(path,label,phase),format='SAC',byteorder=1)
@@ -270,9 +247,6 @@ class Interface:
             self.BHN.write('{}.BHN'.format(label),format='SAC',byteorder=1)
             self.BHE.write('{}.BHE'.format(label),format='SAC',byteorder=1)
             self.BHZ.write('{}.BHZ'.format(label),format='SAC',byteorder=1)
-
-
-
 
     def plot_comp(self):
         """
@@ -286,7 +260,6 @@ class Interface:
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
         print('Worker {} Passing {} into Sheba for {}. Time is {}'.format(current_process().pid,label,phase,time.ctime()))
-
         p = sub.Popen(['sac'],
                      stdout = sub.PIPE,
                      stdin  = sub.PIPE,
@@ -307,7 +280,6 @@ class Interface:
             # print(out[0])
         except CalledProcessError as err:
             print(err)
-
 ##############################
 # Begin Program
 ##############################
@@ -335,23 +307,18 @@ if __name__ == '__main__':
     #####################################################################################
     # Set full path to station list
     evt_list = sys.argv[1]
-
     file_list ='/Users/ja17375/Shear_Wave_Splitting/Data/{}'.format(evt_list)
     # echo out where I expect the staiton list to be
-
     print('Processing Data from the Downloaded Event List {}'.format(file_list))
     files = []
     with open(file_list,'r') as reader:
         for line in reader.readlines():
             f = line.strip('\n')
             files.append(f)
-
-
     # Get the user to input the outfile name they want (Phase label will be added later)
     out_pre = input('Enter SDB file name: ')
     ################### SET THE PHASES TO BE PROCESSED HERE #############################
     phases = ['SKS','SKKS']
-
     ######################################################################################
     ############### Run Sheba - using parallel processing with Pool ######################
     ######################################################################################
@@ -370,12 +337,10 @@ if __name__ == '__main__':
         tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
         outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
         tidyup(tidy_path,phase,outfile)
-
     ######################################################################################
     # End Timing of run
     ######################################################################################
     end = time.time()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
-
 # END
