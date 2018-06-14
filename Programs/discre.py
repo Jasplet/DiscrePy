@@ -25,11 +25,14 @@ class Tester:
         date_time_convert = {'TIME': lambda x: str(x),'DATE': lambda x : str(x)}
         if stack_done is False:
             self.pairs = pd.read_csv(pr,delim_whitespace=True,converters=date_time_convert)
+            self.lam2 = []
         elif stack_done is True:
             self.p2 = pd.read_csv(pr,delim_whitespace=True,converters=date_time_convert)
+            self.lam2 = self.p2.LAM2.values
+
         self.path =path
 
-        self.lam2 = []
+
 
     def pair_stack(self):
         ''' Runs Stacker for all the desired pairs (a .pairs file)'''
@@ -74,22 +77,29 @@ class Tester:
         plt.ylim([0,2])
         plt.show()
 
-    def discrepancy_plot(self,nplots=2,**kwargs):
+    def discrepancy_plot(self,nplots=2,surfs_to_plot=None,save=False,**kwargs):
         '''Top level plotting function for surfaces to look for discrepancy in Splitting'''
-        self.l2 = self.p2.sort_values(by='LAM2',ascending=True)
-        print(self.l2)
+        self.p_sorted = self.p2.sort_values(by='LAM2',ascending=True)
+        # print(self.p_sorted)
         # Find indecies of events we want to plot
-        samps = np.round(np.arange(0,len(self.l2),round((len(self.l2)/nplots))))
-        for s in samps:
-            print(s)
-            stat,date,time = self.l2.STAT.values[s],self.l2.DATE.values[s], self.l2.TIME.values[s]
-            fast_sks,dfast_sks,lag_sks,dlag_sks = self.l2.FAST_SKS.values[s],self.l2.DFAST_SKS.values[s],self.l2.TLAG_SKS.values[s],self.l2.DTLAG_SKS.values[s]
-            fast_skks,dfast_skks,lag_skks,dlag_skks = self.l2.FAST_SKKS.values[s],self.l2.DFAST_SKKS.values[s],self.l2.TLAG_SKKS.values[s],self.l2.DTLAG_SKKS.values[s]
+        if surfs_to_plot is None:
+            self.surfs= np.round(np.arange(0,len(self.p_sorted),round((len(self.p_sorted)/nplots))))
+        else:
+            self.surfs = list(set([i if i <122 else (len(self.p_sorted)-1) for i in surfs_to_plot]))
+            self.surfs.sort() # Sorts list in ascending order, has to be done speratly as sort acts of list and returns nothing
+        print(self.surfs)
 
+        for s in self.surfs:
+            # print(s)
+            stat,date,time = self.p_sorted.STAT.values[s],self.p_sorted.DATE.values[s], self.p_sorted.TIME.values[s]
+            fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],self.p_sorted.DFAST_SKS.values[s],self.p_sorted.TLAG_SKS.values[s],self.p_sorted.DTLAG_SKS.values[s]
+            fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],self.p_sorted.DFAST_SKKS.values[s],self.p_sorted.TLAG_SKKS.values[s],self.p_sorted.DTLAG_SKKS.values[s]
+            lam2 = self.p_sorted.LAM2.values[s]
+            print('Stat {}, Evt Time {}-{} LAM2 = {}'.format(stat,date,time,lam2))
             l_path = '{}/{}/{}_{}_{}'.format(self.path,stat,stat,date,time)
             self.lam2_surface(l_path)
 
-            fig = plt.figure(figsize=(8,8))
+            fig = plt.figure(figsize=(12,12))
             gs = gridspec.GridSpec(3,2)
             ax0 = plt.subplot(gs[0,0])
             ax0.set_title(r'SKS $\lambda _2$ surfaces')
@@ -113,13 +123,17 @@ class Tester:
             ax1.set_title(r'SKKS $\lambda _2$ surfaces')
             ax2 = plt.subplot(gs[1:,:])
             self.show_stacks(ax2,'{}/{}'.format(self.path,stat),'{}_{}_{}'.format(stat,date,time))
-            plt.title(r'Event {}_{}_{}. $\lambda$ 2 value = {}'.format(stat,date,time,self.l2.LAM2.values[s]))
+            plt.title(r'Event {}_{}_{}. $\lambda$ 2 value = {}'.format(stat,date,time,self.p_sorted.LAM2.values[s]))
+            if save is True:
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/LAM2_{}_STAT_{}.png'.format(lam2,stat))
+                plt.close()
+
 
         # Read Lam2 surfaces for SKS and SKKS
         # self.lam2_surface(stem)
 
-
-        plt.show()
+        if save is False:
+            plt.show()
 
     def write_lam2(self):
         '''Adds lam2 values to pairs'''
