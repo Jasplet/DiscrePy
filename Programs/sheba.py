@@ -78,7 +78,7 @@ def tidyup(path,phase,outfile):
         for r in results:
             writer.write(str(r) + '\n')
 
-def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split',phases=['SKS','SKKS']):
+def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Deng_events',phases=['SKS','SKKS']):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
@@ -334,7 +334,7 @@ if __name__ == '__main__':
     #     print('Iteration: {}. File: {}'.format(i,file))
     for phase in phases:
         """ Loop over phases process and tidyup results """
-        tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
+        tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Deng_events'
         outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
         tidyup(tidy_path,phase,outfile)
     ######################################################################################
