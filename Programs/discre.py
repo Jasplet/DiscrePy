@@ -99,11 +99,13 @@ class Tester:
             l_path = '{}/{}/{}_{}_{}'.format(self.path,stat,stat,date,time)
             self.lam2_surface(l_path)
 
-            fig = plt.figure(figsize=(12,12))
-            gs = gridspec.GridSpec(3,2)
-            ax0 = plt.subplot(gs[0,0])
+            # fig = plt.figure(figsize=(12,12))
+            fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,8),sharey=True)
+            plt.suptitle(r'Event {}_{}_{}. Stacked $\lambda$ 2 value = {}'.format(stat,date,time,self.p_sorted.LAM2.values[s]),fontsize=16)
+            # gs = gridspec.GridSpec(3,2)
+            # ax0 = plt.subplot(gs[0,0])
             ax0.set_title(r'SKS $\lambda _2$ surfaces')
-            C0 = ax0.contour(self.T,self.F,self.sks_lam2,[1,2,3,4,5,10,15,20,50,100],colors='k')
+            C0 = ax0.contour(self.T,self.F,self.sks_lam2,[0.5,1,2,3,4,5,10,15,20,25,30,40,50],colors='k')
             ax0.clabel(C0,C0.levels,inline=True,fmt ='%2.0f')
             ax0.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
             ax0.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
@@ -111,8 +113,8 @@ class Tester:
             ax0.set_xlim([0,4])
             ax0.set_yticks([-90,-60,-30,0,30,60,90])
             # ax0.contourf(self.sks_lam2,cmap='magma_r')
-            ax1 = plt.subplot(gs[0,1])
-            C1 = ax1.contour(self.T,self.F,self.skks_lam2,[1,2,3,4,5,10,15,20,50,100],colors='k')
+            # ax1 = plt.subplot(gs[0,1])
+            C1 = ax1.contour(self.T,self.F,self.skks_lam2,[0.5,1,2,3,4,5,10,15,20,25,30,40,50],colors='k')
             ax1.clabel(C1,C1.levels,inline=True,fmt ='%2.0f')
             # ax1.contourf(self.skks_lam2,cmap='magma')
             ax1.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'b-')
@@ -121,19 +123,22 @@ class Tester:
             ax1.set_xlim([0,4])
             ax1.set_yticks([-90,-60,-30,0,30,60,90])
             ax1.set_title(r'SKKS $\lambda _2$ surfaces')
-            ax2 = plt.subplot(gs[1:,:])
+            # ax2 = plt.subplot(gs[1:,:])
             self.show_stacks(ax2,'{}/{}'.format(self.path,stat),'{}_{}_{}'.format(stat,date,time))
-            plt.title(r'Event {}_{}_{}. $\lambda$ 2 value = {}'.format(stat,date,time,self.p_sorted.LAM2.values[s]))
+            ax2.set_ylim([-90,90])
+            ax2.set_xlim([0,4])
+            ax2.set_yticks([-90,-60,-30,0,30,60,90])
+            plt.title('Stacked SKS SKKS surface')
             if save is True:
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/LAM2_{}_STAT_{}.png'.format(lam2,stat))
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/Re-contoured/LAM2_{}_STAT_{}.png'.format(lam2,stat))
                 plt.close()
 
 
         # Read Lam2 surfaces for SKS and SKKS
         # self.lam2_surface(stem)
 
-        if save is False:
-            plt.show()
+            if save is False:
+                plt.show()
 
     def write_lam2(self):
         '''Adds lam2 values to pairs'''
