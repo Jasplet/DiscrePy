@@ -84,18 +84,18 @@ def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/D
     """
     #Each station SHOULD have its own directory within Data/SAC_files
     #If the data has been downloaded. So lets look for directorys that exist
-    dir_path = filepath[:55]
+    dir_path = filepath[:53]
     if os.path.isdir(dir_path):
         #'Happy Days! The data directory exists!'
         for phase in phases:
             #print(phase)
-            label = filepath[55:].strip('/') # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
-            #print(label)
+            label = filepath[53:].strip('/') # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
+            print('Label is {}'.format(label))
             st_id = '{}BH?.sac'.format(filepath)
             st = ob.read(st_id)
             station = st[0].stats.station
             f_check = '{}/{}/{}/{}{}_sheba.final_result'.format(runpath,station,phase,label,phase)
-
+            print('Fcheck is {}'.format(f_check))
             if os.path.isfile(f_check) == True:
                 print('File has already been processed: {} '.format(f_check))
             else:
@@ -110,6 +110,7 @@ def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/D
                         except OSError:
                             print('Directory {} writing outputs do not all exist. Initialising'.format(outdir))
                             os.makedirs(outdir)
+                            print('Label is {}. Path is {}'.format(label,path))
                             Event.write_out(phase,label,path=outdir)
 
                         Event.sheba(station,phase,label,path=outdir)
