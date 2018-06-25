@@ -44,6 +44,7 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
     # Reads our event list as a pandas datatframe
     # The converters kwarg fr TIME will stop pandas from stripping off the leading zeros (but time is now a string)
     (attempts,dwn,fdsnx,ts,ex) = 0,0,0,0,0
+    sum = []
     df = pd.read_csv(event_list,delim_whitespace=True,converters={'TIME': lambda x: str(x)})
     if mode is 'single':
 
@@ -53,29 +54,35 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
                 data = df[(df['STAT'] == station)]
                 data = data.reset_index()
                 del data['index']
-                (a,d,fd,t,x)= run_download(data,station,ext,outdir)
+
+                (a,d,fd,t,x,s)= run_download(data,station,ext,outdir)
                 attempts += a
                 dwn += d
                 fdsnx += fd
                 ts += t
                 ex += x
+                sum.append(s[0])
         elif batch is False:
             station = input('Input Station Name > ')
-            (attempts,dwn,fdsnx,ts,ex) = run_download(df,station,ext,outdir)
+            (attempts,dwn,fdsnx,ts,ex,sum) = run_download(df,station,ext,outdir)
     elif mode is 'sep':
         #If event and station lists are seperate
         #We dont need to filter df by station and instead can pass it straight in
-        sdf= pd.read_csv(stat_list,delim_whitespace=True,skiprows=1)
+        sdf= pd.read_csv(stat_list,skiprows=1)
         stations = sdf.STAT
         for station in stations:
-            (a,d,fd,t,x)= run_download(df,station,ext,outdir,sep=True)
+            (a,d,fd,t,x,s)= run_download(df,station,ext,outdir,sep=True)
             attempts += a
             dwn += d
             fdsnx += fd
             ts += t
             ex += x
-
+            sum.append(s[0])
     print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} have already been downloaded'.format(attempts,dwn,fdsnx,ts,ex))
+    print(sum)
+    with open('{}/{}_downloaded_streams.txt'.format(outdir,outdir.split('/')[-1]),'w+') as writer:
+        [writer.write('{}\n'.format(id)) for id in sum]
+
     end = time.time()
     runtime = end - start
     print('Runtime was {}\n'.format(runtime))
@@ -91,6 +98,9 @@ def run_download(df,station,ext,out,sep=False):
         ''' i.e is this the first attempt?  '''
         # print(Instance.attempts)
         Instance.outfile = open('/{}/{}/{}_downloaded_streams_{}.txt'.format(out,station,station,ext),'w+')
+
+
+
     stat_found = Instance.download_station_data()
     if stat_found is True:
         for i in range(0,len(Instance.data)):
@@ -106,9 +116,9 @@ def run_download(df,station,ext,out,sep=False):
     else:
 
         print('Station {} could not be found'.format(station))
-
+    Instance.outfile.close()
     # print('It {}, stat {}'.format(Instance.attempts,station))
-    return(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex)
+    return(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex,Instance.summary)
 
 class Downloader:
 
@@ -117,9 +127,11 @@ class Downloader:
         self.station = station
         self.data = df
         self.out = outdir
+        self.summary = [] # list to hold all tr_ids
         # print(self.data)
 #           Resets indexing of DataFrame
 
+        print('{}/{}_downloaded_streams.txt'.format(outdir,outdir.split('/')[-1]))
         try:
             #print('Make /Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}'.format(station))
             os.mkdir('{}/{}'.format(self.out,station))
@@ -182,12 +194,15 @@ class Downloader:
 
                     print('Search starts {} , ends at {}'.format(self.start,end))
                     cat = self.fdsnclient_evt.get_events(starttime=self.start,endtime=self.start+86400 ,latitude=self.evla,longitude=self.evlo,maxradius=0.25,minmag=5.5) #Get event in order to get more accurate event times.
+                if len(cat) > 1:
+                    print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
+                    print(cat)
+                    # Select biggest magnitude
+                else:
                     self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
                     self.start.minute = cat[0].origins[0].time.minute
                     self.start.hour = cat[0].origins[0].time.hour
                     # print(self.time)
-                if len(cat) > 1:
-                    print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
 
                 self.start.second = cat[0].origins[0].time.second
 
@@ -231,7 +246,9 @@ class Downloader:
             print("{} exists. It was not downloaded".format(tr_id)) # File does not exist
 
             if ch == 'BHE':
-                self.outfile.write('{}\n'.format(tr_id[0:-7]))
+                out_id = '_'.join(tr_id.split('_')[0:-1])
+                self.outfile.write('{}_\n'.format(out_id))
+                self.summary.append(out_id)
                 self.ex += 1
         else:
             # print("It doesnt exists. Download attempted")
@@ -253,13 +270,15 @@ class Downloader:
                 self.d = dist_client.distaz(stalat=self.stla,stalon=self.stlo,evtlat=self.evla,evtlon=self.evlo)
                 # print('Source-Reciever distance is {}'.format(self.d['distance']))
                 if self.d['distance'] >= 85.0:
-                    if st[0].stats.endtime - st[0].stats.starttime >= 2800:
+                    if st[0].stats.endtime - st[0].stats.starttime >= 2000:
                         # print('Record length is {}, which is ok'.format(st[0].stats.endtime - st[0].stats.starttime))
                         self.write_st(st,tr_id)
 
                         if ch == 'BHE':
                             self.dwn += 1
-                            self.outfile.write('{}\n'.format(tr_id[0:-7]))
+                            out_id = '_'.join(tr_id.split('_')[0:-1])
+                            self.outfile.write('{}_\n'.format(out_id))
+                            self.summary.append(out_id)
                     else:
                         print('Record length is {}, which is too short'.format(st[0].stats.endtime - st[0].stats.starttime))
                         if ch == 'BHE':
