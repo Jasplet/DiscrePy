@@ -49,16 +49,20 @@ class Pairs:
 
          #if kwargs are none:\
 
-        if os.path.isfile('{}.pp'.format(pf[:-6])):
+        if os.path.isfile('{}.pp'.format(pf.strip('.pairs'))):
             #print(pf[:-6])
-            self.pp = pandas.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
+            self.pp = pandas.read_csv('{}.pp'.format(pf.strip('.pairs')),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(pf[:-6]))
             p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(pf)))
             self.pp = self.pp = pandas.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
         # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
-
+        if os.path.isfile('{}.mspp'.format(pf.strip('.pairs'))) is False:
+            print('{}.mspp does not exist, creating'.format(pf.strip('pairs')))
+            with open('{}.mspp'.format(pf.strip('.pairs')),'w+') as writer:
+                for i,row in enumerate(self.pp.index):
+                    writer.write('> \n {} {} \n {} {} \n'.format(self.pp.lon_SKS[i],self.pp.lat_SKS[i],self.pp.lon_SKKS[i],self.pp.lat_SKKS[i]))
 
     def match(self,file,sigma=2):
         """
