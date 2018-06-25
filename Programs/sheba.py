@@ -84,18 +84,20 @@ def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/D
     """
     #Each station SHOULD have its own directory within Data/SAC_files
     #If the data has been downloaded. So lets look for directorys that exist
-    dir_path = filepath[:53]
+
+    dir_path = '/'.join(filepath.split('/')[0:-1])
+
     if os.path.isdir(dir_path):
         #'Happy Days! The data directory exists!'
         for phase in phases:
             #print(phase)
-            label = filepath[53:].strip('/') # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
-            print('Label is {}'.format(label))
+            label = '{}'.format(filepath.split('/')[-1]) # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
+            # print('Label is {}'.format(label))
             st_id = '{}BH?.sac'.format(filepath)
             st = ob.read(st_id)
             station = st[0].stats.station
             f_check = '{}/{}/{}/{}{}_sheba.final_result'.format(runpath,station,phase,label,phase)
-            print('Fcheck is {}'.format(f_check))
+            # print('Fcheck is {}'.format(f_check))
             if os.path.isfile(f_check) == True:
                 print('File has already been processed: {} '.format(f_check))
             else:
@@ -110,12 +112,13 @@ def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/D
                         except OSError:
                             print('Directory {} writing outputs do not all exist. Initialising'.format(outdir))
                             os.makedirs(outdir)
-                            print('Label is {}. Path is {}'.format(label,path))
+                            # print('Label is {}. Path is {}'.format(label,path))
                             Event.write_out(phase,label,path=outdir)
 
                         Event.sheba(station,phase,label,path=outdir)
                         #tidyup_by_stat(path,station,phase,label,outfile)
                     else:
+                        print('Fail')
                         pass
                 else:
                     print(' len(st) is not 3. Passing')
@@ -181,7 +184,7 @@ class Interface:
             if self.gcarc >= 105.0:
                 return True
             else:
-                #print('Event-Station distance less than 105 deg, too short for SKKS')
+                print('Event-Station distance less than 105 deg, too short for SKKS')
                 return False
         else:
             print('Phase {} not SKS or SKKS'.format(phase_to_check))
@@ -313,9 +316,11 @@ if __name__ == '__main__':
     print('Processing Data from the Downloaded Event List {}'.format(file_list))
     files = []
     with open(file_list,'r') as reader:
-        for line in reader.readlines():
+        for i, line in enumerate(reader.readlines()):
             f = line.strip('\n')
             files.append(f)
+            print(f)
+        print('There are {} files to process'.format(i+1))
     # Get the user to input the outfile name they want (Phase label will be added later)
     out_pre = input('Enter SDB file name: ')
     ################### SET THE PHASES TO BE PROCESSED HERE #############################
