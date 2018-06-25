@@ -71,7 +71,7 @@ class Tester:
     def plot_lam2(self,x):
         print('Plotting')
 
-        plt.plot(x,self.lam2,'k.')
+        plt.plot(x,self.lam2.sort(),'k.')
         plt.ylabel('lambda 2 values')
         plt.yticks(np.arange(0,2,step=0.2))
         plt.ylim([0,2])
