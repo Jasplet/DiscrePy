@@ -25,7 +25,7 @@ class Tester:
         date_time_convert = {'TIME': lambda x: str(x),'DATE': lambda x : str(x)}
         if stack_done is False:
             self.pairs = pd.read_csv(pr,delim_whitespace=True,converters=date_time_convert)
-            self.lam2 = []
+            self.lam2 = [ ]
         elif stack_done is True:
             self.p2 = pd.read_csv(pr,delim_whitespace=True,converters=date_time_convert)
             self.lam2 = self.p2.LAM2.values
@@ -45,13 +45,14 @@ class Tester:
             fstem = '{}_{}_{}'.format(stat,date,time)
 
             lam2_stem = glob('{}/{}/SKS/{}??_SKS.lam2'.format(self.path,stat,fstem))
-            print('{}/{}/SKS/{}??_SKS.lam2'.format(self.path,stat,fstem))
+            print(lam2_stem)
+            # print('{}/{}/SKS/{}??_SKS.lam2'.format(self.path,stat,fstem))
             if len(lam2_stem) is not 0:
                 # I.e if glob has managed to find the sks lam2 surface file
                 sks_lam2 = glob('{}/{}/SKS/{}??_SKS.lam2'.format(self.path,stat,fstem))[0]
                 skks_lam2 = glob('{}/{}/SKKS/{}??_SKKS.lam2'.format(self.path,stat,fstem))[0]
                 Stk = Stacker(sks_lam2,skks_lam2,fstem)
-                lam2.append(Stk.sol[-1])
+                self.lam2.append(Stk.sol[-1])
             else:
                 fstem2 = '{}_{}'.format(stat,date)
                 sks_lam2 = glob('{}/{}_*_SKS.lam2'.format(self.path,fstem2))[0]
@@ -59,14 +60,14 @@ class Tester:
                 # Now for a sanity check
                 if (len(sks_lam2) is not 0) or (len(skks_lam2) is not 0):
                     Stk = Stacker(sks_lam2,skks_lam2)
-                    lam2.append(Stk.sol[-1])
+                    self.lam2.append(Stk.sol[-1])
                 else:
                     #print('lam2 surfaces cannot be found, skipping')
                     pass
     #        Now lets get the lambda 2 values
-        print('Lam2 max: {} Lam2 min: {}'.format(max(lam2),min(lam2)))
+        print('Lam2 max: {} Lam2 min: {}'.format(max(self.lam2),min(self.lam2)))
 
-        self.lam2 = lam2
+        # self.lam2 = lam2
 
     def plot_lam2(self,x):
         print('Plotting')
@@ -97,6 +98,7 @@ class Tester:
             lam2 = self.p_sorted.LAM2.values[s]
             print('Stat {}, Evt Time {}-{} LAM2 = {}'.format(stat,date,time,lam2))
             l_path = '{}/{}/{}_{}_{}'.format(self.path,stat,stat,date,time)
+            print(l_path)
             self.lam2_surface(l_path)
 
             # fig = plt.figure(figsize=(12,12))
@@ -130,7 +132,8 @@ class Tester:
             ax2.set_yticks([-90,-60,-30,0,30,60,90])
             plt.title('Stacked SKS SKKS surface')
             if save is True:
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/Re-contoured/LAM2_{}_STAT_{}.png'.format(lam2,stat))
+                dir = input('Enter Directory you want to save stacked surfaces to')
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{}_STAT_{}.png'.format(lam2,stat))
                 plt.close()
 
 
@@ -144,17 +147,17 @@ class Tester:
         '''Adds lam2 values to pairs'''
         l2df = {'LAM2' : self.lam2}
         ldf = pd.DataFrame(l2df)
-        pairs['LAM2'] = ldf
+        self.pairs['LAM2'] = ldf
 
-        pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Split/Accepted_SKS_SKKS_all_w_lam2.pairs',sep=' ')
+        self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Split/Accepted_SKS_SKKS_all_w_lam2.pairs',sep=' ')
 
-        self.p2 = pairs
+        self.p2 = self.pairs
 
     def lam2_surface(self,fstem):
         ''' Function to read  SKS and SKKS .lam2 surface files from sheba '''
-        sks =glob('{}??_SKS.lam2'.format(fstem))
-        skks = glob('{}??_SKKS.lam2'.format(fstem))
-        # print(skks)
+        sks =glob('{}/{}??_SKS.lam2'.format(fstem,fstem.split('/')[-1]))
+        skks = glob('{}/{}??_SKKS.lam2'.format(fstem,fstem.split('/')[-1]))
+        print(sks)
         self.sks_lam2 = np.loadtxt(sks[0],skiprows=4)
         self.skks_lam2 = np.loadtxt(skks[0],skiprows=4)
 
@@ -194,10 +197,12 @@ class Tester:
 
 if __name__ == '__main__':
     print('This is discre.py')
-    p = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Split/Accepted_SKS_SKKS_all.pairs'
-    path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
+    # p = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Split/Accepted_SKS_SKKS_all.pairs'
+    # path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
+    p = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Deng/Deng_events_SKS_SKKS.pairs'
+    path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Deng_events'
     t = Tester(p,path)
-    lam2 =  pair_stack(p,path)
+    lam2 =  t.pair_stack(p,path)
     p2 = write_lam2(p,lam2) # p2 contians lam2 values
 
     show_stacks(p2)
