@@ -196,13 +196,16 @@ class Downloader:
                     cat = self.fdsnclient_evt.get_events(starttime=self.start,endtime=self.start+86400 ,latitude=self.evla,longitude=self.evlo,maxradius=0.25,minmag=5.5) #Get event in order to get more accurate event times.
                 if len(cat) > 1:
                     print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
-                    print(cat)
+                    print('Selecting Event with the largest magnitude')
                     # Select biggest magnitude
-                else:
-                    self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
-                    self.start.minute = cat[0].origins[0].time.minute
-                    self.start.hour = cat[0].origins[0].time.hour
-                    # print(self.time)
+                    max_mag = max([cat[j].magnitudes[0].mag for j in [i for i,c in enumerate(cat)]])
+                    cat = cat.filter('magnitude >= {}'.format(max_mag))
+                    print(cat)
+
+                self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
+                self.start.minute = cat[0].origins[0].time.minute
+                self.start.hour = cat[0].origins[0].time.hour
+                # print(self.time)
 
                 self.start.second = cat[0].origins[0].time.second
 
