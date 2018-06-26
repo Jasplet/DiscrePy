@@ -41,19 +41,20 @@ class Stacker:
 
         These should be provided as FULL PATHS !
         '''
-
+        print('Staerting Stacker')
         if os.path.isfile(lam2_sks) is False:
             raise NameError('Lambda 2 (for sks) provided does not exist')
         elif os.path.isfile(lam2_skks) is False:
             raise NameError('Lambda 2 (for sks) provided does not exist')
         else:
-            print('Lambda 2 sufraces exist')
+            print('Lambda 2 surfaces exist')
     #   Isolate filestems of lambda 2 surfaces
 
         self.sks = lam2_sks.split('/')[-1]
         self.skks = lam2_skks.split('/')[-1]
-
+        # print(lam2_sks)
         path_stem = lam2_sks.split('/')[0:8] + [fstem]
+        print(path_stem)
         self.path = '/'.join(path_stem)
         os.mkdir(self.path)
         #Copy lam2 files to where we want to work on them
