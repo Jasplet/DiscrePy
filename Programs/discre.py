@@ -69,26 +69,31 @@ class Tester:
 
         # self.lam2 = lam2
 
-    def plot_lam2(self,x):
+    def plot_lam2(self):
         print('Plotting')
 
-        plt.plot(x,self.lam2.sort(),'k.')
+        plt.plot(np.arange(0,len(self.lam2)),self.lam2.sort(),'k.')
         plt.ylabel('lambda 2 values')
         plt.yticks(np.arange(0,2,step=0.2))
         plt.ylim([0,2])
         plt.show()
 
     def discrepancy_plot(self,nplots=2,surfs_to_plot=None,save=False,**kwargs):
-        '''Top level plotting function for surfaces to look for discrepancy in Splitting'''
+        '''Top level plotting function for surfaces to look for discrepancy in Splitting
+            nplots - the number of plots that you want (if the surfs_to_plot is not specified)
+            surfs_to_plot - allows
+        '''
         self.p_sorted = self.p2.sort_values(by='LAM2',ascending=True)
         # print(self.p_sorted)
         # Find indecies of events we want to plot
         if surfs_to_plot is None:
             self.surfs= np.round(np.arange(0,len(self.p_sorted),round((len(self.p_sorted)/nplots))))
         else:
-            self.surfs = list(set([i if i <122 else (len(self.p_sorted)-1) for i in surfs_to_plot]))
+            self.surfs = list(set([i if i < len(self.p_sorted) else (len(self.p_sorted)-1) for i in surfs_to_plot])) # This makes sure that indicies are always within the range of available surfaces (stops errors for occuring)
             self.surfs.sort() # Sorts list in ascending order, has to be done speratly as sort acts of list and returns nothing
         print(self.surfs)
+        if save is True:
+            dir = input('Enter Directory you want to save stacked surfaces to > ')
 
         for s in self.surfs:
             # print(s)
@@ -103,7 +108,7 @@ class Tester:
 
             # fig = plt.figure(figsize=(12,12))
             fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,8),sharey=True)
-            plt.suptitle(r'Event {}_{}_{}. Stacked $\lambda$ 2 value = {}'.format(stat,date,time,self.p_sorted.LAM2.values[s]),fontsize=16)
+            plt.suptitle(r'Event {}_{}_{}. Stacked $\lambda _2$ value = {}'.format(stat,date,time,self.p_sorted.LAM2.values[s]),fontsize=16)
             # gs = gridspec.GridSpec(3,2)
             # ax0 = plt.subplot(gs[0,0])
             ax0.set_title(r'SKS $\lambda _2$ surfaces')
@@ -126,14 +131,15 @@ class Tester:
             ax1.set_yticks([-90,-60,-30,0,30,60,90])
             ax1.set_title(r'SKKS $\lambda _2$ surfaces')
             # ax2 = plt.subplot(gs[1:,:])
-            self.show_stacks(ax2,'{}/{}'.format(self.path,stat),'{}_{}_{}'.format(stat,date,time))
+
+            self.show_stacks(ax2,'{}/'.format(l_path),l_path.split('/')[-1])
             ax2.set_ylim([-90,90])
             ax2.set_xlim([0,4])
             ax2.set_yticks([-90,-60,-30,0,30,60,90])
             plt.title('Stacked SKS SKKS surface')
             if save is True:
-                dir = input('Enter Directory you want to save stacked surfaces to')
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{}_STAT_{}.png'.format(lam2,stat))
+                # dir = input('Enter Directory you want to save stacked surfaces to > ')
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{}_STAT_{}.png'.format(dir,lam2,stat))
                 plt.close()
 
 
@@ -157,7 +163,7 @@ class Tester:
         ''' Function to read  SKS and SKKS .lam2 surface files from sheba '''
         sks =glob('{}/{}??_SKS.lam2'.format(fstem,fstem.split('/')[-1]))
         skks = glob('{}/{}??_SKKS.lam2'.format(fstem,fstem.split('/')[-1]))
-        print(sks)
+        # print(sks)
         self.sks_lam2 = np.loadtxt(sks[0],skiprows=4)
         self.skks_lam2 = np.loadtxt(skks[0],skiprows=4)
 
