@@ -59,7 +59,7 @@ class Pairs:
         # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
         if os.path.isfile('{}.mspp'.format(pf.strip('.pairs'))) is False:
-            print('{}.mspp does not exist, creating'.format(pf.strip('pairs')))
+            print('{}.mspp does not exist, creating'.format(pf.strip('.pairs')))
             with open('{}.mspp'.format(pf.strip('.pairs')),'w+') as writer:
                 for i,row in enumerate(self.pp.index):
                     writer.write('> \n {} {} \n {} {} \n'.format(self.pp.lon_SKS[i],self.pp.lat_SKS[i],self.pp.lon_SKKS[i],self.pp.lat_SKKS[i]))
@@ -111,12 +111,12 @@ class Pairs:
             SKKS_pp_lon = self.pp.lon_SKKS.values[i]
             #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
             #print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKKS[i],SKS_fast[i],ubf_SKKS[i],lbt_SKKS[i],SKS_tlag[i],ubt_SKKS[i]))
-            if (lbf_SKKS[i] <= ubf_SKS[i]) or (lbf_SKS[i] <= ubf_SKKS[i]):
+            if (lbf_SKKS[i] <= ubf_SKS[i]) and (ubf_SKKS[i] >= lbf_SKS[i]):
                 # Do the Fast and Tlag measured for SKS sit within the error bars for SKKS?
-                #print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKKS[i],SKS_fast[i],ubf_SKKS[i],lbt_SKKS[i],SKS_tlag[i],ubt_SKKS[i]))
-                if (lbt_SKKS[i] <= ubt_SKS[i]) and (lbt_SKS[i] <= ubt_SKKS[i]):
+                # print('Test FAST direction {} <= {} <= {} and {} <= {} <= {} for {} {}-{}'.format(lbf_SKKS[i],SKS_fast[i],ubf_SKKS[i],lbt_SKKS[i],SKS_tlag[i],ubt_SKKS[i],stat,date,time))
+                if (lbt_SKKS[i] <= ubt_SKS[i]) and (ubt_SKKS[i] >= lbt_SKS[i]):
                     # Do the Fast and Tlag measured for SKKS sit within the 2-sigma error bars for SKS?
-                    #print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKS[i],SKKS_fast[i],ubf_SKS[i],lbt_SKS[i],SKKS_tlag[i],ubt_SKS[i]))
+                    # print('Testing TLAG {:4.2f} <= {:4.2f} <= {:4.2f} and {:4.2f} <= {:4.2f} <= {:4.2f}'.format(lbf_SKS[i],SKKS_fast[i],ubf_SKS[i],lbt_SKS[i],SKKS_tlag[i],ubt_SKS[i]))
                     outfile.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i]))
                     mspp1.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
                 else:
