@@ -41,22 +41,23 @@ class Stacker:
 
         These should be provided as FULL PATHS !
         '''
-        print('Staerting Stacker')
+        # print('Starting Stacker')
         if os.path.isfile(lam2_sks) is False:
             raise NameError('Lambda 2 (for sks) provided does not exist')
         elif os.path.isfile(lam2_skks) is False:
             raise NameError('Lambda 2 (for sks) provided does not exist')
-        else:
-            print('Lambda 2 surfaces exist')
+        # else:
+            # print('Lambda 2 surfaces exist')
     #   Isolate filestems of lambda 2 surfaces
 
         self.sks = lam2_sks.split('/')[-1]
         self.skks = lam2_skks.split('/')[-1]
         # print(lam2_sks)
         path_stem = lam2_sks.split('/')[0:8] + [fstem]
-        print(path_stem)
+        # print(path_stem)
         self.path = '/'.join(path_stem)
-        os.mkdir(self.path)
+        if os.path.isdir(self.path) is False:
+            os.mkdir(self.path)
         #Copy lam2 files to where we want to work on them
         self.copy_files(lam2_sks,lam2_skks)
 #       Make infile
@@ -66,7 +67,7 @@ class Stacker:
         self.collect()
 
     def stack(self):
-        print('Stacking')
+        # print('Stacking')
         p=sub.Popen(['sheba_stack'],stdout = sub.PIPE,
                                     stdin  = sub.PIPE,
                                     stderr = sub.STDOUT,
@@ -85,7 +86,7 @@ class Stacker:
             l = sol.strip('\n').split(' ')[2]
             dl = sol.strip('\n').split(' ')[3]
             lam2 = sol.strip('\n').split(' ')[-1]
-            print('lambda 2 value is {}'.format(lam2))
+            # print('lambda 2 value is {}'.format(lam2))
             self.sol = [f,df,l,dl,float(lam2)]
 
     def copy_files(self,sks,skks):
@@ -100,7 +101,7 @@ class Stacker:
             writer.write('{} \n'.format(self.sks))
             writer.write(self.skks)
 
-        print('sheba_stack.in written to {}'.format(self.path))
+        # print('sheba_stack.in written to {}'.format(self.path))
 
 ########
 
