@@ -32,6 +32,7 @@ import os.path
 import time
 import shlex
 from multiprocessing import Pool, current_process
+from functools import partial
 import contextlib
 from glob import glob
 ############################################################################################
@@ -78,7 +79,7 @@ def tidyup(path,phase,outfile):
         for r in results:
             writer.write(str(r) + '\n')
 
-def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Deng_events',phases=['SKS','SKKS']):
+def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
@@ -86,7 +87,7 @@ def run_sheba(filepath,runpath='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/D
     #If the data has been downloaded. So lets look for directorys that exist
 
     dir_path = '/'.join(filepath.split('/')[0:-1])
-
+    # print('RP {} \n FP: {} '.format(runpath,filepath))
     if os.path.isdir(dir_path):
         #'Happy Days! The data directory exists!'
         for phase in phases:
@@ -311,6 +312,7 @@ if __name__ == '__main__':
     #####################################################################################
     # Set full path to station list
     evt_list = sys.argv[1]
+    rundir=sys.argv[2]
     file_list ='/Users/ja17375/Shear_Wave_Splitting/Data/{}'.format(evt_list)
     # echo out where I expect the staiton list to be
     print('Processing Data from the Downloaded Event List {}'.format(file_list))
@@ -319,7 +321,7 @@ if __name__ == '__main__':
         for i, line in enumerate(reader.readlines()):
             f = line.strip('\n')
             files.append(f)
-            print(f)
+            # print(f)
         print('There are {} files to process'.format(i+1))
     # Get the user to input the outfile name they want (Phase label will be added later)
     out_pre = input('Enter SDB file name: ')
@@ -328,10 +330,13 @@ if __name__ == '__main__':
     ######################################################################################
     ############### Run Sheba - using parallel processing with Pool ######################
     ######################################################################################
+    runpath ='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
+    runner = partial(run_sheba,runpath)
     with contextlib.closing( Pool(processes = 8) ) as pool:
     #           Iterate over stations in the station list.
-        pool.map(run_sheba,files)
+        pool.map(runner,files)
     #               pool.map(tidyup,stations) ??? Maybe this would work???
+    print('Sheba ru complete, time to tidy up')
     ######################################################################################
     ################ Run Sheba - Serial Model ########
     ######################################################################################
@@ -340,7 +345,7 @@ if __name__ == '__main__':
     #     print('Iteration: {}. File: {}'.format(i,file))
     for phase in phases:
         """ Loop over phases process and tidyup results """
-        tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Deng_events'
+        tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
         outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
         tidyup(tidy_path,phase,outfile)
     ######################################################################################
