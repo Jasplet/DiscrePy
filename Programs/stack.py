@@ -35,7 +35,7 @@ class Stacker:
     Class for doing the stacking
     '''
 
-    def __init__(self,lam2_sks,lam2_skks,fstem):
+    def __init__(self,lam2_sks,lam2_skks,fstem,stk_type='sheba'):
         '''
         Initialises class, checks if lam2 surfaces exist
 
@@ -61,12 +61,17 @@ class Stacker:
         #Copy lam2 files to where we want to work on them
         self.copy_files(lam2_sks,lam2_skks)
 #       Make infile
-        self.make_infile()
+
 #       Perform stack
-        self.stack()
+        if stk_type == 'sheba':
+            self.make_infile()
+            self.stack_sheba()
+        elif stk_type == 'man':
+            self.stack_manual()
+
         self.collect()
 
-    def stack(self):
+    def stack_sheba(self):
         # print('Stacking')
         p=sub.Popen(['sheba_stack'],stdout = sub.PIPE,
                                     stdin  = sub.PIPE,
@@ -75,6 +80,8 @@ class Stacker:
                                     encoding='utf8')
 
         p.communicate('-wgt one')
+
+    def stack_manual(self):
 
     def collect(self):
         ''' Collects lambda2 value and solution of the stacked surface '''
