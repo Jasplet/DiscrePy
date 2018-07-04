@@ -6,6 +6,7 @@ import os
 import shlex
 from subprocess import call
 import matplotlib.pyplot as plt
+import numpy as np
 
 def make_pairs(path,sdb_stem):
     """
@@ -34,6 +35,13 @@ def make_pairs(path,sdb_stem):
     SKS_SKKS_pair.rename(relabel,axis='columns',inplace=True)
     # Sort the Pairs dataframe so the pairs are in chronological order (by origin time (DATE only))
     s = SKS_SKKS_pair.sort_values(by=['DATE'],ascending=True)
+    si_sks = s.INTENS_x
+    si_skks = s.INTENS_y
+    d_si = np.abs(si_sks-si_skks)
+    s['D_SI'] = d_si
+    #Delete SI cols as we dont need them any more ?
+    del s['INTENS_x']
+    del s['INTENS_y']
     # Save the dataframe to a new pairs file. The stem of the sdb files is used so that is it clear which .pairs file relates to which .sdb files
     s.to_csv('{}/{}_SKS_SKKS.pairs'.format(path,sdb_stem),sep=' ',index=False)
 
@@ -95,8 +103,8 @@ class Pairs:
         outfile2 = open('{}_diffs.pairs'.format(file),'w+')
         mspp1 = open('{}_matches.mspp'.format(file),'w+')
         mspp2 = open('{}_diffs.mspp'.format(file),'w+')
-        outfile.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG\n')
-        outfile2.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG\n')
+        outfile.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG D_SI\n')
+        outfile2.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG D_SI\n')
         for i,value in enumerate(SKS_fast):
             date = self.pairs.DATE.values[i]
             time = self.pairs.TIME.values[i]
