@@ -6,6 +6,7 @@ import os
 import shlex
 from subprocess import call
 import matplotlib.pyplot as plt
+import numpy as np
 
 def make_pairs(path,sdb_stem):
     """
@@ -34,6 +35,13 @@ def make_pairs(path,sdb_stem):
     SKS_SKKS_pair.rename(relabel,axis='columns',inplace=True)
     # Sort the Pairs dataframe so the pairs are in chronological order (by origin time (DATE only))
     s = SKS_SKKS_pair.sort_values(by=['DATE'],ascending=True)
+    si_sks = s.INTENS_x
+    si_skks = s.INTENS_y
+    d_si = np.abs(si_sks-si_skks)
+    s['D_SI'] = d_si
+    #Delete SI cols as we dont need them any more ?
+    del s['INTENS_x']
+    del s['INTENS_y']
     # Save the dataframe to a new pairs file. The stem of the sdb files is used so that is it clear which .pairs file relates to which .sdb files
     s.to_csv('{}/{}_SKS_SKKS.pairs'.format(path,sdb_stem),sep=' ',index=False)
 
@@ -49,16 +57,20 @@ class Pairs:
 
          #if kwargs are none:\
 
-        if os.path.isfile('{}.pp'.format(pf[:-6])):
+        if os.path.isfile('{}.pp'.format(pf.strip('.pairs'))):
             #print(pf[:-6])
-            self.pp = pandas.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
+            self.pp = pandas.read_csv('{}.pp'.format(pf.strip('.pairs')),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(pf[:-6]))
             p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(pf)))
             self.pp = self.pp = pandas.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
         # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
-
+        if os.path.isfile('{}.mspp'.format(pf.strip('.pairs'))) is False:
+            print('{}.mspp does not exist, creating'.format(pf.strip('.pairs')))
+            with open('{}.mspp'.format(pf.strip('.pairs')),'w+') as writer:
+                for i,row in enumerate(self.pp.index):
+                    writer.write('> \n {} {} \n {} {} \n'.format(self.pp.lon_SKS[i],self.pp.lat_SKS[i],self.pp.lon_SKKS[i],self.pp.lat_SKKS[i]))
 
     def match(self,file,sigma=2):
         """
@@ -91,8 +103,8 @@ class Pairs:
         outfile2 = open('{}_diffs.pairs'.format(file),'w+')
         mspp1 = open('{}_matches.mspp'.format(file),'w+')
         mspp2 = open('{}_diffs.mspp'.format(file),'w+')
-        outfile.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG\n')
-        outfile2.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG\n')
+        outfile.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG D_SI\n')
+        outfile2.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG D_SI\n')
         for i,value in enumerate(SKS_fast):
             date = self.pairs.DATE.values[i]
             time = self.pairs.TIME.values[i]
@@ -101,25 +113,26 @@ class Pairs:
             evlo = self.pairs.EVLO.values[i]
             stla = self.pairs.STLA.values[i]
             stlo = self.pairs.STLO.values[i]
+            d_si = self.pairs.D_SI.values[i]
             SKS_pp_lat = self.pp.lat_SKS.values[i]
             SKS_pp_lon = self.pp.lon_SKS.values[i]
             SKKS_pp_lat = self.pp.lat_SKKS.values[i]
             SKKS_pp_lon = self.pp.lon_SKKS.values[i]
             #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
             #print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKKS[i],SKS_fast[i],ubf_SKKS[i],lbt_SKKS[i],SKS_tlag[i],ubt_SKKS[i]))
-            if (lbf_SKKS[i] <= ubf_SKS[i]) or (lbf_SKS[i] <= ubf_SKKS[i]):
+            if (lbf_SKKS[i] <= ubf_SKS[i]) and (ubf_SKKS[i] >= lbf_SKS[i]):
                 # Do the Fast and Tlag measured for SKS sit within the error bars for SKKS?
-                #print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKKS[i],SKS_fast[i],ubf_SKKS[i],lbt_SKKS[i],SKS_tlag[i],ubt_SKKS[i]))
-                if (lbt_SKKS[i] <= ubt_SKS[i]) and (lbt_SKS[i] <= ubt_SKKS[i]):
+                # print('Test FAST direction {} <= {} <= {} and {} <= {} <= {} for {} {}-{}'.format(lbf_SKKS[i],SKS_fast[i],ubf_SKKS[i],lbt_SKKS[i],SKS_tlag[i],ubt_SKKS[i],stat,date,time))
+                if (lbt_SKKS[i] <= ubt_SKS[i]) and (ubt_SKKS[i] >= lbt_SKS[i]):
                     # Do the Fast and Tlag measured for SKKS sit within the 2-sigma error bars for SKS?
-                    #print('{} <= {} <= {} and {} <= {} <= {}'.format(lbf_SKS[i],SKKS_fast[i],ubf_SKS[i],lbt_SKS[i],SKKS_tlag[i],ubt_SKS[i]))
-                    outfile.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i]))
+                    # print('Testing TLAG {:4.2f} <= {:4.2f} <= {:4.2f} and {:4.2f} <= {:4.2f} <= {:4.2f}'.format(lbf_SKS[i],SKKS_fast[i],ubf_SKS[i],lbt_SKS[i],SKKS_tlag[i],ubt_SKS[i]))
+                    outfile.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i],d_si))
                     mspp1.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
                 else:
-                    outfile2.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i]))
+                    outfile2.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i],d_si))
                     mspp2.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
             else:
-                outfile2.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i]))
+                outfile2.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i],d_si))
                 mspp2.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
             #End of the matching If block
 
