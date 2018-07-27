@@ -56,6 +56,7 @@ def tidyup(path,phase,outfile):
              head_s = stats.readline()
              h = head.split()
              s = head_s.split()
+             # print(s)
              h.remove('%')
              s.remove('%')
              del s[0:2] ,s[-1]
@@ -74,7 +75,8 @@ def tidyup(path,phase,outfile):
                 results.append(result)
 
     results.insert(0,header)
-    print('Writing Results to {} in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
+    outdir = tidy_path.split('/')[-1]
+    print('Writing Results to {} in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile,outdir))
     with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile),'w') as writer:
         for r in results:
             writer.write(str(r) + '\n')
