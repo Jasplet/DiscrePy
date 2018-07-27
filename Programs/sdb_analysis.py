@@ -113,6 +113,7 @@ class Pairs:
             evlo = self.pairs.EVLO.values[i]
             stla = self.pairs.STLA.values[i]
             stlo = self.pairs.STLO.values[i]
+            d_si = self.pairs.D_SI.values[i]
             SKS_pp_lat = self.pp.lat_SKS.values[i]
             SKS_pp_lon = self.pp.lon_SKS.values[i]
             SKKS_pp_lat = self.pp.lat_SKKS.values[i]
@@ -125,13 +126,13 @@ class Pairs:
                 if (lbt_SKKS[i] <= ubt_SKS[i]) and (ubt_SKKS[i] >= lbt_SKS[i]):
                     # Do the Fast and Tlag measured for SKKS sit within the 2-sigma error bars for SKS?
                     # print('Testing TLAG {:4.2f} <= {:4.2f} <= {:4.2f} and {:4.2f} <= {:4.2f} <= {:4.2f}'.format(lbf_SKS[i],SKKS_fast[i],ubf_SKS[i],lbt_SKS[i],SKKS_tlag[i],ubt_SKS[i]))
-                    outfile.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i]))
+                    outfile.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i],d_si))
                     mspp1.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
                 else:
-                    outfile2.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i]))
+                    outfile2.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i],d_si))
                     mspp2.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
             else:
-                outfile2.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i]))
+                outfile2.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i],d_si))
                 mspp2.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
             #End of the matching If block
 
