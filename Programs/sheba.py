@@ -75,7 +75,7 @@ def tidyup(path,phase,outfile):
                 results.append(result)
 
     results.insert(0,header)
-    outdir = tidy_path.split('/')[-1]
+    outdir = path.split('/')[-1]
     print('Writing Results to {} in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile,outdir))
     with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile),'w') as writer:
         for r in results:
@@ -121,7 +121,7 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
                         Event.sheba(station,phase,label,path=outdir)
                         #tidyup_by_stat(path,station,phase,label,outfile)
                     else:
-                        print('Fail')
+                        # print('Fail')
                         pass
                 else:
                     print(' len(st) is not 3. Passing')
@@ -173,7 +173,8 @@ class Interface:
             err_out.write('Station: {}, has event starting at {} with an evdp of 0!\n'.format(self.station,self.BHN[0].stats.starttime))
             traveltime = model.get_travel_times(10,self.BHN[0].stats.sac.gcarc,[phase])[0].time
         else:
-            traveltime = model.get_travel_times((self.BHN[0].stats.sac.evdp),self.BHN[0].stats.sac.gcarc,[phase])[0].time
+            tt = model.get_travel_times((self.BHN[0].stats.sac.evdp),self.BHN[0].stats.sac.gcarc,[phase])
+            traveltime = tt[0].time
 
         return traveltime
 
@@ -187,7 +188,7 @@ class Interface:
             if self.gcarc >= 105.0:
                 return True
             else:
-                print('Event-Station distance less than 105 deg, too short for SKKS')
+                # print('Event-Station distance less than 105 deg, too short for SKKS')
                 return False
         else:
             print('Phase {} not SKS or SKKS'.format(phase_to_check))
