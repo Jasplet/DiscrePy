@@ -70,27 +70,29 @@ class Inspecter:
             else:
                 print('Event {} Date: {} Time: {}, Stat: {} SNR_SKS: {} SNR_SKKS: {}'.format(i,row.DATE,row.TIME,row.STAT,row.SNR_SKS,row.SNR_SKKS))
                 print(self.QA_mode)
-                if row.SNR_SKS <= 1 or row.SNR_SKKS <= 1:
+                if row.SNR_SKS <= 2 or row.SNR_SKKS <= 2:
                     #Test to see if Signal-to-Noise is too high
-                    print('SNR for SKS or SKKS less that 10, auto-reject')
+                    print('SNR for SKS or SKKS less than 2, auto-reject')
                     qual = 'p'
-                    disc = 'SNR <=10'
-
-                if self.QA_mode == 'man':
-                    # Option for more rigerous (and time consuming manual inspection of all remaining pairs)
-                    sr = (row.FAST_SKS,row.DFAST_SKS,row.TLAG_SKS,row.DTLAG_SKS,row.FAST_SKKS,row.DFAST_SKKS,row.TLAG_SKKS,row.DTLAG_SKKS)
-                    print('SHEBA RESULTS: SKS: phi = {} +/- {} dt = {} +/- {}. SKKS: phi = {} +/- {}, dt = {} +/- {}'.format(sr[0],sr[1],sr[2],sr[3],sr[4],sr[5],sr[6],sr[7]))
-                    #Test if QA results (from SWP) exist
-                    if (os.path.isfile('{}/{}_sks.eigm'.format(self.qa_dir,filestem)) and os.path.isfile('{}/{}_skks.xcrm'.format(self.qa_dir,filestem))) is False:
-                        print('QA results do not exist, generating')
-                        SKS_SKKS_qa.measure_sks_skks(filestem,self.qa_dir,[row.WBEG_SKS,row.WEND_SKS,row.WBEG_SKKS,row.WEND_SKKS])
-                        # Now plot the TransM,Xcross and Eigm results
-                        # fig = plt.figure(figsize=(15,10))
-                        qual,disc = plotall('{}/{}'.format(self.qa_dir,filestem))
+                    disc = 'SNR <=2'
                 else:
-                    print('Hello')
-                    qual = 'i' # i for initial test pass
-                    disc = '-' # Cannot search for discrepnacy just using SNR test. Build in stack test here maybe ?? 
+                    print('Pass SNR')
+
+                    if self.QA_mode == 'man':
+                        # Option for more rigerous (and time consuming manual inspection of all remaining pairs)
+                        sr = (row.FAST_SKS,row.DFAST_SKS,row.TLAG_SKS,row.DTLAG_SKS,row.FAST_SKKS,row.DFAST_SKKS,row.TLAG_SKKS,row.DTLAG_SKKS)
+                        print('SHEBA RESULTS: SKS: phi = {} +/- {} dt = {} +/- {}. SKKS: phi = {} +/- {}, dt = {} +/- {}'.format(sr[0],sr[1],sr[2],sr[3],sr[4],sr[5],sr[6],sr[7]))
+                        #Test if QA results (from SWP) exist
+                        if (os.path.isfile('{}/{}_sks.eigm'.format(self.qa_dir,filestem)) and os.path.isfile('{}/{}_skks.xcrm'.format(self.qa_dir,filestem))) is False:
+                            print('QA results do not exist, generating')
+                            SKS_SKKS_qa.measure_sks_skks(filestem,self.qa_dir,[row.WBEG_SKS,row.WEND_SKS,row.WBEG_SKKS,row.WEND_SKKS])
+                            # Now plot the TransM,Xcross and Eigm results
+                            # fig = plt.figure(figsize=(15,10))
+                            qual,disc = plotall('{}/{}'.format(self.qa_dir,filestem))
+                    else:
+                        print('Hello')
+                        qual = 'i' # i for initial test pass
+                        disc = '-' # Cannot search for discrepnacy just using SNR test. Build in stack test here maybe ??
 
 
                 self.write_qa(filestem,qual,disc)
