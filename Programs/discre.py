@@ -386,6 +386,7 @@ if __name__ == '__main__':
     # path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
     p = sys.argv[1]#'/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Deng/Deng_events_SKS_SKKS.pairs'
     path = sys.argv[2]#'/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Deng_events'
+    print('File {} Path {}'.format(p,path))
     t = Tester(p,path,mode='man')
 
     t.write_lam2(p) # Writes lam2 values to new .stk file
