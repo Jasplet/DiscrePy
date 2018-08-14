@@ -77,7 +77,7 @@ def tidyup(path,phase,outfile):
     results.insert(0,header)
     outdir = path.split('/')[-1]
     print('Writing Results to {} in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile,outdir))
-    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile),'w') as writer:
+    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/{}'.format(outdir,outfile),'w') as writer:
         for r in results:
             writer.write(str(r) + '\n')
 
@@ -108,18 +108,24 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
                 if len(st) is 3:
                     Event = Interface(st)
                     if Event.check_phase_dist(phase_to_check=phase) is True:
-                        Event.process(phase)
-                        outdir = '{}/{}/{}'.format(runpath,station,phase)
-                        try:
-                            Event.write_out(phase,label,path=outdir)
-                        except OSError:
-                            print('Directory {} writing outputs do not all exist. Initialising'.format(outdir))
-                            os.makedirs(outdir)
-                            # print('Label is {}. Path is {}'.format(label,path))
-                            Event.write_out(phase,label,path=outdir)
+                #       To ensure that we contain the phase information completlely lets model the arrival using TauP
+                        Event.tt = Event.model_traveltimes(phase)
+                        if Event.tt is None:
+                            print('NO Traveltimes, bad data file {}'.format(st_id))
+                            pass
+                        else:
+                            Event.process(phase)
+                            outdir = '{}/{}/{}'.format(runpath,station,phase)
+                            try:
+                                Event.write_out(phase,label,path=outdir)
+                            except OSError:
+                                print('Directory {} writing outputs do not all exist. Initialising'.format(outdir))
+                                os.makedirs(outdir)
+                                # print('Label is {}. Path is {}'.format(label,path))
+                                Event.write_out(phase,label,path=outdir)
 
-                        Event.sheba(station,phase,label,path=outdir)
-                        #tidyup_by_stat(path,station,phase,label,outfile)
+                            Event.sheba(station,phase,label,path=outdir)
+                            #tidyup_by_stat(path,station,phase,label,outfile)
                     else:
                         # print('Fail')
                         pass
@@ -174,7 +180,11 @@ class Interface:
             traveltime = model.get_travel_times(10,self.BHN[0].stats.sac.gcarc,[phase])[0].time
         else:
             tt = model.get_travel_times((self.BHN[0].stats.sac.evdp),self.BHN[0].stats.sac.gcarc,[phase])
-            traveltime = tt[0].time
+            print(self.BHN)
+            try:
+                traveltime = tt[0].time
+            except IndexError:
+                traveltime =None
 
         return traveltime
 
@@ -216,21 +226,20 @@ class Interface:
         self.BHE.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
         self.BHZ.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
 #       Now trim each component to the input length
-#       To ensure that we contain the phase information completlely lets model the arrival using TauP
-        tt = self.model_traveltimes(phase)
+
 #       Now set the trim
-        t1 = (tt - 60) #I.e A minute before the arrival
-        t2 = (tt + 120) #I.e Two minutes after the arrival
+        t1 = (self.tt - 60) #I.e A minute before the arrival
+        t2 = (self.tt + 120) #I.e Two minutes after the arrival
         self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
         self.BHE.trim(self.BHE[0].stats.starttime + t1,self.BHE[0].stats.starttime + t2)
         self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
 #       Add windowing ranges to sac headers user0,user1,user2,user3 [start1,start2,end1,end2]
 #       Set the range of window starttime (user0/user1)
-        user0 = tt - 15 #15 seconds before arrival
-        user1 = tt # At predicted arrival
+        user0 = self.tt - 15 #15 seconds before arrival
+        user1 = self.tt # t predicted arrival
 #       Set the raqnge of window endtime (user2/user3)
-        user2 = tt + 15 # 15 seconds after, gives a min window size of 20 seconds
-        user3 = tt + 30 # 30 seconds after, gives a max window size of 45 seconds
+        user2 = self.tt + 15 # 15 seconds after, gives a min window size of 20 seconds
+        user3 = self.tt + 30 # 30 seconds after, gives a max window size of 45 seconds
 #
         self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (user0,user1,user2,user3)
         self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
@@ -339,7 +348,7 @@ if __name__ == '__main__':
     #           Iterate over stations in the station list.
         pool.map(runner,files)
     #               pool.map(tidyup,stations) ??? Maybe this would work???
-    print('Sheba ru complete, time to tidy up')
+    print('Sheba run complete, time to tidy up')
     ######################################################################################
     ################ Run Sheba - Serial Model ########
     ######################################################################################
