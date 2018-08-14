@@ -57,16 +57,16 @@ class Pairs:
 
          #if kwargs are none:\
 
-        if os.path.isfile('{}.pp'.format(pf.strip('.pairs'))):
+        if os.path.isfile('{}.pp'.format(pf.split('.')[0])):
             #print(pf[:-6])
-            self.pp = pandas.read_csv('{}.pp'.format(pf.strip('.pairs')),delim_whitespace=True)
+            self.pp = pandas.read_csv('{}.pp'.format(pf.split('.')[0]),delim_whitespace=True)
         else:
-            print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(pf[:-6]))
+            print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(pf.split('.')[0]))
             p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(pf)))
-            self.pp = self.pp = pandas.read_csv('{}.pp'.format(pf[:-6]),delim_whitespace=True)
+            self.pp = self.pp = pandas.read_csv('{}.pp'.format(pf.split('.')[0]),delim_whitespace=True)
         # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
-        if os.path.isfile('{}.mspp'.format(pf.strip('.pairs'))) is False:
+        if os.path.isfile('{}.mspp'.format(pf.split('.')[0])) is False:
             print('{}.mspp does not exist, creating'.format(pf.strip('.pairs')))
             with open('{}.mspp'.format(pf.strip('.pairs')),'w+') as writer:
                 for i,row in enumerate(self.pp.index):
@@ -75,7 +75,7 @@ class Pairs:
     def match(self,file,sigma=2):
         """
         Funntion to see if the SKS and SKKS splititng measurements for a pair of measurements match within error
-
+        file - the filename you want for the output files
         Default error for this kind of anlysis is 2-sigma. Sheba returns 1 sigma so the DFAST and DTLAG need to be scaled appropriatly.
         """
         #First lets extract the raw values of the data that we need
@@ -210,7 +210,8 @@ if __name__ == '__main__':
     else:
         Warning('Too many arguements, script will not do anything else')
 
-    if os.path.isfile('{}/{}'.format(path,sdb_stem)) is False:
+    print('{}/{}_SKS_SKKS.pairs'.format(path,sdb_stem))
+    if os.path.isfile('{}/{}_SKS_SKKS.pairs'.format(path,sdb_stem)) is False:
         "Lets's find some pairs"
         make_pairs(path,sdb_stem)
     else:
