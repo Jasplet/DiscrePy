@@ -20,13 +20,29 @@ class Bin:
     def __init__(self, df, bin_no):
         self.bin = df[df.bin_no == bin_no].copy()
 
-    def plot_baz():
+    def plot_baz(self):
         ''' Make plot of Fast and Lag v BAZ for SKS and SKKS'''
+        fig,(ax1,ax2) = plt.subplots(2,1,sharex=True,figsize = (12,6))
 
-    def plot_dSI():
+        ax1.errorbar(x=self.bin.BAZ,y=self.bin.FAST_SKS,yerr=self.bin.DFAST_SKS,fmt='k.',label='sks')
+        ax1.errorbar(x=self.bin.BAZ,y=self.bin.FAST_SKKS,yerr=self.bin.DFAST_SKKS,fmt='kx',label='skks')
+        lim = [np.round(np.min(self.bin.BAZ) - 5),np.round(np.max(self.bin.BAZ) + 5)]
+        ax1.set_xlim(lim)
+        ax1.set_ylim([-90,90])
+
+        ax2.errorbar(x=self.bin.BAZ,y=self.bin.TLAG_SKS,yerr=self.bin.DTLAG_SKS,fmt='k.')
+        ax2.errorbar(x=self.bin.BAZ,y=self.bin.TLAG_SKKS,yerr=self.bin.DTLAG_SKKS,fmt='kx')
+        ax2.set_ylim([0.,4.])
+
+        ax1.legend(loc=0)
+
+        plt.tight_layout()
+        plt.show()
+
+    def plot_dSI(self):
         '''plot a histogram dSI for the bin'''
 
-    def plot_lam2():
+    def plot_lam2(self):
         '''plot a histogram of LAM2 values for the bin'''
 
     def avg_lam2():
