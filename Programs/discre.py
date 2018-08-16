@@ -26,7 +26,7 @@ class Tester:
 
         self.path =path
 
-        date_time_convert = {'TIME': lambda x: str(x),'DATE': lambda x : str(x)}
+        date_time_convert = {'TIME': lambda x: str(x).zfill(4),'DATE': lambda x : str(x)}
         # print(pr.split('.')[0])
         if pr.split('.')[-1] == 'pairs':
             # print('Hello')
