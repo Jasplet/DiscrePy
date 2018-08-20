@@ -12,7 +12,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
+import matplotlib.gridspec as gridspec
 
 
 class Bin:
@@ -22,9 +22,30 @@ class Bin:
         self.bin = df[df.bin_no == bin_no].copy()
         self.fig_path = path # This path to the directory where the figures will be saved
 
-    def plot_baz(self,save=False):
+    def plot(self,save=False):
+        '''Make combined figure of BAZplots and Lam2/dSI histograms'''
+        fig = plt.figure(figsize=(12,12))
+        gs = gridspec.GridSpec(2,2)
+        ax1 = plt.subplot(gs[0,0])
+        ax2=plt.subplot(gs[1,0])
+        ax3=plt.subplot(gs[0,1])
+        ax4=plt.subplot(gs[1,1])
+        self.plot_baz(ax1,ax2)
+        self.plot_lam2(ax3)
+        self.plot_dSI(ax4)
+
+        fig.suptitle(r'Analysis plots for trigonal bin no. {:04d} which contains {:03d} SK(K)S pairs'.format(self.bn,len(self.bin)))
+        # Either save the figure to the output directory or display it now
+        if save is True:
+            plt.savefig('{}/Analysis_plots_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
+            plt.close(fig)
+        elif save is False:
+            plt.show()
+
+
+    def plot_baz(self,ax1,ax2):
         ''' Make plot of Fast and Lag v BAZ for SKS and SKKS'''
-        fig,(ax1,ax2) = plt.subplots(2,1,sharex=True,figsize = (6,10))
+        # fig,(ax1,ax2) = plt.subplots(2,1,sharex=True,figsize = (6,10))
 
         ax1.errorbar(x=self.bin.BAZ,y=self.bin.FAST_SKS,yerr=self.bin.DFAST_SKS,fmt='k.',label='sks')
         ax1.errorbar(x=self.bin.BAZ,y=self.bin.FAST_SKKS,yerr=self.bin.DFAST_SKKS,fmt='kx',label='skks')
@@ -32,55 +53,58 @@ class Bin:
         ax1.set_xlim(lim)
         ax1.set_ylim([-90,90])
 
+
         ax2.errorbar(x=self.bin.BAZ,y=self.bin.TLAG_SKS,yerr=self.bin.DTLAG_SKS,fmt='k.')
         ax2.errorbar(x=self.bin.BAZ,y=self.bin.TLAG_SKKS,yerr=self.bin.DTLAG_SKKS,fmt='kx')
+        ax2.set_xlim(lim)
         ax2.set_ylim([0.,4.])
 
         ax1.legend(loc=0)
-        ax1.set_title(r'$\phi$ and $\delta$t values for the {:03d} SK(K)S pairs in bin {:04d}'.format(len(self.bin),self.bn))
-        plt.tight_layout()
-        # Either save the figure to the output directory or display it now
-        if save is True:
-            plt.savefig('{}/BAZ_plot_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
-            plt.close(fig)
-        elif save is False:
-            plt.show()
+        ax1.set_title(r'$\phi$ v backazimuth') # $\delta$t values for the {:03d} SK(K)S pairs in bin {:04d}'.format(len(self.bin),self.bn))
+        ax2.set_title(r'$\delta$t v backazimuth')
 
-    def plot_dSI(self,save=False):
+        # Either save the figure to the output directory or display it now
+        # if save is True:
+        #     plt.savefig('{}/BAZ_plot_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
+        #     plt.close(fig)
+        # elif save is False:
+        #     plt.show()
+
+    def plot_dSI(self,ax):#save=False):
         '''plot a histogram dSI for the bin'''
 
-        fig,ax = plt.subplots(1,1,figsize=(5,5))
+        # fig,ax = plt.subplots(1,1,figsize=(5,5))
         bins = np.arange(start=0,stop=4.2,step=0.2)
         h = ax.hist(self.bin.D_SI,bins=bins)
 
         ax.set_ylabel('Frequency')
         ax.set_xlabel(r'$\Delta$SI')
-        ax.set_title(r'Histogram of $\Delta$SI for the {:03d} SK(K)S pairs in bin {:04d}'.format(len(self.bin),self.bn))
-        plt.tight_layout()
+        ax.set_title(r'Histogram of $\Delta$SI ')
+
 
         # Either save the figure to the output directory or display it now
-        if save is True:
-            plt.savefig('{}/dSI_histogram_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
-            plt.close(fig)
-        elif save is False:
-            plt.show()
+        # if save is True:
+        #     plt.savefig('{}/dSI_histogram_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
+        #     plt.close(fig)
+        # elif save is False:
+        #     plt.show()
 
-    def plot_lam2(self,save=False):
+    def plot_lam2(self,ax): #,save=False):
         '''plot a histogram of LAM2 values for the bin'''
-        fig,ax = plt.subplots(1,1,figsize=(6,6))
+        # fig,ax = plt.subplots(1,1,figsize=(6,6))
         bins = np.arange(start=0,stop=1.1,step=0.1)
         h = ax.hist(self.bin.LAM2,bins=bins)
         ax.set_ylabel('Frequency')
         ax.set_xlabel(r'$\lambda _2$ value')
-        ax.set_title(r'Histogram of $\lambda _2$ values for the {:03d} SK(K)S pairs in bin {:04d}'.format(len(self.bin),self.bn))
-        plt.tight_layout
+        ax.set_title(r'Histogram of $\lambda _2$ values')
+
 
         # Either save the figure to the output directory or display it now
-        if save is True:
-            plt.savefig('{}/lam2_histogram_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
-            plt.close(fig)
-        elif save is False:
-            plt.show()
+        # if save is True:
+        #     plt.savefig('{}/lam2_histogram_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
+        #     plt.close(fig)
+        # elif save is False:
+        #     plt.show()
 
 
     def avg_lam2():
