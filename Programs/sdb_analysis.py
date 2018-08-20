@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 ### Script containing varous plotting functions for splitting Measurements
-import pandas
+import pandas as pd
 import sys
 import os
 import shlex
@@ -22,11 +22,11 @@ def make_pairs(path,sdb_stem):
     SKKS_sdb = '{}_SKKS_sheba_results.sdb'.format(sdb_stem)
     # First import the SKS and SKKS .sdb files (sdb = splitting database)
     date_time_convert = {'TIME': lambda x: str(x),'DATE': lambda x : str(x)}
-    SKS = pandas.read_csv('{}/{}'.format(path,SKS_sdb),delim_whitespace=True,converters=date_time_convert)
-    SKKS = pandas.read_csv('{}/{}'.format(path,SKKS_sdb),delim_whitespace=True,converters=date_time_convert)
-    # Now the sdb files have been read as pandas dataframes, we can perform an inner join. This will return a single dataframe containing all rows from SKS and SKKS where
+    SKS = pd.read_csv('{}/{}'.format(path,SKS_sdb),delim_whitespace=True,converters=date_time_convert)
+    SKKS = pd.read_csv('{}/{}'.format(path,SKKS_sdb),delim_whitespace=True,converters=date_time_convert)
+    # Now the sdb files have been read as pd dataframes, we can perform an inner join. This will return a single dataframe containing all rows from SKS and SKKS where
     # ['DATE','TIME','STAT','STLA','STLO','EVLA','EVLO','EVDP','DIST','AZI','BAZ'] are the same.
-    SKS_SKKS_pair = pandas.merge(SKS,SKKS,on=['DATE','TIME','STAT','STLA','STLO','EVLA','EVLO','EVDP','DIST','AZI','BAZ'],how='inner')
+    SKS_SKKS_pair = pd.merge(SKS,SKKS,on=['DATE','TIME','STAT','STLA','STLO','EVLA','EVLO','EVDP','DIST','AZI','BAZ'],how='inner')
     relabel = {'FAST_x':'FAST_SKS', 'DFAST_x': 'DFAST_SKS','TLAG_x':'TLAG_SKS','DTLAG_x':'DTLAG_SKS','SPOL_x':'SPOL_SKS','DSPOL_x':'DSPOL_SKS',
           'WBEG_x':'WBEG_SKS','WEND_x':'WEND_SKS','EIGORIG_x':'EIGORIG_SKS','EIGCORR_x':'EIGCORR_SKS','Q_x':'Q_SKS','SNR_x':'SNR_SKS','NDF_x':'NDF_SKS','FAST_y':'FAST_SKKS', 'DFAST_y': 'DFAST_SKKS',
           'TLAG_y':'TLAG_SKKS','DTLAG_y':'DTLAG_SKKS','SPOL_y':'SPOL_SKKS','DSPOL_y':'DSPOL_SKKS','WBEG_y':'WBEG_SKKS','WEND_y':'WEND_SKKS','EIGORIG_y':'EIGORIG_SKKS','EIGCORR_y':'EIGCORR_SKKS',
@@ -52,18 +52,18 @@ class Pairs:
     """
     def __init__(self,pf,Q_threshold=None,gcarc_threshold=None):
 
-        self.pairs = pandas.read_csv('{}'.format(pf),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
+        self.pairs = pd.read_csv('{}'.format(pf),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
         #Load raw data from provided .pairs file. This is going to be a hidden file as I will parse out useful columns to new attributes depending of provided kwargs
 
          #if kwargs are none:\
 
         if os.path.isfile('{}.pp'.format(pf.split('.')[0])):
             #print(pf[:-6])
-            self.pp = pandas.read_csv('{}.pp'.format(pf.split('.')[0]),delim_whitespace=True)
+            self.pp = pd.read_csv('{}.pp'.format(pf.split('.')[0]),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(pf.split('.')[0]))
             p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(pf)))
-            self.pp = self.pp = pandas.read_csv('{}.pp'.format(pf.split('.')[0]),delim_whitespace=True)
+            self.pp = self.pp = pd.read_csv('{}.pp'.format(pf.split('.')[0]),delim_whitespace=True)
         # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
         if os.path.isfile('{}.mspp'.format(pf.split('.')[0])) is False:
@@ -89,22 +89,22 @@ class Pairs:
         SKKS_tlag = self.pairs.TLAG_SKKS.values
         SKKS_dtlag = self.pairs.DTLAG_SKKS.values
         # Now set the SKS and SKKS 2-sigma rnages
-        lbf_SKS = SKS_fast - sigma*SKS_dfast
-        ubf_SKS = SKS_fast + sigma*SKS_dfast
-        lbf_SKKS = SKKS_fast - sigma*SKKS_dfast
-        ubf_SKKS = SKKS_fast + sigma*SKKS_dfast
+        lbf_SKS = self.pairs.FAST_SKS - sigma*self.pairs.DFAST_SKS
+        ubf_SKS = self.pairs.FAST_SKS + sigma*self.pairs.DFAST_SKS
+        lbf_SKKS = self.pairs.FAST_SKKS - sigma*self.pairs.DFAST_SKKS
+        ubf_SKKS = self.pairs.FAST_SKKS + sigma*self.pairs.DFAST_SKKS
 
-        lbt_SKS = SKS_tlag - sigma*SKS_dtlag
-        ubt_SKS = SKS_tlag + sigma*SKS_dtlag
-        lbt_SKKS = SKKS_tlag - sigma*SKKS_dtlag
-        ubt_SKKS = SKKS_tlag + sigma*SKKS_dtlag
-
-        outfile = open('{}_matches.pairs'.format(file),'w+')
-        outfile2 = open('{}_diffs.pairs'.format(file),'w+')
-        mspp1 = open('{}_matches.mspp'.format(file),'w+')
-        mspp2 = open('{}_diffs.mspp'.format(file),'w+')
-        outfile.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG D_SI\n')
-        outfile2.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG D_SI\n')
+        lbt_SKS = self.pairs.TLAG_SKS - sigma*self.pairs.DTLAG_SKS
+        ubt_SKS = self.pairs.TLAG_SKS + sigma*self.pairs.DTLAG_SKS
+        lbt_SKKS = SKKS_tlag - sigma*self.pairs.DTLAG_SKKS
+        ubt_SKKS = SKKS_tlag + sigma*self.pairs.DTLAG_SKKS
+        #
+        # outfile = open('{}_matches.pairs'.format(file),'w+')
+        # outfile2 = open('{}_diffs.pairs'.format(file),'w+')
+        # mspp1 = open('{}_matches.mspp'.format(file),'w+')
+        # mspp2 = open('{}_diffs.mspp'.format(file),'w+')
+        # outfile.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG D_SI\n')
+        # outfile2.write('DATE TIME STAT STLA STLO EVLA EVLO SKS_PP_LAT SKS_PP_LON SKKS_PP_LAT SKKS_PP_LON SKS_FAST SKS_DFAST SKS_TLAG SKS_DTLAG SKKS_FAST SKKS_DFAST SKKS_TLAG SKKS_DTLAG D_SI\n')
         for i,value in enumerate(SKS_fast):
             date = self.pairs.DATE.values[i]
             time = self.pairs.TIME.values[i]
@@ -126,7 +126,10 @@ class Pairs:
                 if (lbt_SKKS[i] <= ubt_SKS[i]) and (ubt_SKKS[i] >= lbt_SKS[i]):
                     # Do the Fast and Tlag measured for SKKS sit within the 2-sigma error bars for SKS?
                     # print('Testing TLAG {:4.2f} <= {:4.2f} <= {:4.2f} and {:4.2f} <= {:4.2f} <= {:4.2f}'.format(lbf_SKS[i],SKKS_fast[i],ubf_SKS[i],lbt_SKS[i],SKKS_tlag[i],ubt_SKS[i]))
-                    outfile.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i],d_si))
+                    if i == 0:
+                     #Create dataframe
+                        self.matches = self.df[(self.df.FAST_SKKS > t1 ) &  (self.df.FAST_SKKS < t2) & (self.df.FAST_SKS > t3) & (self.df.FAST_SKS <t4)]
+                    # outfile.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i],d_si))
                     mspp1.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
                 else:
                     outfile2.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(date,time,stat,stla,stlo,evla,evlo,SKS_pp_lat,SKS_pp_lon,SKKS_pp_lat,SKKS_pp_lon,SKS_fast[i],SKS_dfast[i],SKS_tlag[i],SKS_dtlag[i],SKKS_fast[i],SKKS_dfast[i],SKKS_tlag[i],SKKS_dtlag[i],d_si))
