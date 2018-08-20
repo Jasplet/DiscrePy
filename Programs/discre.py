@@ -113,22 +113,23 @@ class Tester:
         lam2 = self.lam2.copy()
         lam2.sort()
         m = self.stk_matches.LAM2.values.copy()
+
         m.sort()
         d =self.stk_diffs.LAM2.values.copy()
-        d.sort
+        d.sort()
         # print(x,y)
         ax0.plot(np.arange(0,len(m)),m,'k.')
         ax0.set_ylabel(r'$\lambda _2$ values')
-        ax0.set_title('Matching lam2')
+        ax0.set_title('Matching lam2, {} pairs'.format(len(m)))
 
         ax1.plot(np.arange(0,len(d)),d,'k.')
-        ax1.set_title('Discrepent lam2')
+        ax1.set_title('Discrepent lam2, {} pairs'.format(len(d)))
         t = self.path.split('/')[-1]
         ax2.plot(x,lam2,'k.')
         # ax2.ylabel(r'$\lambda _2$ values')
-        ax2.set_yticks(np.arange(1,3,step=0.2))
-        ax2.set_ylim([1,3])
-        ax2.set_title(r'$\lambda _2$ values for {} dataset'.format(t))
+        ax2.set_yticks(np.arange(0,1.4,step=0.2))
+        ax2.set_ylim([0,1.4])
+        ax2.set_title(r'$\lambda _2$ values for {} dataset, {} pairs'.format(t,len(lam2)))
         plt.tight_layout()
         plt.show()
 
@@ -146,6 +147,23 @@ class Tester:
         ax0.set_ylabel('Frequency')
         ax0.set_xlabel(r'$\lambda _2$ values')
         plt.show()
+
+    def lam2_v_SI(self,figname):
+        '''Plot a scatter plot of lambda2 values verus splitting INtensity difference'''
+
+        fig,ax = plt.subplots(1,1,figsize=(8,8))
+
+        ax.plot(self.stk_matches.LAM2,self.stk_matches.D_SI,color='blue',marker='.',ls='None',label="'Matching'")
+        ax.plot(self.stk_diffs.LAM2,self.stk_diffs.D_SI,color='darkorange',marker='.',ls='None',label="'Discrepant'")
+        ax.plot([0, 1.0],[0.4,0.4],ls='dashed',color='black')
+        ax.set_xlabel(r'$\lambda _2$ values')
+        ax.set_ylabel(r'$\Delta$ SI')
+        ax.legend()
+        ax.set_xlim([0,1])
+        ax.set_ylim([0,4.0])
+        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/{}.eps'.format(figname),format='eps',dpi=1000)
+        plt.show()
+
     def discrepancy_plot(self,nplots=2,surfs_to_plot=None,save=False,sigma=1,**kwargs):
         '''Top level plotting function for surfaces to look for discrepancy in Splitting
             nplots - the number of plots that you want (if the surfs_to_plot is not specified)
