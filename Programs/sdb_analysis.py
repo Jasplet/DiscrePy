@@ -72,12 +72,13 @@ class Pairs:
                 for i,row in enumerate(self.pp.index):
                     writer.write('> \n {} {} \n {} {} \n'.format(self.pp.lon_SKS[i],self.pp.lat_SKS[i],self.pp.lon_SKKS[i],self.pp.lat_SKKS[i]))
 
-    def match(self,file,sigma=2):
+    def match(self,file,ext='pairs',sigma=2):
         """
         Funntion to see if the SKS and SKKS splititng measurements for a pair of measurements match within error
         file - the filename you want for the output files
         Default error for this kind of anlysis is 2-sigma. Sheba returns 1 sigma so the DFAST and DTLAG need to be scaled appropriatly.
         """
+        
         # Set the SKS and SKKS 2-sigma rnages
         lbf_SKS = self.pairs.FAST_SKS - sigma*self.pairs.DFAST_SKS
         ubf_SKS = self.pairs.FAST_SKS + sigma*self.pairs.DFAST_SKS
@@ -95,9 +96,9 @@ class Pairs:
         match  = self.pairs[fast_test & lag_test] # Test for pairs that match within the given sigma range
         diff =  self.pairs.drop(index=match.index) # Remove matching pairs from original df to get the different pairs.
         # Write out matching and discepent dataframes
-        match.to_csv('{}_matches.pairs'.format(file),index=False,sep=' ')
-        diff.to_csv('{}_diffs.mspp'.format(file),index=False,sep=' ')
-        # Open up mspp files 
+        match.to_csv('{}_matches.{}'.format(file,ext),index=False,sep=' ')
+        diff.to_csv('{}_diffs.{}'.format(file,ext),index=False,sep=' ')
+        # Open up mspp files
         mspp_match = open('{}_matches.mspp'.format(file),'w+')
         mspp_diff = open('{}_diffs.mspp'.format(file),'w+')
 
@@ -117,8 +118,8 @@ class Pairs:
             #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
             mspp_match.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
 
-        mspp1.close()
-        mspp2.close()
+        mspp_diff.close()
+        mspp_match.close()
 
     def plot_SNR(self):
         '''
