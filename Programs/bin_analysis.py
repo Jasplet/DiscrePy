@@ -22,6 +22,9 @@ class Bin:
         self.bin = df[df.bin_no == bin_no].copy()
         self.fig_path = path # This path to the directory where the figures will be saved
 
+        #parse nulls
+
+
     def plot(self,save=False):
         '''Make combined figure of BAZplots and Lam2/dSI histograms'''
         fig = plt.figure(figsize=(12,12))
@@ -47,7 +50,10 @@ class Bin:
         ''' Make plot of Fast and Lag v BAZ for SKS and SKKS'''
         # fig,(ax1,ax2) = plt.subplots(2,1,sharex=True,figsize = (6,10))
 
-        ax1.errorbar(x=self.bin.BAZ,y=self.bin.FAST_SKS,yerr=self.bin.DFAST_SKS,fmt='k.',label='sks')
+        #parse SKS nulls
+        if self.bin.Q_SKS > -0.7:
+            ax1.errorbar(x=self.bin.BAZ,y=self.bin.FAST_SKS,yerr=self.bin.DFAST_SKS,fmt='k.',label='sks')
+        elseif 
         ax1.errorbar(x=self.bin.BAZ,y=self.bin.FAST_SKKS,yerr=self.bin.DFAST_SKKS,fmt='kx',label='skks')
         lim = [np.round(np.min(self.bin.BAZ) - 5),np.round(np.max(self.bin.BAZ) + 5)]
         ax1.set_xlim(lim)
