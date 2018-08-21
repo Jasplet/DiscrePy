@@ -22,7 +22,14 @@ class Bin:
         self.bn = bin_no # The bin number for the trigonal bin in questions
         self.bin = df[df.bin_no == bin_no].copy()
         self.fig_path = path # This path to the directory where the figures will be saved
-
+        self.lat = self.bin.bin_lat.values[0]
+        self.long = self.bin.bin_long.values[0]
+        self.V1_lat = self.bin.V1_lat.values[0]
+        self.V1_long = self.bin.V1_long.values[0]
+        self.V2_lat = self.bin.V2_lat.values[0]
+        self.V2_long = self.bin.V2_long.values[0]
+        self.V3_lat = self.bin.V3_lat.values[0]
+        self.V3_long = self.bin.V3_long.values[0]
         #parse nulls
 
 
@@ -173,14 +180,30 @@ def run(bins_file):
     print('Highest count is {} in bin {}'.format(counts[counts.idxmax()],counts.idxmax()))
     l2 = [ ] # Initialise lists to hold the average lambda 2 values for each bin
     dSI = [ ] # Initialise list to hold the average delta SI value for each bin
+    lat,long,V1_lat,V1_long,V2_lat,V2_long,V3_lat,V3_long = [ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ]
     for i in counts.index:
         B = Bin(bf,bin_no=i)
         l2.append(B.avg_lam2())
         dSI.append(B.avg_dSI())
+        lat.append(B.bin.bin_lat.values[0])
+        long.append(B.bin.bin_long.values[0])
+        V1_lat.append(B.bin.V1_lat.values[0])
+        V1_long.append(B.bin.V1_long.values[0])
+        V2_lat.append(B.bin.V2_lat.values[0])
+        V2_long.append(B.bin.V2_long.values[0])
+        V3_lat.append(B.bin.V3_lat.values[0])
+        V3_long.append(B.bin.V3_long.values[0])
 
-    print(l2)
-    print(dSI)
+    # Make a dictioary of the series that we want to combine to make the datatframe
+    dict = {'Bin_no' : counts.index , 'Count' : counts.values , 'avg_lam2' : l2 ,
+            'avg_dSI' : dSI , 'bin_lat' : lat, 'bin_long' : long , 'V1_lat' : V1_lat ,
+            'V1_long' : V1_long , 'V2_lat' : V2_lat , 'V3_lat' : V3_lat , 'V3_long' : V3_long}
+
     # Make a dataframe for each bin
+
+    df = pd.DataFrame(dict)
+    return(df)
+
 
 if __name__ == '__main__':
     print('Hello I am bin_analysis.py! You are running me form the Command line!')
