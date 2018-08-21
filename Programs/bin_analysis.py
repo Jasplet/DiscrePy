@@ -139,20 +139,20 @@ class Bin:
         #     plt.show()
 
 
-    def avg_lam2(self,lam2):
+    def avg_lam2(self):
         '''return average lambda 2 value assuming a guassian distribution
             - lam2 : list/np array containing lambda 2 values
 
         '''
         # Currently just using numpy.median()
-        avg = np.median(lam2)
+        avg = np.median(self.bin.LAM2)
         return avg
 
-    def avg_dSI(self,dSI):
+    def avg_dSI(self):
         '''return average lambda 2 value assuming a gaussian distribution in the bin
             - dSI  : list/np array containing Splitting intensity values
         '''
-        avg = np.median(dSI)
+        avg = np.median(self.bin.D_SI)
         return avg
 
     def avg_splitting(self,fast,lag):
@@ -160,15 +160,29 @@ class Bin:
             - fast : list/np array of fast directions
             - lag : list/np array of lag times
         '''
-        avg_f = np.median(fast)
-        avg_l = np.median(lag)
+        avg_f = np.median(self.bin.FAST_SKS)
+        avg_l = np.median(self.bin.LAG_SKS)
+
+def run(bins_file):
+    ''' Function to run bin_analysis when imported in ipython environment'''
+
+    bf = pd.read_csv(bins_file,delim_whitespace=True,converters={'TIME': lambda x: str(x),'DATE': lambda x : str(x)})
+
+    counts = bf.bin_no.value_counts().copy() # make a dataeframe with the bin number and the count of how many times it occurs
+    print('There are {} bins with {} pairs'.format(len(counts),len(bf)))
+    print('Highest count is {} in bin {}'.format(counts[counts.idxmax()],counts.idxmax()))
+    l2 = [ ] # Initialise lists to hold the average lambda 2 values for each bin
+    dSI = [ ] # Initialise list to hold the average delta SI value for each bin
+    for i in counts.index:
+        B = Bin(bf,bin_no=i)
+        l2.append(B.avg_lam2())
+        dSI.append(B.avg_dSI())
+
+    print(l2)
+    print(dSI)
+    # Make a dataframe for each bin
 
 if __name__ == '__main__':
-    # print('Hello I am bin_analysis.py! I am not currently deisgn ed to work from the command line. Please trying importing me into your script or using IPYTHON  :-) ')
+    print('Hello I am bin_analysis.py! You are running me form the Command line!')
     bins_file = sys.argv[1]
-    bf = ps.read_csv(bins_file,delim_whitespace=True,converters={'TIME': lambda x: str(x),'DATE': lambda x : str(x)})
-
-    counts = bins.bin_no.value_counts().copy() # make a dataeframe with the bin number and the count of how many times it occurs
-
-    for i in cts.index:
-        B = Bin(bf,bin_no=i)
+    run(bins_file) # Call the run function
