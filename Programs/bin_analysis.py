@@ -33,18 +33,22 @@ class Bin:
         #parse nulls
 
 
-    def plot(self,save=False):
+    def plot_bin(self,save=False):
         '''Make combined figure of BAZplots and Lam2/dSI histograms'''
-        fig = plt.figure(figsize=(12,12))
-        gs = gridspec.GridSpec(2,2)
+        fig = plt.figure(figsize=(18,12))
+        gs = gridspec.GridSpec(2,3)
         ax1 = plt.subplot(gs[0,0])
         ax2=plt.subplot(gs[1,0])
         ax3=plt.subplot(gs[0,1])
         ax4=plt.subplot(gs[1,1])
+        ax5=plt.subplot(gs[0,2])
+        ax6=plt.subplot(gs[1,2])
         self.plot_baz(ax1,ax2)
-        self.plot_lam2(ax3)
-        self.plot_dSI(ax4)
+        self.plot_lam2(ax3,self.bin.LAM2)
+        self.plot_dSI(ax4,self.bin.D_SI)
 
+        self.plot_lam2(ax5,self.bin[(self.bin.Q_SKS >= 0.7) | (self.bin.Q_SKKS >= 0.7)].LAM2,c='darkorange',t=r'$\lambda _2$ for Split SKS or SKKS')
+        self.plot_dSI(ax6,self.bin[(self.bin.Q_SKS >= 0.7) | (self.bin.Q_SKKS >= 0.7)].D_SI,c='darkorange',t=r'$\Delta$SI for Split SKS or SKKS')
         fig.suptitle(r'Analysis plots for trigonal bin no. {:04d} which contains {:03d} SK(K)S pairs'.format(self.bn,len(self.bin)))
         # Either save the figure to the output directory or display it now
         if save is True:
@@ -52,6 +56,7 @@ class Bin:
             plt.close('all')
         elif save is False:
             plt.show()
+
 
 
     def plot_baz(self,ax1,ax2):
@@ -93,7 +98,7 @@ class Bin:
         ax2.set_xlim(lim)
         ax2.set_ylim([0.,4.])
 
-        ax1.legend(loc=0)
+        # ax1.legend(handles,loc='center left', bbox_to_anchor=(1.0, 0.5))
         ax1.set_title(r'$\phi$ v backazimuth') # $\delta$t values for the {:03d} SK(K)S pairs in bin {:04d}'.format(len(self.bin),self.bn))
         ax2.set_title(r'$\delta$t v backazimuth')
 
@@ -104,19 +109,20 @@ class Bin:
         # elif save is False:
         #     plt.show()
 
-    def plot_dSI(self,ax):#save=False):
+    def plot_dSI(self,ax,SI,c='b',t=r'Histogram of $\Delta$SI '):#save=False):
         '''plot a histogram dSI for the bin'''
 
         # fig,ax = plt.subplots(1,1,figsize=(5,5))
         bins = np.arange(start=0,stop=3.2,step=0.2)
-        h = ax.hist(self.bin.D_SI,bins=bins)
+        h = ax.hist(SI,bins=bins,color=c)
         ax.plot([0.4,0.4],[0,20],color='black',ls='dashed')
         ylim = [0,max(h[0])]
+        txt_y = max(h[0])/2.
         ax.set_ylim(ylim)
         ax.set_ylabel('Frequency')
         ax.set_xlabel(r'$\Delta$SI')
-        ax.set_title(r'Histogram of $\Delta$SI ')
-
+        ax.set_title(t)
+        ax.text(2,txt_y,r'Median $\Delta$SI = {:4.3f}'.format(self.avg_lam2(SI)))
 
         # Either save the figure to the output directory or display it now
         # if save is True:
@@ -125,18 +131,20 @@ class Bin:
         # elif save is False:
         #     plt.show()
 
-    def plot_lam2(self,ax): #,save=False):
+    def plot_lam2(self,ax,l2,c='b',t=r'Histogram of $\lambda _2$ values'): #,save=False):
         '''plot a histogram of LAM2 values for the bin'''
         # fig,ax = plt.subplots(1,1,figsize=(6,6))
         bins = np.arange(start=0,stop=1.1,step=0.05)
-        h = ax.hist(self.bin.LAM2,bins=bins)
+        h = ax.hist(l2,bins=bins,color=c)
+        txt_y = max(h[0])/2.
         ylim = [0,max(h[0])]
         ax.set_ylim(ylim)
         ax.set_ylabel('Frequency')
         ax.set_xlabel(r'$\lambda _2$ value')
-        ax.set_title(r'Histogram of $\lambda _2$ values')
+        ax.set_title(t)
+        ax.text(0.7,txt_y,r'Median $\lambda_2$ = {:4.3f}'.format(self.avg_lam2(l2)))
 
-
+        return h
 
         # Either save the figure to the output directory or display it now
         # if save is True:
@@ -146,20 +154,26 @@ class Bin:
         #     plt.show()
 
 
-    def avg_lam2(self):
+    def avg_lam2(self,l2=None):
         '''return average lambda 2 value assuming a guassian distribution
             - lam2 : list/np array containing lambda 2 values
 
         '''
         # Currently just using numpy.median()
-        avg = np.median(self.bin.LAM2)
+        if l2 is None:
+            avg = np.median(self.bin.LAM2)
+        else:
+            avg = np.median(l2)
         return avg
 
-    def avg_dSI(self):
+    def avg_dSI(self,SI=None):
         '''return average lambda 2 value assuming a gaussian distribution in the bin
             - dSI  : list/np array containing Splitting intensity values
         '''
-        avg = np.median(self.bin.D_SI)
+        if SI is None:
+            avg = np.median(self.bin.D_SI)
+        else:
+            avg = np.median(l2)
         return avg
 
     def avg_splitting(self,fast,lag):
@@ -170,7 +184,7 @@ class Bin:
         avg_f = np.median(self.bin.FAST_SKS)
         avg_l = np.median(self.bin.LAG_SKS)
 
-def run(bins_file):
+def run(bins_file,plot,lim=10):
     ''' Function to run bin_analysis when imported in ipython environment'''
 
     bf = pd.read_csv(bins_file,delim_whitespace=True,converters={'TIME': lambda x: str(x),'DATE': lambda x : str(x)})
@@ -180,32 +194,46 @@ def run(bins_file):
     print('Highest count is {} in bin {}'.format(counts[counts.idxmax()],counts.idxmax()))
     l2 = [ ] # Initialise lists to hold the average lambda 2 values for each bin
     dSI = [ ] # Initialise list to hold the average delta SI value for each bin
-    lat,long,V1_lat,V1_long,V2_lat,V2_long,V3_lat,V3_long = [ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ]
+    no,cts,lat,long,V1_lat,V1_long,V2_lat,V2_long,V3_lat,V3_long = [ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ]
     for i in counts.index:
-        B = Bin(bf,bin_no=i)
-        l2.append(B.avg_lam2())
-        dSI.append(B.avg_dSI())
-        lat.append(B.bin.bin_lat.values[0])
-        long.append(B.bin.bin_long.values[0])
-        V1_lat.append(B.bin.V1_lat.values[0])
-        V1_long.append(B.bin.V1_long.values[0])
-        V2_lat.append(B.bin.V2_lat.values[0])
-        V2_long.append(B.bin.V2_long.values[0])
-        V3_lat.append(B.bin.V3_lat.values[0])
-        V3_long.append(B.bin.V3_long.values[0])
+        if counts[i] >= lim:
+            print(i)
+            B = Bin(bf,bin_no=i)
+            if plot is True:
+                B.plot_bin(save=True)
+
+            no.append(i)
+            cts.append(counts[i])
+            l2.append(B.avg_lam2())
+            dSI.append(B.avg_dSI())
+            lat.append(B.bin.bin_lat.values[0])
+            long.append(B.bin.bin_long.values[0])
+            V1_lat.append(B.bin.V1_lat.values[0])
+            V1_long.append(B.bin.V1_long.values[0])
+            V2_lat.append(B.bin.V2_lat.values[0])
+            V2_long.append(B.bin.V2_long.values[0])
+            V3_lat.append(B.bin.V3_lat.values[0])
+            V3_long.append(B.bin.V3_long.values[0])
+        else :
+            print('Bin {} has {} counts, which is less than lim of {}'.format(i,counts[i],lim))
 
     # Make a dictioary of the series that we want to combine to make the datatframe
-    dict = {'Bin_no' : counts.index , 'Count' : counts.values , 'avg_lam2' : l2 ,
+    dict = {'Bin_no' : no , 'Count' : cts , 'avg_lam2' : l2 ,
             'avg_dSI' : dSI , 'bin_lat' : lat, 'bin_long' : long , 'V1_lat' : V1_lat ,
             'V1_long' : V1_long , 'V2_lat' : V2_lat , 'V3_lat' : V3_lat , 'V3_long' : V3_long}
 
     # Make a dataframe for each bin
 
     df = pd.DataFrame(dict)
-    return(df)
+    return(df.round(4))
 
 
 if __name__ == '__main__':
     print('Hello I am bin_analysis.py! You are running me form the Command line!')
     bins_file = sys.argv[1]
-    run(bins_file) # Call the run function
+    if len(sys.argv) == 2:
+        plot = False # Bool - switch for if you want to produce plots for the bins
+    else:
+        plot = sys.argv[2]
+
+    run(bins_file,plot) # Call the run function
