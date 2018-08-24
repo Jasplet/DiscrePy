@@ -37,18 +37,20 @@ class Bin:
         '''Make combined figure of BAZplots and Lam2/dSI histograms'''
         fig = plt.figure(figsize=(18,12))
         gs = gridspec.GridSpec(2,3)
-        ax1 = plt.subplot(gs[0,0])
-        ax2=plt.subplot(gs[1,0])
-        ax3=plt.subplot(gs[0,1])
-        ax4=plt.subplot(gs[1,1])
-        ax5=plt.subplot(gs[0,2])
-        ax6=plt.subplot(gs[1,2])
-        self.plot_baz(ax1,ax2)
+        ax1 = plt.subplot(gs[:,0:2])
+        # ax2=plt.subplot(gs[1,0])
+        ax3=plt.subplot(gs[0,2])
+        ax4=plt.subplot(gs[1,2])
+        # ax5=plt.subplot(gs[0,2])
+        # ax6=plt.subplot(gs[1,2])
+        # self.plot_baz(ax1,ax2)
+        self.plot_fast_v_lag(ax1,self.bin)
+
         self.plot_lam2(ax3,self.bin.LAM2)
         self.plot_dSI(ax4,self.bin.D_SI)
 
-        self.plot_lam2(ax5,self.bin[(self.bin.Q_SKS >= 0.7) | (self.bin.Q_SKKS >= 0.7)].LAM2,c='darkorange',t=r'$\lambda _2$ for Split SKS or SKKS')
-        self.plot_dSI(ax6,self.bin[(self.bin.Q_SKS >= 0.7) | (self.bin.Q_SKKS >= 0.7)].D_SI,c='darkorange',t=r'$\Delta$SI for Split SKS or SKKS')
+        # self.plot_lam2(ax5,self.bin[(self.bin.Q_SKS >= 0.5) | (self.bin.Q_SKKS >= 0.5)].LAM2,c='darkorange',t=r'$\lambda _2$ for Split SKS or SKKS')
+        # self.plot_dSI(ax6,self.bin[(self.bin.Q_SKS >= 0.5) | (self.bin.Q_SKKS >= 0.5)].D_SI,c='darkorange',t=r'$\Delta$SI for Split SKS or SKKS')
         fig.suptitle(r'Analysis plots for trigonal bin no. {:04d} which contains {:03d} SK(K)S pairs'.format(self.bn,len(self.bin)))
         # Either save the figure to the output directory or display it now
         if save is True:
@@ -57,7 +59,17 @@ class Bin:
         elif save is False:
             plt.show()
 
+    def plot_fast_v_lag(self,ax,data,c='b',t=r'Plot of $\delta t$ versus $\phi$'):
+        ''' Plots Fast direction versus lag time for a given set of events'''
 
+        ax.errorbar(x=data.TLAG_SKS,y=data.FAST_SKS,yerr=data.DFAST_SKS,xerr=data.DTLAG_SKS,color='r',fmt='o',label='SKS')
+        ax.errorbar(x=data.TLAG_SKKS,y=data.FAST_SKKS,yerr=data.DFAST_SKKS,xerr=data.DTLAG_SKKS,color='b',fmt='o',label='SKKS')
+        for i in range(0,len(data.TLAG_SKS)):
+            print(i)
+            ax.plot(x=[data.TLAG_SKS.values[i],data.TLAG_SKKS.values[i]],y=[data.FAST_SKS.values[i],data.FAST_SKKS.values[i]],color='black',ls='solid')
+        ax.set_ylim([-90,90])
+        ax.set_xlim([0,4])
+        ax.set_title(t)
 
     def plot_baz(self,ax1,ax2):
         ''' Make plot of Fast and Lag v BAZ for SKS and SKKS'''
@@ -109,49 +121,37 @@ class Bin:
         # elif save is False:
         #     plt.show()
 
-    def plot_dSI(self,ax,SI,c='b',t=r'Histogram of $\Delta$SI '):#save=False):
+    def plot_dSI(self,ax,SI,c='darkorange',t=r'Histogram of $\Delta$SI '):#save=False):
         '''plot a histogram dSI for the bin'''
 
         # fig,ax = plt.subplots(1,1,figsize=(5,5))
         bins = np.arange(start=0,stop=3.2,step=0.2)
         h = ax.hist(SI,bins=bins,color=c)
-        ax.plot([0.4,0.4],[0,20],color='black',ls='dashed')
+        ax.plot([0.4,0.4],[0,20],color='black',ls='dashed',label='Dengs Threshold')
+        ax.plot([self.avg_dSI(SI),self.avg_dSI(SI)],[0,max(h[0])],color='black',ls='solid',label=r'Median $\Delta SI$ = {:4.3f}'.format(self.avg_dSI(SI)))
         ylim = [0,max(h[0])]
         txt_y = max(h[0])/2.
         ax.set_ylim(ylim)
         ax.set_ylabel('Frequency')
         ax.set_xlabel(r'$\Delta$SI')
         ax.set_title(t)
-        ax.text(2,txt_y,r'Median $\Delta$SI = {:4.3f}'.format(self.avg_lam2(SI)))
+        # ax.text(2,txt_y,r'Median $\Delta$SI = {:4.3f}'.format(self.avg_dSI(SI)))
+        ax.legend(loc='best')
 
-        # Either save the figure to the output directory or display it now
-        # if save is True:
-        #     plt.savefig('{}/dSI_histogram_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
-        #     plt.close(fig)
-        # elif save is False:
-        #     plt.show()
-
-    def plot_lam2(self,ax,l2,c='b',t=r'Histogram of $\lambda _2$ values'): #,save=False):
+    def plot_lam2(self,ax,l2,c='darkorange',t=r'Histogram of $\lambda _2$ values'): #,save=False):
         '''plot a histogram of LAM2 values for the bin'''
         # fig,ax = plt.subplots(1,1,figsize=(6,6))
         bins = np.arange(start=0,stop=1.1,step=0.05)
         h = ax.hist(l2,bins=bins,color=c)
+        ax.plot([self.avg_lam2(l2),self.avg_lam2(l2)],[0,max(h[0])],color='black',ls='solid',label=r'Median $\lambda_2$ = {:4.3f}'.format(self.avg_lam2(l2)))
         txt_y = max(h[0])/2.
         ylim = [0,max(h[0])]
         ax.set_ylim(ylim)
         ax.set_ylabel('Frequency')
         ax.set_xlabel(r'$\lambda _2$ value')
         ax.set_title(t)
-        ax.text(0.7,txt_y,r'Median $\lambda_2$ = {:4.3f}'.format(self.avg_lam2(l2)))
-
-        return h
-
-        # Either save the figure to the output directory or display it now
-        # if save is True:
-        #     plt.savefig('{}/lam2_histogram_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
-        #     plt.close(fig)
-        # elif save is False:
-        #     plt.show()
+        ax.legend(loc='best')
+        # ax.text(0.7,txt_y,r'Median $\lambda_2$ = {:4.3f}'.format(self.avg_lam2(l2)))
 
 
     def avg_lam2(self,l2=None):
@@ -173,7 +173,7 @@ class Bin:
         if SI is None:
             avg = np.median(self.bin.D_SI)
         else:
-            avg = np.median(l2)
+            avg = np.median(SI)
         return avg
 
     def avg_splitting(self,fast,lag):
@@ -197,7 +197,7 @@ def run(bins_file,plot,lim=10):
     no,cts,lat,long,V1_lat,V1_long,V2_lat,V2_long,V3_lat,V3_long = [ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ]
     for i in counts.index:
         if counts[i] >= lim:
-            print(i)
+            # print(i)
             B = Bin(bf,bin_no=i)
             if plot is True:
                 B.plot_bin(save=True)
