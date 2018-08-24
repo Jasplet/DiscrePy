@@ -23,7 +23,16 @@ from matplotlib import gridspec
 class Tester:
 
     def __init__(self,pr,path,mode='man'):
+        '''
+        Tester contains data and functions to Stack SKS and SKKS lambda2 surfaces in order to test for discrepancy
 
+        pr - Full path to the .pairs (if stacking has not been done) file. If a .pairs file is passed in them discre.py wil automatically
+             attempt to stack the LamR surfacesself.
+             Alternatively a .stk file can be provided if you just want to do plotting of already existing stacks. Discre.py will
+             assume that stacking has been done and will not attempt to do any stackingself.
+
+        path - Path to the corresponding Runs directory where the .LamR files exist.
+        '''
         self.path =path
 
         date_time_convert = {'TIME': lambda x: str(x).zfill(4),'DATE': lambda x : str(x)}
@@ -40,16 +49,13 @@ class Tester:
             # File extention is .stk, lam2 values alreayd exist
             print('.stk files alreayd exist, reading')
             self.stk = pd.read_csv(pr,delim_whitespace=True,converters=date_time_convert)
-            pmatch = '{}_matches.stk'.format(pr.split('.')[0])
-            pdiff ='{}_diffs.stk'.format(pr.split('.')[0])
-            self.stk_matches = pd.read_csv(pmatch,delim_whitespace=True,converters=date_time_convert)
-            self.stk_diffs = pd.read_csv(pdiff,delim_whitespace=True,converters=date_time_convert)
+            # pmatch = '{}_matches.stk'.format(pr.split('.')[0])
+            # pdiff ='{}_diffs.stk'.format(pr.split('.')[0])
+            # self.stk_matches = pd.read_csv(pmatch,delim_whitespace=True,converters=date_time_convert)
+            # self.stk_diffs = pd.read_csv(pdiff,delim_whitespace=True,converters=date_time_convert)
             self.lam2 = self.stk.LAM2.values
         else:
             print('Unrecongised file type')
-
-        # print(self.path)
-
 
     def pair_stack(self,mode='man'):
         ''' Runs Stacker for all the desired pairs (a .pairs file)'''
@@ -108,14 +114,14 @@ class Tester:
     def plot_lam2(self):
         print('Plotting')
         x = np.arange(0,len(self.lam2))
-        # Sort labda2 values (make sure they are in ascending order)
+        # Sort lambda2 values (make sure they are in ascending order)
         fig,(ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,8),sharey=True)
         lam2 = self.lam2.copy()
         lam2.sort()
-        m = self.stk_matches.LAM2.values.copy()
-
+        m = self.stk_matches.LAM2.values.copy() # matching mabda 2 values
         m.sort()
-        d =self.stk_diffs.LAM2.values.copy()
+
+        d =self.stk_diffs.LAM2.values.copy() #"discrepant" lambda 2 values
         d.sort()
         # print(x,y)
         ax0.plot(np.arange(0,len(m)),m,'k.')
@@ -124,7 +130,7 @@ class Tester:
 
         ax1.plot(np.arange(0,len(d)),d,'k.')
         ax1.set_title('Discrepent lam2, {} pairs'.format(len(d)))
-        t = self.path.split('/')[-1]
+        t = self.path.split('/')[-1] # Gets the name of the Runs directory
         ax2.plot(x,lam2,'k.')
         # ax2.ylabel(r'$\lambda _2$ values')
         ax2.set_yticks(np.arange(0,1.4,step=0.2))
@@ -173,13 +179,12 @@ class Tester:
         self.p_sorted = self.stk.sort_values(by='LAM2',ascending=True)
         self.p_sorted.reset_index(drop=True)
 
-        # print(self.p_sorted)
         # Find indecies of events we want to plot
         if surfs_to_plot is None:
             self.surfs= np.round(np.arange(0,len(self.p_sorted),round((len(self.p_sorted)/nplots))))
         else:
             self.surfs = list(set([i if i < len(self.p_sorted) else (len(self.p_sorted)-1) for i in surfs_to_plot])) # This makes sure that indicies are always within the range of available surfaces (stops errors for occuring)
-            self.surfs.sort() # Sorts list in ascending order, has to be done speratly as sort acts of list and returns nothing
+            self.surfs = self.surfs.sort() # Sorts list in ascending order, has to be done speratly as sort acts of list and returns nothing
         # print(self.surfs)
         if save is True:
             dir = input('Enter Directory you want to save stacked surfaces to > ')
@@ -193,17 +198,14 @@ class Tester:
                     print('Exiting....')
                     sys.exit()
 
-
         for s in self.surfs:
-            # print(s)
             stat,date,time = self.p_sorted.STAT.values[s],self.p_sorted.DATE.values[s], self.p_sorted.TIME.values[s]
             # Note that dtlag and dfast are multiplied through by sigma HERE !!
             fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
             fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
             lam2 = self.p_sorted.LAM2.values[s]
             print('Stat {}, Evt Time {}-{} LAM2 = {}'.format(stat,date,time,lam2))
-            l_path = '{}/{}/{}_{}_{}'.format(self.path,stat,stat,date,time)
-            # print(l_path)
+            l_path = '{}/{}/{}_{}_{}'.format(self.path,stat,stat,date,time) #Path to lambda 2 surfaces for SKS and SKKS
             self.lam2_surface(l_path)
 
             # fig = plt.figure(figsize=(12,12))
@@ -317,7 +319,7 @@ class Tester:
         skks = glob(t_skks)
         # print(t_sks)
         if len(sks) == 0:
-            stem = '_'.join(fstem.split('/')[-1].split('_')[0:-1]) # aka cut of time par tof file extension
+            stem = '_'.join(fstem.split('/')[-1].split('_')[0:-1]) # aka cut off time part of file extension
             # print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1]))
             sks = glob('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
             skks = glob('{}/SKKS/{}*_SKKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
@@ -360,7 +362,7 @@ class Tester:
         self.stk_fast,self.stk_dfast
         self.stk_lag,self.stk_dlag
 
-    def show_stacks(self,ax,evt,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Split_2'):
+    def show_stacks(self,ax,evt,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Nulls'):
         '''Function to find and plot desired surface stacks based on the LAMDA2 value '''
         ### Plot Min Lamnda 2
         print('{}/Stacks/{}??.lamSTK'.format(path,evt))
