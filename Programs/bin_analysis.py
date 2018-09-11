@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-
+import misc
 
 class Bin:
     '''A class to hold a signle bin and all in containing events. Requires pairs file (as dataframe) and desired Bin_number as inputs'''
@@ -32,43 +32,18 @@ class Bin:
         self.V3_long = self.bin.V3_long.values[0]
         #parse nulls
 
-
-    def plot_bin(self,save=False):
-        '''Make combined figure of BAZplots and Lam2/dSI histograms'''
-        fig = plt.figure(figsize=(18,12))
-        gs = gridspec.GridSpec(2,3)
-        ax1 = plt.subplot(gs[:,0:2])
-        # ax2=plt.subplot(gs[1,0])
-        ax3=plt.subplot(gs[0,2])
-        ax4=plt.subplot(gs[1,2])
-        # ax5=plt.subplot(gs[0,2])
-        # ax6=plt.subplot(gs[1,2])
-        # self.plot_baz(ax1,ax2)
-        self.plot_fast_v_lag(ax1,self.bin)
-
-        self.plot_lam2(ax3,self.bin.LAM2)
-        self.plot_dSI(ax4,self.bin.D_SI)
-
-        # self.plot_lam2(ax5,self.bin[(self.bin.Q_SKS >= 0.5) | (self.bin.Q_SKKS >= 0.5)].LAM2,c='darkorange',t=r'$\lambda _2$ for Split SKS or SKKS')
-        # self.plot_dSI(ax6,self.bin[(self.bin.Q_SKS >= 0.5) | (self.bin.Q_SKKS >= 0.5)].D_SI,c='darkorange',t=r'$\Delta$SI for Split SKS or SKKS')
-        fig.suptitle(r'Analysis plots for trigonal bin no. {:04d} which contains {:03d} SK(K)S pairs'.format(self.bn,len(self.bin)))
-        # Either save the figure to the output directory or display it now
-        if save is True:
-            plt.savefig('{}/Analysis_plots_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
-            plt.close('all')
-        elif save is False:
-            plt.show()
-
     def plot_fast_v_lag(self,ax,data,c='b',t=r'Plot of $\delta t$ versus $\phi$'):
         ''' Plots Fast direction versus lag time for a given set of events'''
 
         ax.errorbar(x=data.TLAG_SKS,y=data.FAST_SKS,yerr=data.DFAST_SKS,xerr=data.DTLAG_SKS,color='r',fmt='o',label='SKS')
         ax.errorbar(x=data.TLAG_SKKS,y=data.FAST_SKKS,yerr=data.DFAST_SKKS,xerr=data.DTLAG_SKKS,color='b',fmt='o',label='SKKS')
         for i in range(0,len(data.TLAG_SKS)):
-            print(i)
+            # print(i)
             ax.plot(x=[data.TLAG_SKS.values[i],data.TLAG_SKKS.values[i]],y=[data.FAST_SKS.values[i],data.FAST_SKKS.values[i]],color='black',ls='solid')
         ax.set_ylim([-90,90])
         ax.set_xlim([0,4])
+        ax.set_xlabel(r'Lag Time $\delta t$ [s]')
+        ax.set_ylabel(r'Fast Direction $\Phi$ [$\degree$]')
         ax.set_title(t)
 
     def plot_baz(self,ax1,ax2):
@@ -114,43 +89,87 @@ class Bin:
         ax1.set_title(r'$\phi$ v backazimuth') # $\delta$t values for the {:03d} SK(K)S pairs in bin {:04d}'.format(len(self.bin),self.bn))
         ax2.set_title(r'$\delta$t v backazimuth')
 
-        # Either save the figure to the output directory or display it now
-        # if save is True:
-        #     plt.savefig('{}/BAZ_plot_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
-        #     plt.close(fig)
-        # elif save is False:
-        #     plt.show()
+    def plot_baz_l2_dSI(self,ax1,ax2):
+        ''' Make plot of Lambda 2 and d_SI v BAZ for SKS and SKKS'''
+        # fig,(ax1,ax2) = plt.subplots(2,1,sharex=True,figsize = (6,10))
+
+
+        #plot_nulls
+        ax1.plot(self.bin.BAZ,self.bin.LAM2,'.',label='Lambda 2')
+        ax2.plot(self.bin.BAZ,self.bin.D_SI,'x',label='D_SI')
+
+
+        lim = [np.round(np.min(self.bin.BAZ) - 5),np.round(np.max(self.bin.BAZ) + 5)]
+        # ax1.set_xlim(lim)
+        # ax1.set_ylim([0,1.5])
+        #
+        #
+        # ax2.set_xlim(lim)
+        # ax2.set_ylim([0.,4.])
+
+        # ax1.legend(handles,loc='center left', bbox_to_anchor=(1.0, 0.5))
+        ax1.set_title(r'$\lambda_2$ v backazimuth') # $\delta$t values for the {:03d} SK(K)S pairs in bin {:04d}'.format(len(self.bin),self.bn))
+        ax2.set_title(r'$\Delta SI$ v backazimuth')
 
     def plot_dSI(self,ax,SI,c='darkorange',t=r'Histogram of $\Delta$SI '):#save=False):
         '''plot a histogram dSI for the bin'''
-
+        ax2 = ax.twinx() # Make a secondary y Axis
         # fig,ax = plt.subplots(1,1,figsize=(5,5))
         bins = np.arange(start=0,stop=3.2,step=0.2)
-        h = ax.hist(SI,bins=bins,color=c)
-        ax.plot([0.4,0.4],[0,20],color='black',ls='dashed',label='Dengs Threshold')
-        ax.plot([self.avg_dSI(SI),self.avg_dSI(SI)],[0,max(h[0])],color='black',ls='solid',label=r'Median $\Delta SI$ = {:4.3f}'.format(self.avg_dSI(SI)))
+        h = ax.hist(SI,bins=bins,color=c,density=1)
+        p1 = ax.plot([0.4,0.4],[0,20],color='black',ls='dashed',label='Dengs Threshold')
+        p2 = ax.plot([self.avg_dSI(SI),self.avg_dSI(SI)],[0,max(h[0])],color='black',ls='solid',label=r'Median $\Delta SI$ = {:4.3f}'.format(self.avg_dSI(SI)))
         ylim = [0,max(h[0])]
         txt_y = max(h[0])/2.
+        # Plot expected (truncated) normal distribution(s)
+        x = np.linspace(0,3,1000)
+        mu = np.mean(self.bin.D_SI)
+        sigma = np.std(self.bin.D_SI)
+        # print(mu,sigma)
+        # d = [misc.std_norm(i - mu /sigma) for i in x]
+        dt = [misc.trunc_norm(u=mu,s=sigma,x=i) for i in x]
+
+        # ax.plot(x,d,linestyle='dashed')
+        p3 = ax2.plot(x,dt,'r--',label = 'Expected Distribution')
+        plots = p1+p2+p3
+        labels = [l.get_label() for l in plots]
+        ax2.set_ylim([0,0.5])
         ax.set_ylim(ylim)
+        ax.set_xlim([0,max(h[1])])
         ax.set_ylabel('Frequency')
         ax.set_xlabel(r'$\Delta$SI')
         ax.set_title(t)
         # ax.text(2,txt_y,r'Median $\Delta$SI = {:4.3f}'.format(self.avg_dSI(SI)))
-        ax.legend(loc='best')
+        ax.legend(plots,labels,loc='best')
 
     def plot_lam2(self,ax,l2,c='darkorange',t=r'Histogram of $\lambda _2$ values'): #,save=False):
         '''plot a histogram of LAM2 values for the bin'''
         # fig,ax = plt.subplots(1,1,figsize=(6,6))
+        ax2 = ax.twinx() # Make a secondaty y axis
         bins = np.arange(start=0,stop=1.1,step=0.05)
-        h = ax.hist(l2,bins=bins,color=c)
-        ax.plot([self.avg_lam2(l2),self.avg_lam2(l2)],[0,max(h[0])],color='black',ls='solid',label=r'Median $\lambda_2$ = {:4.3f}'.format(self.avg_lam2(l2)))
+        h = ax.hist(l2,bins=bins,color=c,density=1)
+        p1 = ax.plot([self.avg_lam2(l2),self.avg_lam2(l2)],[0,max(h[0])],color='black',ls='solid',label=r'Median $\lambda_2$ = {:4.3f}'.format(self.avg_lam2(l2)))
         txt_y = max(h[0])/2.
         ylim = [0,max(h[0])]
+        # Plot expected (truncated) normal distributions
+        x = np.linspace(0,3,1000)
+        mu = np.mean(self.bin.LAM2)
+        sigma = np.std(self.bin.LAM2)
+        # print(mu,sigma)
+        # d = [misc.std_norm(i - mu /sigma) for i in x]
+        dt = [misc.trunc_norm(u=mu,s=sigma,x=i) for i in x]
+
+        # ax.plot(x,d,linestyle='dashed')
+        p2 = ax2.plot(x,dt,'r--',label='Expected Distribution')
+        plots = p1+p2
+        labels = [l.get_label() for l in plots]
+        ax2.set_ylim([0,0.5])
         ax.set_ylim(ylim)
+        ax.set_xlim([0, max(h[1])])
         ax.set_ylabel('Frequency')
         ax.set_xlabel(r'$\lambda _2$ value')
         ax.set_title(t)
-        ax.legend(loc='best')
+        ax.legend(plots,labels,loc='best')
         # ax.text(0.7,txt_y,r'Median $\lambda_2$ = {:4.3f}'.format(self.avg_lam2(l2)))
 
 
@@ -184,6 +203,34 @@ class Bin:
         avg_f = np.median(self.bin.FAST_SKS)
         avg_l = np.median(self.bin.LAG_SKS)
 
+
+    def plot(self,save=False):
+        '''Make combined figure of BAZplots and Lam2/dSI histograms'''
+        fig = plt.figure(figsize=(18,12))
+        gs = gridspec.GridSpec(2,2)
+        # ax = plt.subplot(gs[:,0:2])
+        ax1 = plt.subplot(gs[0,0])
+        ax2=plt.subplot(gs[1,0])
+        ax3=plt.subplot(gs[0,1])
+        ax4=plt.subplot(gs[1,1])
+        # ax5=plt.subplot(gs[0,2])
+        # ax6=plt.subplot(gs[1,2])
+        self.plot_baz_l2_dSI(ax1,ax2)
+        # self.plot_fast_v_lag(ax1,self.bin)
+
+        self.plot_lam2(ax3,self.bin.LAM2)
+        self.plot_dSI(ax4,self.bin.D_SI)
+
+        # self.plot_lam2(ax5,self.bin[(self.bin.Q_SKS >= 0.5) | (self.bin.Q_SKKS >= 0.5)].LAM2,c='darkorange',t=r'$\lambda _2$ for Split SKS or SKKS')
+        # self.plot_dSI(ax6,self.bin[(self.bin.Q_SKS >= 0.5) | (self.bin.Q_SKKS >= 0.5)].D_SI,c='darkorange',t=r'$\Delta$SI for Split SKS or SKKS')
+        fig.suptitle(r'Analysis plots for trigonal bin no. {:04d} which contains {:03d} SK(K)S pairs'.format(self.bn,len(self.bin)))
+        # Either save the figure to the output directory or display it now
+        if save is True:
+            plt.savefig('{}/Analysis_plots_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
+            plt.close('all')
+        elif save is False:
+            plt.show()
+
 def run(bins_file,plot,lim=10):
     ''' Function to run bin_analysis when imported in ipython environment'''
 
@@ -200,7 +247,7 @@ def run(bins_file,plot,lim=10):
             # print(i)
             B = Bin(bf,bin_no=i)
             if plot is True:
-                B.plot_bin(save=True)
+                B.plot(save=True)
 
             no.append(i)
             cts.append(counts[i])
