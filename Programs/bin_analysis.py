@@ -90,26 +90,31 @@ class Bin:
         ax2.set_title(r'$\delta$t v backazimuth')
 
     def plot_baz_l2_dSI(self,ax1,ax2):
-        ''' Make plot of Lambda 2 and d_SI v BAZ for SKS and SKKS'''
+        ''' Make plot of Lambda 2 and d_SI v BAZ (of midpoints) for SKS and SKKS'''
         # fig,(ax1,ax2) = plt.subplots(2,1,sharex=True,figsize = (6,10))
 
 
         #plot_nulls
-        ax1.plot(self.bin.BAZ,self.bin.LAM2,'.',label='Lambda 2')
-        ax2.plot(self.bin.BAZ,self.bin.D_SI,'x',label='D_SI')
+        ax1.plot(self.bin.Mid_BAZ,self.bin.LAM2,'.k',label='Lambda 2')
+        ax2.plot(self.bin.Mid_BAZ,self.bin.D_SI,'.k',label='D_SI')
 
 
-        lim = [np.round(np.min(self.bin.BAZ) - 5),np.round(np.max(self.bin.BAZ) + 5)]
-        # ax1.set_xlim(lim)
-        # ax1.set_ylim([0,1.5])
+        lim = [np.round(np.min(self.bin.Mid_BAZ) - 5),np.round(np.max(self.bin.Mid_BAZ) + 5)]
+        ax1.set_xlim(lim)
+        ax1.set_ylim([0,1.0])
+        ax1.set_ylabel(r'$\lambda _2$ values',fontsize=16)
         #
         #
-        # ax2.set_xlim(lim)
-        # ax2.set_ylim([0.,4.])
+        ax2.set_xlim(lim)
+        ax2.set_ylim([0.,4.])
+        ax2.set_ylabel(r'$\Delta _SI$ values',fontsize=16)
+        ax2.set_xlabel(r'Backazimuth $[\degree]$',fontsize=16)
 
         # ax1.legend(handles,loc='center left', bbox_to_anchor=(1.0, 0.5))
-        ax1.set_title(r'$\lambda_2$ v backazimuth') # $\delta$t values for the {:03d} SK(K)S pairs in bin {:04d}'.format(len(self.bin),self.bn))
-        ax2.set_title(r'$\Delta SI$ v backazimuth')
+        ax1.set_title(r'$\lambda_2$ v backazimuth',fontsize=18) # $\delta$t values for the {:03d} SK(K)S pairs in bin {:04d}'.format(len(self.bin),self.bn))
+        ax2.set_title(r'$\Delta SI$ v backazimuth',fontsize=18)
+        ax1.tick_params('both',labelsize=14)
+        ax2.tick_params('both',labelsize=14)
 
     def plot_dSI(self,ax,SI,c='darkorange',t=r'Histogram of $\Delta$SI '):#save=False):
         '''plot a histogram dSI for the bin'''
@@ -130,17 +135,18 @@ class Bin:
         dt = [misc.trunc_norm(u=mu,s=sigma,x=i) for i in x]
 
         # ax.plot(x,d,linestyle='dashed')
-        p3 = ax2.plot(x,dt,'r--',label = 'Expected Distribution')
+        p3 = ax2.plot(x,dt,'b--',label = 'Expected Distribution')
         plots = p1+p2+p3
         labels = [l.get_label() for l in plots]
         ax2.set_ylim([0,0.5])
         ax.set_ylim(ylim)
         ax.set_xlim([0,max(h[1])])
-        ax.set_ylabel('Frequency')
-        ax.set_xlabel(r'$\Delta$SI')
-        ax.set_title(t)
+        ax.set_ylabel('Density',fontsize=16)
+        ax.set_xlabel(r'$\Delta$SI',fontsize=16)
+        ax.set_title(t,fontsize=18)
         # ax.text(2,txt_y,r'Median $\Delta$SI = {:4.3f}'.format(self.avg_dSI(SI)))
-        ax.legend(plots,labels,loc='best')
+        ax.legend(plots,labels,loc='best',fontsize=14)
+        ax.tick_params('both',labelsize=14)
 
     def plot_lam2(self,ax,l2,c='darkorange',t=r'Histogram of $\lambda _2$ values'): #,save=False):
         '''plot a histogram of LAM2 values for the bin'''
@@ -160,16 +166,17 @@ class Bin:
         dt = [misc.trunc_norm(u=mu,s=sigma,x=i) for i in x]
 
         # ax.plot(x,d,linestyle='dashed')
-        p2 = ax2.plot(x,dt,'r--',label='Expected Distribution')
+        p2 = ax2.plot(x,dt,'--',color='blue',label='Expected Distribution')
         plots = p1+p2
         labels = [l.get_label() for l in plots]
-        ax2.set_ylim([0,0.5])
+        ax.set_ylim([0,0.5])
         ax.set_ylim(ylim)
         ax.set_xlim([0, max(h[1])])
-        ax.set_ylabel('Frequency')
-        ax.set_xlabel(r'$\lambda _2$ value')
-        ax.set_title(t)
-        ax.legend(plots,labels,loc='best')
+        ax.set_ylabel('Density',fontsize=18)
+        ax.set_xlabel(r'$\lambda _2$ value',fontsize=18)
+        ax.set_title(t,fontsize=20)
+        ax.legend(plots,labels,loc='best',fontsize=14)
+        ax.tick_params('both',labelsize=14)
         # ax.text(0.7,txt_y,r'Median $\lambda_2$ = {:4.3f}'.format(self.avg_lam2(l2)))
 
 
@@ -223,7 +230,7 @@ class Bin:
 
         # self.plot_lam2(ax5,self.bin[(self.bin.Q_SKS >= 0.5) | (self.bin.Q_SKKS >= 0.5)].LAM2,c='darkorange',t=r'$\lambda _2$ for Split SKS or SKKS')
         # self.plot_dSI(ax6,self.bin[(self.bin.Q_SKS >= 0.5) | (self.bin.Q_SKKS >= 0.5)].D_SI,c='darkorange',t=r'$\Delta$SI for Split SKS or SKKS')
-        fig.suptitle(r'Analysis plots for trigonal bin no. {:04d} which contains {:03d} SK(K)S pairs'.format(self.bn,len(self.bin)))
+        fig.suptitle(r'Analysis plots for trigonal bin no. {:04d} which contains {:03d} SK(K)S pairs'.format(self.bn,len(self.bin)),fontsize=20)
         # Either save the figure to the output directory or display it now
         if save is True:
             plt.savefig('{}/Analysis_plots_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
