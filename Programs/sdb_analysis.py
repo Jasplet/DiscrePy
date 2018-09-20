@@ -72,13 +72,24 @@ class Pairs:
                 for i,row in enumerate(self.pp.index):
                     writer.write('> \n {} {} \n {} {} \n'.format(self.pp.lon_SKS[i],self.pp.lat_SKS[i],self.pp.lon_SKKS[i],self.pp.lat_SKKS[i]))
 
+    def add_pp(self):
+        '''Adds piercepoints to .pairs file'''
+        if len(self.pp) == len(self.pairs):
+            print(len(self.pp) ,len(self.pairs))
+            self.pairs['SKS_PP_LAT'] = self.pp.lat_SKS
+            self.pairs['SKS_PP_LON'] = self.pp.lon_SKS
+            self.pairs['SKKS_PP_LAT'] = self.pp.lat_SKKS
+            self.pairs['SKKS_PP_LON'] = self.pp.lon_SKKS
+
     def match(self,file,ext='pairs',sigma=2):
         """
         Funntion to see if the SKS and SKKS splititng measurements for a pair of measurements match within error
         file - the filename you want for the output files
         Default error for this kind of anlysis is 2-sigma. Sheba returns 1 sigma so the DFAST and DTLAG need to be scaled appropriatly.
         """
-        
+
+        # First Add piercepoints to pairas files
+        self.add_pp()
         # Set the SKS and SKKS 2-sigma rnages
         lbf_SKS = self.pairs.FAST_SKS - sigma*self.pairs.DFAST_SKS
         ubf_SKS = self.pairs.FAST_SKS + sigma*self.pairs.DFAST_SKS
