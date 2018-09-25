@@ -308,6 +308,12 @@ class Tester:
         print(outfile)
         self.stk.to_csv(outfile,sep=' ',index=False)
 
+    def return_lam2(self):
+        ''' Returns lambda2 values as a DF'''
+
+        l2df = {'LAM2' : self.lam2} # Dict to create Datatframe
+
+        return pd.DataFrame(l2df)  
 
 
     def lam2_surface(self,fstem):
