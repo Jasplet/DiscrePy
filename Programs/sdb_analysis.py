@@ -7,54 +7,22 @@ import shlex
 from subprocess import call
 import matplotlib.pyplot as plt
 import numpy as np
+from stack import Stacker
 
-def make_pairs(path,sdb_stem):
+
+
+class Builder:
     """
-    Function to take .sdb files for SKS and SKKS and generate the set of SKS-SKKS pais that exist in the datasetself.
-    inputs
-    - sdb_stem: [str] sdb file stem for the data that you want to process
-    - path: [str] path to Sheba/Results directory that contains the sdb's that you want
-    -
+    Class to construct a .pairs Database (and Pierce Points), calc D_SI values and stack L2 surfaces.
 
+    path - path to the SKS and SKKS sdb files
     """
-    ## Set Path to Sheba Directory
-    SKS_sdb = '{}_SKS_sheba_results.sdb'.format(sdb_stem)
-    SKKS_sdb = '{}_SKKS_sheba_results.sdb'.format(sdb_stem)
-    # First import the SKS and SKKS .sdb files (sdb = splitting database)
-    date_time_convert = {'TIME': lambda x: str(x),'DATE': lambda x : str(x)}
-    SKS = pd.read_csv('{}/{}'.format(path,SKS_sdb),delim_whitespace=True,converters=date_time_convert)
-    SKKS = pd.read_csv('{}/{}'.format(path,SKKS_sdb),delim_whitespace=True,converters=date_time_convert)
-    # Now the sdb files have been read as pd dataframes, we can perform an inner join. This will return a single dataframe containing all rows from SKS and SKKS where
-    # ['DATE','TIME','STAT','STLA','STLO','EVLA','EVLO','EVDP','DIST','AZI','BAZ'] are the same.
-    SKS_SKKS_pair = pd.merge(SKS,SKKS,on=['DATE','TIME','STAT','STLA','STLO','EVLA','EVLO','EVDP','DIST','AZI','BAZ'],how='inner')
-    relabel = {'FAST_x':'FAST_SKS', 'DFAST_x': 'DFAST_SKS','TLAG_x':'TLAG_SKS','DTLAG_x':'DTLAG_SKS','SPOL_x':'SPOL_SKS','DSPOL_x':'DSPOL_SKS',
-          'WBEG_x':'WBEG_SKS','WEND_x':'WEND_SKS','EIGORIG_x':'EIGORIG_SKS','EIGCORR_x':'EIGCORR_SKS','Q_x':'Q_SKS','SNR_x':'SNR_SKS','NDF_x':'NDF_SKS','FAST_y':'FAST_SKKS', 'DFAST_y': 'DFAST_SKKS',
-          'TLAG_y':'TLAG_SKKS','DTLAG_y':'DTLAG_SKKS','SPOL_y':'SPOL_SKKS','DSPOL_y':'DSPOL_SKKS','WBEG_y':'WBEG_SKKS','WEND_y':'WEND_SKKS','EIGORIG_y':'EIGORIG_SKKS','EIGCORR_y':'EIGCORR_SKKS',
-          'Q_y':'Q_SKKS','SNR_y':'SNR_SKKS','NDF_y':'NDF_SKKS'}
-    # The dictionary relabels the other columns in the join so that we can more easily pick apart the SKS and SKKS results
-    SKS_SKKS_pair.rename(relabel,axis='columns',inplace=True)
-    # Sort the Pairs dataframe so the pairs are in chronological order (by origin time (DATE only))
-    s = SKS_SKKS_pair.sort_values(by=['DATE'],ascending=True)
-    si_sks = s.INTENS_x
-    si_skks = s.INTENS_y
-    d_si = np.abs(si_sks-si_skks)
-    s['D_SI'] = d_si
-    #Delete SI cols as we dont need them any more ?
-    del s['INTENS_x']
-    del s['INTENS_y']
-    # Save the dataframe to a new pairs file. The stem of the sdb files is used so that is it clear which .pairs file relates to which .sdb files
-    s.to_csv('{}/{}_SKS_SKKS.pairs'.format(path,sdb_stem),sep=' ',index=False)
+    def __init__(self,path,RunDir,Q_threshold=None,gcarc_threshold=None):
 
-
-class Pairs:
-    """
-    Class to hold a .pairs Database (and Pierce Points) and generate a suite of useful plots based off the data.
-    """
-    def __init__(self,pf,Q_threshold=None,gcarc_threshold=None):
-
-        self.pairs = pd.read_csv('{}'.format(pf),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
+        self.pairs = pd.read_csv('{}'.format(path),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
         #Load raw data from provided .pairs file. This is going to be a hidden file as I will parse out useful columns to new attributes depending of provided kwargs
-
+        self.path = path
+        self.path_stk = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(RunDir)
          #if kwargs are none:\
 
         if os.path.isfile('{}.pp'.format(pf.split('.')[0])):
@@ -71,6 +39,101 @@ class Pairs:
             with open('{}.mspp'.format(pf.strip('.pairs')),'w+') as writer:
                 for i,row in enumerate(self.pp.index):
                     writer.write('> \n {} {} \n {} {} \n'.format(self.pp.lon_SKS[i],self.pp.lat_SKS[i],self.pp.lon_SKKS[i],self.pp.lat_SKKS[i]))
+
+    def make_pairs(self,sdb_stem):
+        """
+        Function to take .sdb files for SKS and SKKS and generate the set of SKS-SKKS pais that exist in the datasetself.
+        inputs
+        - sdb_stem: [str] sdb file stem for the data that you want to process
+        - path: [str] path to Sheba/Results directory that contains the sdb's that you want
+        """
+        ## Set Path to Sheba Directory
+        SKS_sdb = '{}_SKS_sheba_results.sdb'.format(sdb_stem)
+        SKKS_sdb = '{}_SKKS_sheba_results.sdb'.format(sdb_stem)
+        # First import the SKS and SKKS .sdb files (sdb = splitting database)
+        date_time_convert = {'TIME': lambda x: str(x),'DATE': lambda x : str(x)}
+        SKS = pd.read_csv('{}/{}'.format(self.path,SKS_sdb),delim_whitespace=True,converters=date_time_convert)
+        SKKS = pd.read_csv('{}/{}'.format(self.path,SKKS_sdb),delim_whitespace=True,converters=date_time_convert)
+        # Now the sdb files have been read as pd dataframes, we can perform an inner join. This will return a single dataframe containing all rows from SKS and SKKS where
+        # ['DATE','TIME','STAT','STLA','STLO','EVLA','EVLO','EVDP','DIST','AZI','BAZ'] are the same.
+        SKS_SKKS_pair = pd.merge(SKS,SKKS,on=['DATE','TIME','STAT','STLA','STLO','EVLA','EVLO','EVDP','DIST','AZI','BAZ'],how='inner')
+        relabel = {'FAST_x':'FAST_SKS', 'DFAST_x': 'DFAST_SKS','TLAG_x':'TLAG_SKS','DTLAG_x':'DTLAG_SKS','SPOL_x':'SPOL_SKS','DSPOL_x':'DSPOL_SKS',
+              'WBEG_x':'WBEG_SKS','WEND_x':'WEND_SKS','EIGORIG_x':'EIGORIG_SKS','EIGCORR_x':'EIGCORR_SKS','Q_x':'Q_SKS','SNR_x':'SNR_SKS','NDF_x':'NDF_SKS','FAST_y':'FAST_SKKS', 'DFAST_y': 'DFAST_SKKS',
+              'TLAG_y':'TLAG_SKKS','DTLAG_y':'DTLAG_SKKS','SPOL_y':'SPOL_SKKS','DSPOL_y':'DSPOL_SKKS','WBEG_y':'WBEG_SKKS','WEND_y':'WEND_SKKS','EIGORIG_y':'EIGORIG_SKKS','EIGCORR_y':'EIGCORR_SKKS',
+              'Q_y':'Q_SKKS','SNR_y':'SNR_SKKS','NDF_y':'NDF_SKKS'}
+        # The dictionary relabels the other columns in the join so that we can more easily pick apart the SKS and SKKS results
+        SKS_SKKS_pair.rename(relabel,axis='columns',inplace=True)
+        # Sort the Pairs dataframe so the pairs are in chronological order (by origin time (DATE only))
+        self.P = SKS_SKKS_pair.sort_values(by=['DATE'],ascending=True)
+
+
+    def write_out(self):
+        self.P.to_csv('{}/{}_SKS_SKKS.pairs'.format(self.path,self.sdb_stem),sep=' ',index=False)
+
+    def add_DSI(self):
+    '''Calculate the difference in Splitting Intensity for each pair and add it to dataframe'''
+        si_sks = s.INTENS_x
+        si_skks = s.INTENS_y
+        d_si = np.abs(si_sks-si_skks)
+        s['D_SI'] = d_si
+        #Delete SI cols as we dont need them any more ?
+        del self.P['INTENS_x']
+        del self.P['INTENS_y']`
+
+    def pair_stack(self,mode='man'):
+        ''' Runs Stacker for all the desired pairs (a .pairs file)'''
+
+        ext ='lamR'
+        print('man stacking')
+        rd = input('Enter whick results directory you want the stacks saved under >')
+        out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/Stacks'.format(rd)
+        if os.path.isdir(out) is False:
+            print('{} does not exist, creating'.format(out))
+            os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/Stacks'.format(rd))
+
+        for i,f in enumerate(self.pairs.DATE.values):
+            # print('It {}, time is {} '.format(i,str(datetime.now())))
+            # First get the right DATE,TIME and STATION
+            date,time,stat = self.pairs.DATE[i], self.pairs.TIME[i], self.pairs.STAT[i]
+            fstem = '{}_{}_{}'.format(stat,date,time)
+
+            lam2_stem = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))
+            # print(lam2_stem)
+            print('{}/{}/SKS/{}??_SKS.lam2'.format(self.path_stk,stat,fstem))
+            if len(lam2_stem) is not 0:
+                # I.e if glob has managed to find the sks lam2 surface file
+                sks_lam2 = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
+                skks_lam2 = glob('{}/{}/SKKS/{}??_SKKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
+                Stk = Stacker(sks_lam2,skks_lam2,fstem,out)
+                if mode == 'man':
+                    self.lam2.append(Stk.lam2)
+                elif mode == 'sheba':
+                    self.lam2.append(Stk.sol[-1])
+            else:
+                fstem2 = '{}_{}'.format(stat,date)
+                print('fstem2')
+                print('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))
+                sks_lam2 = glob('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))[0]
+                skks_lam2 = glob('{}/{}/SKKS/{}_*_SKKS.{}'.format(self.path_stk,stat,fstem2,ext))[0]
+                # Now for a sanity check
+                if (len(sks_lam2) is not 0) or (len(skks_lam2) is not 0):
+                    Stk = Stacker(sks_lam2,skks_lam2,fstem2,out)
+                    if mode == 'man':
+                        self.lam2.append(Stk.lam2)
+                    elif mode == 'sheba':
+                        self.lam2.append(Stk.sol[-1])
+                else:
+                    #print('lam2 surfaces cannot be found, skipping')
+                    pass
+
+    def add_lam2(self):
+        '''
+        Stack the associated raw lambda 2 surfaces (as output by sheba) for each SKS SKKS pair and find min value
+        '''
+
+        self.pair_stack()
+        l2df = {'LAM2' : self.lam2}
+        ldf = pd.DataFrame(l2df)
 
     def add_pp(self):
         '''Adds piercepoints to .pairs file'''
@@ -132,6 +195,12 @@ class Pairs:
         mspp_diff.close()
         mspp_match.close()
 
+class Pairs:
+    """ A class to actually hold a Pairs (read as a pandas dataframe) and then do useful stuff with it """
+
+    def __init__(self,df):
+        self.df = df
+
     def plot_SNR(self):
         '''
         Make plots of SNR v dfast. In the style of phi_i v SNR from Restivo and Helffrich (2006)
@@ -159,7 +228,7 @@ class Pairs:
             os.makedirs('{}{}/SAC'.format(mypath,outdir))
 
         def mk_sacfiles(path,stat,date,time):
-            '''Funciton to generate sacfile names'''
+            '''Function to generate sacfile names'''
             #path='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'
             return '{}/{}/{}_{}_{}*BH?.sac'.format(path,stat,stat,date,time)
 
@@ -177,11 +246,6 @@ class Pairs:
 
         for file in sacfiles:
             cp_sacfile(file,mypath,outdir)
-
-
-
-
-
 
 #####################################################################################################
 # Top level where script is invoked from command line
