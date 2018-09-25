@@ -148,6 +148,24 @@ class Bin:
         ax.legend(plots,labels,loc='best',fontsize=14)
         ax.tick_params('both',labelsize=14)
 
+    def plot_spol_sks_skks(self,ax_sks,ax_skks,spol_sks,spol_skks,baz_sks,baz_skks,dspol_sks=None,dspol_skks=None):
+        ''' Plot Source Polarisation of SKS andf SKKS against backazimuth( expected SPOL)'''
+        if (dspol_sks is None) and (dspol_skks is None):
+            # Test if Source Polarisation errors have been provided for SKS and SKKS. If none privded SPOLs will just
+            # be plotted normally
+            ax_sks.plot(baz_sks, spol_sks, color = 'black')
+            ax_skks.plot(baz_skks, spol_skks, color = 'black')
+        else:
+            ax_sks.errorbar(x=baz_sks,y=spol_sks,yerr=dspol_sks,fmt='b.')
+            ax_skks.errorbar(x=baz_skks,y=spol_skks,yerr=dspol_skks,fmt='b.')
+
+        ax_sks.set_ylabel('SKS Source Polarisation')
+        ax_sks.set_xlabel('Backazimuth')
+        ax_sks.set_ylim([0, 360])
+        ax_skks.set_ylabel('SKKS Source Polarisation')
+        ax_skks.set_xlabel('Backazimuth')
+        ax_skks.set_ylim([0 ,360])
+
     def plot_lam2(self,ax,l2,c='darkorange',t=r'Histogram of $\lambda _2$ values'): #,save=False):
         '''plot a histogram of LAM2 values for the bin'''
         # fig,ax = plt.subplots(1,1,figsize=(6,6))
@@ -211,7 +229,7 @@ class Bin:
         avg_l = np.median(self.bin.LAG_SKS)
 
 
-    def plot(self,save=False):
+    def plot(self,save=False,spol=False):
         '''Make combined figure of BAZplots and Lam2/dSI histograms'''
         fig = plt.figure(figsize=(18,12))
         gs = gridspec.GridSpec(2,2)
@@ -237,13 +255,23 @@ class Bin:
             plt.close('all')
         elif save is False:
             plt.show()
+#           Add a second plot for source Polarisation
+        if spol is True:
+            fig2,ax = plt.subplots(2,1,figsize = (8,8))
+
+            self.plot_spol_sks_skks(ax[0],ax[1],self.bin.SPOL_SKS,self.bin.SPOL_SKKS,self.bin.DSPOL_SKS,self.bin.DSPOL_SKKS,self.bin.BAZ,self.bin.BAZ)
+            if save is True:
+                plt.savefig(fig2,'{}/Source_Pol_plots_bin_{:04d}_{:03d}_pairs.eps'.format(self.fig_path,self.bn,len(self.bin)),format='eps',transparent=True)
+                plt.close('all')
+            elif save is False:
+                plt.show()
 
 def run(bins_file,plot,lim=10):
     ''' Function to run bin_analysis when imported in ipython environment'''
 
     bf = pd.read_csv(bins_file,delim_whitespace=True,converters={'TIME': lambda x: str(x),'DATE': lambda x : str(x)})
 
-    counts = bf.bin_no.value_counts().copy() # make a dataeframe with the bin number and the count of how many times it occurs
+    counts = bf.bin_no.value_counts().copy() # make a dataframe with the bin number and the count of how many times it occurs
     print('There are {} bins with {} pairs'.format(len(counts),len(bf)))
     print('Highest count is {} in bin {}'.format(counts[counts.idxmax()],counts.idxmax()))
     l2 = [ ] # Initialise lists to hold the average lambda 2 values for each bin
