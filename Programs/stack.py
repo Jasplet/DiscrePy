@@ -105,7 +105,7 @@ class Stacker:
         # find its location
 
         jf,jt  = np.unravel_index(self.stk.argmin(),self.stk.shape)
-        print('Min Lam2 of stack is {}, located at dt = {}  and phi = {}'.format(self.lam2,self.T[jt],self.F[jf]))
+        # print('Min Lam2 of stack is {}, located at dt = {}  and phi = {}'.format(self.lam2,self.T[jt],self.F[jf]))
         # write out stack
         # print(self.stk.shape)
         np.savetxt('{}.lamSTK'.format(self.outfile),self.stk,fmt='%.5f')
