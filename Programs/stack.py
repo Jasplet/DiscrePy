@@ -91,7 +91,7 @@ class Stacker:
         p.communicate('-wgt one')
 
     def stack_manual(self):
-        print('Manual stacker, function under construction, this sis a placeholder command')
+        # print('Manual stacker, function under construction, this sis a placeholder command')
 
         self.sks_lamR = np.loadtxt(self.sks_path)
         self.skks_lamR = np.loadtxt(self.skks_path)
