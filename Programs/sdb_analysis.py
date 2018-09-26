@@ -166,7 +166,7 @@ class Builder:
         self.pair_stack()
         l2df = {'LAM2' : self.lam2}
         ldf = pd.DataFrame(l2df)
-        self.P['LAM2'] == ldf
+        self.P['LAM2'] = ldf
 
     def add_pp(self):
         '''Adds piercepoints to .pairs file'''
