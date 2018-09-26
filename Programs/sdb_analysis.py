@@ -50,6 +50,7 @@ class Builder:
         print('Apply 2-sigma test for discrepancy')
         self.match()
         # Apply a quick Signal to Noise test to get rid of the rreally bad data
+        print('{} pairs'.format(len(self.P)))
         pairs = self.snr_check() # Final DF to output
         # And save the result
         self.write_out(pairs)
@@ -165,6 +166,7 @@ class Builder:
         self.pair_stack()
         l2df = {'LAM2' : self.lam2}
         ldf = pd.DataFrame(l2df)
+        self.P['LAM2'] == ldf
 
     def add_pp(self):
         '''Adds piercepoints to .pairs file'''
