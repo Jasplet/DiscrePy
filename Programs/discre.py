@@ -43,8 +43,8 @@ class Tester:
             self.pairs = pd.read_csv(pr,delim_whitespace=True,converters=date_time_convert)
             # Assuming that the main pairs filestem was read in, also read the matching and discepent pairs files
             self.lam2 = [ ]
-
             self.pair_stack(mode)
+
         elif pr.split('.')[-1] == 'stk':
             # File extention is .stk, lam2 values alreayd exist
             print('.stk files alreayd exist, reading')
@@ -313,7 +313,7 @@ class Tester:
 
         l2df = {'LAM2' : self.lam2} # Dict to create Datatframe
 
-        return pd.DataFrame(l2df)  
+        return pd.DataFrame(l2df)
 
 
     def lam2_surface(self,fstem):
