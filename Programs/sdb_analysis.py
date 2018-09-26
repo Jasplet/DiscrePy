@@ -50,7 +50,7 @@ class Builder:
         print('Apply 2-sigma test for discrepancy')
         self.match()
         # Apply a quick Signal to Noise test to get rid of the rreally bad data
-        print('{} pairs'.format(len(self.P)))
+        # print('{} pairs'.format(len(self.P)))
         pairs = self.snr_check() # Final DF to output
         # And save the result
         self.write_out(pairs)
@@ -232,18 +232,19 @@ class Builder:
         ''' Run a quick and dirty check on Signal to Noise Ratio. If is is less than the threshold events are rejected'''
 
         self.accepted_i = [ ]
-
+        self.d = [ ]
+        print('There are {} pairs pre-SNR < 2 test'.format(len(self.P)))
         for i,row in self.P.iterrows():
             if row.SNR_SKS <= 2 or row.SNR_SKKS <= 2:
                 #Test to see if Signal-to-Noise is too high
                 print('SNR for SKS or SKKS less than 2, auto-reject')
-
+                self.d.append(i)
             else:
                 self.accepted_i.append(i)
-                print('Event accepted')
+                # print('Event accepted')
 
-        print('{} accepted'.format(len(self.accepted_i)))
-        accepted_pairs = self.P.iloc[self.accepted_i,:]
+        print('{} accepted, {} rejected'.format(len(self.accepted_i),len(self.d)))
+        accepted_pairs = self.P.drop(self.d)
         return accepted_pairs
 
 
