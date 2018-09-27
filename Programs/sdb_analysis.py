@@ -34,6 +34,7 @@ class Builder:
         start = ctime()
         print('Making Pairs')
         self.make_pairs()
+        self.P = self.snr_check() # Foverwrite self.P eith only accepted events
         self.write_out(self.P)
         # Write initial pairs file so we can make piercepoints
         # Next generate the piercepoints and add them to the df
@@ -51,9 +52,9 @@ class Builder:
         self.match()
         # Apply a quick Signal to Noise test to get rid of the rreally bad data
         # print('{} pairs'.format(len(self.P)))
-        pairs = self.snr_check() # Final DF to output
+
         # And save the result
-        self.write_out(pairs)
+        self.write_out(self.P)
         end = ctime()
         print('END. start {}, end {}'.format(start,end))
 
@@ -70,7 +71,7 @@ class Builder:
 
         if os.path.isfile('{}.mspp'.format(self.fpath.split('.')[0])) is False:
             print('{}.mspp does not exist, creating'.format(self.fpath.strip('.pairs')))
-            with open('{}.mspp'.format(self.path.split('.')[0]),'w+') as writer:
+            with open('{}.mspp'.format(self.fpath.split('.')[0]),'w+') as writer:
                 for i,row in enumerate(self.pp.index):
                     writer.write('> \n {} {} \n {} {} \n'.format(self.pp.lon_SKS[i],self.pp.lat_SKS[i],self.pp.lon_SKKS[i],self.pp.lat_SKKS[i]))
 
@@ -131,7 +132,7 @@ class Builder:
 
             lam2_stem = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))
             # print(lam2_stem)
-            print('{}/{}/SKS/{}??_SKS.lam2'.format(self.path_stk,stat,fstem))
+            # print('{}/{}/SKS/{}??_SKS.lam2'.format(self.path_stk,stat,fstem))
             if len(lam2_stem) is not 0:
                 # I.e if glob has managed to find the sks lam2 surface file
                 sks_lam2 = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
@@ -144,7 +145,7 @@ class Builder:
             else:
                 fstem2 = '{}_{}'.format(stat,date)
                 print('fstem2')
-                print('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))
+                # print('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))
                 sks_lam2 = glob('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))[0]
                 skks_lam2 = glob('{}/{}/SKKS/{}_*_SKKS.{}'.format(self.path_stk,stat,fstem2,ext))[0]
                 # Now for a sanity check
@@ -245,6 +246,7 @@ class Builder:
 
         print('{} accepted, {} rejected'.format(len(self.accepted_i),len(self.d)))
         accepted_pairs = self.P.drop(self.d)
+        accepted_pairs.index = pd.RangeIndex(len(accepted_pairs.index))
         return accepted_pairs
 
 
