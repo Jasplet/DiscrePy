@@ -19,7 +19,7 @@ import sys
 
 class Inspecter:
 
-    def __init__(self, pairs,dir):
+    def __init__(self, pairs,dir,mode):
         self.pairs =  pd.read_csv('{}/{}'.format(dir,pairs),delim_whitespace=True,converters={'TIME': lambda x: str(x)})
         self.result_path = dir
         self.qa_dir = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split/SplitWavePy'
@@ -27,6 +27,7 @@ class Inspecter:
         self.fs = []
         self.qual = []
         self.disc = []
+        self.QA_mode = mode
     def write_qa(self,filestem, qual, disc,mode='a+'):
         ''' Writes the event filestem and the quality/discrepancy rating to a textfile'''
 
@@ -68,24 +69,31 @@ class Inspecter:
                     disc = self
             else:
                 print('Event {} Date: {} Time: {}, Stat: {} SNR_SKS: {} SNR_SKKS: {}'.format(i,row.DATE,row.TIME,row.STAT,row.SNR_SKS,row.SNR_SKKS))
-
-                if row.SNR_SKS <= 1 or row.SNR_SKKS <= 1:
+                print(self.QA_mode)
+                if row.SNR_SKS <= 2 or row.SNR_SKKS <= 2:
                     #Test to see if Signal-to-Noise is too high
-                    print('SNR for SKS or SKKS less that 10, auto-reject')
+                    print('SNR for SKS or SKKS less than 2, auto-reject')
                     qual = 'p'
-                    disc = 'SNR <=10'
-
+                    disc = 'SNR <=2'
                 else:
-                    sr = (row.FAST_SKS,row.DFAST_SKS,row.TLAG_SKS,row.DTLAG_SKS,row.FAST_SKKS,row.DFAST_SKKS,row.TLAG_SKKS,row.DTLAG_SKKS)
-                    print('SHEBA RESULTS: SKS: phi = {} +/- {} dt = {} +/- {}. SKKS: phi = {} +/- {}, dt = {} +/- {}'.format(sr[0],sr[1],sr[2],sr[3],sr[4],sr[5],sr[6],sr[7]))
-                    #Test if QA results (from SWP) exist
-                    if (os.path.isfile('{}/{}_sks.eigm'.format(self.qa_dir,filestem)) and os.path.isfile('{}/{}_skks.xcrm'.format(self.qa_dir,filestem))) is False:
-                        print('QA results do not exist, generating')
-                        SKS_SKKS_qa.measure_sks_skks(filestem,self.qa_dir,[row.WBEG_SKS,row.WEND_SKS,row.WBEG_SKKS,row.WEND_SKKS])
-                        # Now plot the TransM,Xcross and Eigm results
-                        # fig = plt.figure(figsize=(15,10))
+                    print('Pass SNR')
 
-                    qual,disc = plotall('{}/{}'.format(self.qa_dir,filestem))
+                    if self.QA_mode == 'man':
+                        # Option for more rigerous (and time consuming manual inspection of all remaining pairs)
+                        sr = (row.FAST_SKS,row.DFAST_SKS,row.TLAG_SKS,row.DTLAG_SKS,row.FAST_SKKS,row.DFAST_SKKS,row.TLAG_SKKS,row.DTLAG_SKKS)
+                        print('SHEBA RESULTS: SKS: phi = {} +/- {} dt = {} +/- {}. SKKS: phi = {} +/- {}, dt = {} +/- {}'.format(sr[0],sr[1],sr[2],sr[3],sr[4],sr[5],sr[6],sr[7]))
+                        #Test if QA results (from SWP) exist
+                        if (os.path.isfile('{}/{}_sks.eigm'.format(self.qa_dir,filestem)) and os.path.isfile('{}/{}_skks.xcrm'.format(self.qa_dir,filestem))) is False:
+                            print('QA results do not exist, generating')
+                            SKS_SKKS_qa.measure_sks_skks(filestem,self.qa_dir,[row.WBEG_SKS,row.WEND_SKS,row.WBEG_SKKS,row.WEND_SKKS])
+                            # Now plot the TransM,Xcross and Eigm results
+                            # fig = plt.figure(figsize=(15,10))
+                            qual,disc = plotall('{}/{}'.format(self.qa_dir,filestem))
+                    else:
+                        print('Hello')
+                        qual = 'i' # i for initial test pass
+                        disc = '-' # Cannot search for discrepnacy just using SNR test. Build in stack test here maybe ??
+
 
                 self.write_qa(filestem,qual,disc)
             if 'p' in qual:
@@ -104,14 +112,15 @@ class Inspecter:
 if __name__ == '__main__' :
     print('Hello World, this is quality_check.py. You are running me from the command line')
 
-    pair_file = sys.argv[1]
-    results_dir = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Split'
+    pair_file = sys.argv[1] # The pairs file we want to run the insplection for
+    results_dir = sys.argv[2] # Results directory the pairs file sits in
+    md = sys.argv[3] # Mode of inspection either 'snr' for just singal to noise test or 'man' for manual inspection
 
     if len(sys.argv) is 1:
         print('No inputs detected. Please input them now')
         pair_file = input('Input pair filename \n >')
 
-    Review = Inspecter(pair_file,results_dir)
+    Review = Inspecter(pair_file,results_dir,md)
 
 
     Review.run_inspection()
