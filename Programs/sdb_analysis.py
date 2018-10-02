@@ -204,11 +204,12 @@ class Builder:
         match  = self.P[fast_test & lag_test] # Test for pairs that match within the given sigma range
         diff =  self.P.drop(index=match.index) # Remove matching pairs from original df to get the different pairs.
         # Write out matching and discepent dataframes
-        match.to_csv('{}_matches.pairs'.format(fstem),index=False,sep=' ')
-        diff.to_csv('{}_diffs.pairs'.format(fstem),index=False,sep=' ')
+        match.to_csv('{}/{}_matches.pairs'.format(fstem,self.sdb_stem),index=False,sep=' ')
+        diff.to_csv('{}/{}_diffs.pairs'.format(self.path,self.sdb_stem),index=False,sep=' ')
         # Open up mspp files
-        mspp_match = open('{}_matches.mspp'.format(fstem),'w+')
-        mspp_diff = open('{}_diffs.mspp'.format(fstem),'w+')
+        print('Writing to {}/{}'.format(self.path,self.sdb_stem))
+        mspp_match = open('{}/{}_matches.mspp'.format(self.path,self.sdb_stem),'w+')
+        mspp_diff = open('{}/{}_diffs.mspp'.format(self.path,self.sdb_stem),'w+')
 
         for i,index in enumerate(diff.index):
             SKS_pp_lat = self.pp.lat_SKS.values[index]
@@ -253,18 +254,46 @@ class Builder:
 class Pairs:
     """ A class to actually hold a Pairs (read as a pandas dataframe) and then do useful stuff with it """
 
-    def __init__(self,df,file=False,fname=None):
+    def __init__(self,df=None,file=False,fname=None):
         '''
         df - a pandas dataframe contaiing the pairs (implicitly assumed that this df has been made using builder)
         file [bool] - T/F flag for if you want to read in a already existing pairs file. This option is easier if you have not freshly created it as the correct converters to preserve
                     leading zeros in date and time will be applied
-        fname [str] - Full path to (and including) the pairs file your want to read in. 
+        fname [str] - Full path to (and including) the pairs file your want to read in.
         '''
-        self.df = df
+
         if file is True:
             print('Read file option specified')
             date_time_convert = {'TIME': lambda x: str(x).zfill(4),'DATE': lambda x : str(x)}
             self.df = pd.read_csv(fname,delim_whitespace=True,converters=date_time_convert)
+            pmatch = '{}_matches.pairs'.format(fname.split('.')[0])
+            pdiff ='{}_diffs.pairs'.format(fname.split('.')[0])
+            self.matches = pd.read_csv(pmatch,delim_whitespace=True,converters=date_time_convert)
+            self.diffs = pd.read_csv(pdiff,delim_whitespace=True,converters=date_time_convert)
+        elif file is False:
+            print('Expectinf df input')
+            self.df = df
+
+     def plot_dist_v_discrep(self):
+
+             fig,(ax1,ax2) = plt.subplots(1,2, figsize = [12,6])
+
+             ax1.plot(self.matches.DIST,self.matches.LAM2,'k.',label='Matching')
+             ax1.plot(self.diffs.DIST,self.diffs.LAM2,'r.',label='Discrepant')
+             ax1.set_xlim([105, 140])
+             ax1.set_ylim([0, 1.0])
+             ax1.set_xlabel('Epicentral Distance (Deg)')
+             ax1.set_ylabel(r'$\lambda _2$ values')
+             ax1.legend()
+
+             ax2.plot(self.matches.DIST,self.matches.D_SI,'k.',label='Matching')
+             ax2.plot(self.diffs.DIST,self.diffs.D_SI,'r.',label='Discrepant')
+             ax2.set_xlim([105,140])
+             ax2.set_ylim([0,4.0])
+             ax2.set_xlabel('Epicentral Distrance (Deg)')
+             ax2.set_ylabel(R'$\Delta SI $')
+
+             plt.show()
 
     def plot_SNR(self):
         '''
@@ -283,8 +312,6 @@ class Pairs:
         ax2.set_title('d fast SKKS determination dependance on S/N')
 
         plt.show()
-
-
 
     def package(self,outdir,mypath='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'):
         '''
