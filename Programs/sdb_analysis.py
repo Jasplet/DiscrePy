@@ -253,8 +253,18 @@ class Builder:
 class Pairs:
     """ A class to actually hold a Pairs (read as a pandas dataframe) and then do useful stuff with it """
 
-    def __init__(self,df):
+    def __init__(self,df,file=False,fname=None):
+        '''
+        df - a pandas dataframe contaiing the pairs (implicitly assumed that this df has been made using builder)
+        file [bool] - T/F flag for if you want to read in a already existing pairs file. This option is easier if you have not freshly created it as the correct converters to preserve
+                    leading zeros in date and time will be applied
+        fname [str] - Full path to (and including) the pairs file your want to read in. 
+        '''
         self.df = df
+        if file is True:
+            print('Read file option specified')
+            date_time_convert = {'TIME': lambda x: str(x).zfill(4),'DATE': lambda x : str(x)}
+            self.df = pd.read_csv(fname,delim_whitespace=True,converters=date_time_convert)
 
     def plot_SNR(self):
         '''

@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import misc
 
+
+
 class Bin:
     '''A class to hold a signle bin and all in containing events. Requires pairs file (as dataframe) and desired Bin_number as inputs'''
     def __init__(self, df, bin_no,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Combined/Bin_figs'):
