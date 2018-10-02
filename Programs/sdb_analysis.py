@@ -295,6 +295,36 @@ class Pairs:
 
              plt.show()
 
+    def plot_dist_v_split(self):
+
+             fig,(ax1,ax2) = plt.subplots(1,2, figsize = [12,6])
+
+             deltaF =abs(self.df.FAST_SKS - self.df.FAST_SKKS)
+             ddt = abs(self.df.TLAG_SKS - self.df.TLAG_SKKS)
+
+             ax1.plot(self..df.DIST,deltaF,'k.',label=r'$| \phi_{SKS} - \phi_{SKKS} |')
+
+             ax1.set_xlim([105, 140])
+             #ax1.set_ylim)
+             ax1.set_xlabel('Epicentral Distance (Deg)')
+             ax1.set_ylabel(r'$ |\phi_{SKS} - \phi_{SKKS}|$')
+
+
+             ax2.plot(self..df.DIST,ddt,'k.',label='delta deltaT')
+             #ax2.plot(df.diffs.DIST,df.diffs.D_SI,'r.',label='Discrepant')
+             ax2.set_xlim([105,140])
+             #ax2.set_ylim([0,
+             ax2.set_xlabel('Epicentral Distrance (Deg)')
+             ax2.set_ylabel(r'$| \delta t_{SKS} - \delta t_{SKKS} | $')
+
+             fig2,(ax3) = plt.subplots(figsize= [6,6])
+             ax3.plot(ddt,(deltaF),'k.')
+             ax3.set_xlim([0,4])
+             ax3.set_ylim([-90, 90])
+             ax3.set_xlabel(r'$| \delta t_{SKS} - \delta t_{SKKS} | $')
+             ax3.set_ylabel(r'$| \delta t_{SKS} - \delta t_{SKKS} | $')
+             plt.show()
+
     def plot_SNR(self):
         '''
         Make plots of SNR v dfast. In the style of phi_i v SNR from Restivo and Helffrich (2006)
