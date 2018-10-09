@@ -19,13 +19,14 @@ class Builder:
     - path: [str] path to Sheba/Results directory that contains the sdb's that you want
     - RunDir: [str] path to the Run Directory than Contains the .lamR surfaces to stack
     """
-    def __init__(self,p,RunDir,sdb_stem):
+    def __init__(self,p,RunDir,sdb_stem,snr=2.0):
 
         self.path = p
         self.path_stk = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(RunDir)
         self.sdb_stem = sdb_stem
-        self.fpath = '{}/{}_SKS_SKKS.pairs'.format(self.path,self.sdb_stem)
+        self.fpath =     '{}/{}_{:02d}_SKS_SKKS.pairs'.format(self.path,self.sdb_stem,int(snr))
         self.lam2 = [ ]
+        self.snr = snr
         #if kwargs are none:\
 
     def run(self):
@@ -34,7 +35,7 @@ class Builder:
         start = ctime()
         print('Making Pairs')
         self.make_pairs()
-        self.P = self.snr_check() # Foverwrite self.P eith only accepted events
+        self.P = self.snr_check(t=self.snr) # Foverwrite self.P eith only accepted events
         self.write_out(self.P)
         # Write initial pairs file so we can make piercepoints
         # Next generate the piercepoints and add them to the df
@@ -60,16 +61,16 @@ class Builder:
 
     def gen_pp(self):
         ''' Fucntion to test for whether the .pp file exists and if not call TauP to generate it and the corresponding mspp files '''
-        if os.path.isfile('{}.pp'.format(self.fpath.split('.')[0])):
+        if os.path.isfile('{}_{:02d}.pp'.format(self.fpath.split('.')[0],self.snr)):
             #print(pf[:-6])
-            self.pp = pd.read_csv('{}.pp'.format(self.fpath.split('.')[0]),delim_whitespace=True)
+            self.pp = pd.read_csv('{}_{:02d}.pp'.format(self.fpath.split('.')[0],self.snr),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(self.fpath.split('.')[0]))
             p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(self.fpath)))
             self.pp = pd.read_csv('{}.pp'.format(self.fpath.split('.')[0]),delim_whitespace=True)
         # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
-        if os.path.isfile('{}.mspp'.format(self.fpath.split('.')[0])) is False:
+        if os.path.isfile('{}_{}.mspp'.format(self.fpath.split('.')[0],int(self.snr))) is False:
             print('{}.mspp does not exist, creating'.format(self.fpath.strip('.pairs')))
             with open('{}.mspp'.format(self.fpath.split('.')[0]),'w+') as writer:
                 for i,row in enumerate(self.pp.index):
@@ -101,7 +102,7 @@ class Builder:
         self.P = SKS_SKKS_pair.sort_values(by=['DATE'],ascending=True)
 
     def write_out(self,df):
-        df.to_csv('{}/{}_SKS_SKKS.pairs'.format(self.path,self.sdb_stem),sep=' ',index=False)
+        df.to_csv(self.fpath,sep=' ',index=False)
 
     def add_DSI(self):
         '''Calculate the difference in Splitting Intensity for each pair and add it to dataframe'''
@@ -239,7 +240,7 @@ class Builder:
         for i,row in self.P.iterrows():
             if row.SNR_SKS <= 2 or row.SNR_SKKS <= 2:
                 #Test to see if Signal-to-Noise is too high
-                print('SNR for SKS or SKKS less than 2, auto-reject')
+                print('SNR for SKS or SKKS less than {}, auto-reject'.format(t))
                 self.d.append(i)
             else:
                 self.accepted_i.append(i)
@@ -274,56 +275,103 @@ class Pairs:
             print('Expectinf df input')
             self.df = df
 
-     def plot_dist_v_discrep(self):
+    def plot_dist_v_discrep(self):
 
-             fig,(ax1,ax2) = plt.subplots(1,2, figsize = [12,6])
+        fig,(ax1,ax2) = plt.subplots(1,2, figsize = [12,6])
 
-             ax1.plot(self.matches.DIST,self.matches.LAM2,'k.',label='Matching')
-             ax1.plot(self.diffs.DIST,self.diffs.LAM2,'r.',label='Discrepant')
-             ax1.set_xlim([105, 140])
-             ax1.set_ylim([0, 1.0])
-             ax1.set_xlabel('Epicentral Distance (Deg)')
-             ax1.set_ylabel(r'$\lambda _2$ values')
-             ax1.legend()
+        ax1.plot(self.matches.DIST,self.matches.LAM2,'k.',label='Matching')
+        ax1.plot(self.diffs.DIST,self.diffs.LAM2,'r.',label='Discrepant')
+        ax1.set_xlim([105, 140])
+        ax1.set_ylim([0, 1.0])
+        ax1.set_xlabel('Epicentral Distance (Deg)')
+        ax1.set_ylabel(r'$\lambda _2$ values')
+        ax1.legend()
 
-             ax2.plot(self.matches.DIST,self.matches.D_SI,'k.',label='Matching')
-             ax2.plot(self.diffs.DIST,self.diffs.D_SI,'r.',label='Discrepant')
-             ax2.set_xlim([105,140])
-             ax2.set_ylim([0,4.0])
-             ax2.set_xlabel('Epicentral Distrance (Deg)')
-             ax2.set_ylabel(R'$\Delta SI $')
+        ax2.plot(self.matches.DIST,self.matches.D_SI,'k.',label='Matching')
+        ax2.plot(self.diffs.DIST,self.diffs.D_SI,'r.',label='Discrepant')
+        ax2.set_xlim([105,140])
+        ax2.set_ylim([0,4.0])
+        ax2.set_xlabel('Epicentral Distrance (Deg)')
+        ax2.set_ylabel(R'$\Delta SI $')
 
-             plt.show()
+        plt.show()
 
-    def plot_dist_v_split(self):
+    def plot_dist_v_split(self,save=False):
 
-             fig,(ax1,ax2) = plt.subplots(1,2, figsize = [12,6])
+        # Plot colored by Lambda 2
+        fig1,(ax1,ax2) = plt.subplots(1,2, figsize = [12,6])
 
-             deltaF =abs(self.df.FAST_SKS - self.df.FAST_SKKS)
-             ddt = abs(self.df.TLAG_SKS - self.df.TLAG_SKKS)
+        deltaF = 90 -abs(abs(self.df.FAST_SKS - self.df.FAST_SKKS) - 90 ) # This should allow for differences to vary between 0 and 90 whilst also dealing with the wrap around properly
+        ddt = abs(self.df.TLAG_SKS) - abs(self.df.TLAG_SKKS)
 
-             ax1.plot(self..df.DIST,deltaF,'k.',label=r'$| \phi_{SKS} - \phi_{SKKS} |')
+        C1 = ax1.scatter(self.df.DIST,deltaF,c=self.df.LAM2,marker='.',label=r'$| \phi_{SKS} - \phi_{SKKS} |')
 
-             ax1.set_xlim([105, 140])
-             #ax1.set_ylim)
-             ax1.set_xlabel('Epicentral Distance (Deg)')
-             ax1.set_ylabel(r'$ |\phi_{SKS} - \phi_{SKKS}|$')
+        ax1.set_xlim([105, 140])
+        ax1.set_ylim([0,90])
+        ax1.set_xlabel('Epicentral Distance (Deg)')
+        ax1.set_ylabel(r'$ |\phi_{SKS} - \phi_{SKKS}|$')
+        ax1.set_title(r'Difference in $\phi$, coloured by $\Lambda$')
 
+        C2 = ax2.scatter(self.df.DIST,ddt,c=self.df.LAM2,marker='.',label='delta deltaT')
+        #ax2.plot(df.diffs.DIST,df.diffs.D_SI,'r.',label='Discrepant')
+        ax2.set_xlim([105,140])
+        ax2.set_ylim([0,4])
+        ax2.set_xlabel('Epicentral Distrance (Deg)')
+        ax2.set_ylabel(r'$| \delta t_{SKS} - \delta t_{SKKS} | $')
+        ax2.set_title(r'Difference in $(\delta_t)$, coloured by $\Lambda$')
+        cbar1 = fig1.colorbar(C1,use_gridspec=True)
+        cbar1.set_label(r'$\Lambda$',rotation=270)
 
-             ax2.plot(self..df.DIST,ddt,'k.',label='delta deltaT')
-             #ax2.plot(df.diffs.DIST,df.diffs.D_SI,'r.',label='Discrepant')
-             ax2.set_xlim([105,140])
-             #ax2.set_ylim([0,
-             ax2.set_xlabel('Epicentral Distrance (Deg)')
-             ax2.set_ylabel(r'$| \delta t_{SKS} - \delta t_{SKKS} | $')
+        fig2,(ax3) = plt.subplots(figsize= [6,6])
+        C3 = ax3.scatter(ddt,(deltaF),c=self.df.LAM2,marker='.')
+        ax3.set_xlim([0,4])
+        ax3.set_ylim([0, 90])
+        ax3.set_ylabel(r'$| \phi_{SKS} - \phi_{SKKS} | $')
+        ax3.set_xlabel(r'$| \delta t_{SKS} - \delta t_{SKKS} | $')
+        ax3.set_title(r'Difference in $\phi$ v difference in $\delta t$ coloured by $\Lambda$')
 
-             fig2,(ax3) = plt.subplots(figsize= [6,6])
-             ax3.plot(ddt,(deltaF),'k.')
-             ax3.set_xlim([0,4])
-             ax3.set_ylim([-90, 90])
-             ax3.set_xlabel(r'$| \delta t_{SKS} - \delta t_{SKKS} | $')
-             ax3.set_ylabel(r'$| \delta t_{SKS} - \delta t_{SKKS} | $')
-             plt.show()
+        cbar2 = fig2.colorbar(C3,use_gridspec=True)
+        cbar2.set_label(r'$\Lambda$',rotation=270)
+        # plot coloured by D_SI
+        fig3,(ax4,ax5) = plt.subplots(1,2, figsize = [14,6])
+
+        C4 = ax4.scatter(self.df.DIST,deltaF,c=self.df.D_SI,cmap='magma',marker='.',label=r'$| \phi_{SKS} - \phi_{SKKS} |')
+
+        ax4.set_xlim([105, 140])
+        ax4.set_ylim([0,90])
+        ax4.set_xlabel('Epicentral Distance (Deg)')
+        ax4.set_ylabel(r'$ |\phi_{SKS} - \phi_{SKKS}|$')
+        ax4.set_title(r'Difference in $\phi$, coloured by $\Delta SI$')
+        C5 = ax5.scatter(self.df.DIST,ddt,c=self.df.D_SI,cmap='magma',marker='.',label='delta deltaT')
+        #ax2.plot(df.diffs.DIST,df.diffs.D_SI,'r.',label='Discrepant')
+        ax5.set_xlim([105,140])
+        ax5.set_ylim([0,4])
+        ax5.set_xlabel('Epicentral Distrance (Deg)')
+        ax5.set_ylabel(r'$| \delta t_{SKS} - \delta t_{SKKS} | $')
+        ax5.set_title(r'Difference in $\delta_t$, coloured by $\Delta SI$')
+        cbar3 = fig3.colorbar(C5,use_gridspec=True)
+        cbar3.set_label(r'$\Delta SI$',rotation=270)
+
+        fig4,(ax6) = plt.subplots(figsize= [6,6])
+        C6 = ax6.scatter(ddt,(deltaF),cmap='magma',c=self.df.D_SI,marker='.')
+        ax6.set_xlim([0,4])
+        ax6.set_ylim([0, 90])
+        ax6.set_ylabel(r'$| \phi_{SKS} - \phi_{SKKS} | $')
+        ax6.set_xlabel(r'$| \delta t_{SKS} - \delta t_{SKKS} | $')
+        ax6.set_title(r'Difference in $\phi$ v difference in $\delta t$ coloured by $\Delta SI$')
+        cbar4 = fig4.colorbar(C6,use_gridspec=True)
+        cbar4.set_label(r'$\Delta SI$',rotation=270)
+
+        if save is True:
+            fig1.savefig('/Users/ja17375/Shear_Wave_Splitting/Sheba/Figures/diff_v_dist_Lambda.eps',format='eps',transparent=True,dpi=400)
+            fig2.savefig('/Users/ja17375/Shear_Wave_Splitting/Sheba/Figures/delfast_v_deltlag_Lambda.eps',format='eps',transparent=True,dpi=400)
+            fig3.savefig('/Users/ja17375/Shear_Wave_Splitting/Sheba/Figures/diff_v_dist_DSI.eps',format='eps',transparent=True,dpi=400)
+            fig4.savefig('/Users/ja17375/Shear_Wave_Splitting/Sheba/Figures/delfast_v_deltlag_DSI.eps',format='eps',transparent=True,dpi=400)
+
+            plt.close('all')
+        else:
+            plt.show()
+
 
     def plot_SNR(self):
         '''
@@ -370,6 +418,191 @@ class Pairs:
 
         for file in sacfiles:
             cp_sacfile(file,mypath,outdir)
+
+
+    def discrepancy_plot(self,surf_path,nplots=2,surfs_to_plot=None,save=False,sigma=1,**kwargs):
+        '''Top level plotting function for surfaces to look for discrepancy in Splitting
+            surf_path [str] - path to the runs directory containing the surfaces to plot
+            nplots - the number of plots that you want (if the surfs_to_plot is not specified)
+            surfs_to_plot - allows
+            sigma - multiplier to error bounds of splitting results
+        '''
+        self.spath = surf_path
+        self.p_sorted = self.df.sort_values(by='LAM2',ascending=True)
+        self.p_sorted.reset_index(drop=True)
+
+        # Find indecies of events we want to plot
+        if surfs_to_plot is None:
+            self.surfs= np.round(np.arange(0,len(self.p_sorted),round((len(self.p_sorted)/nplots))))
+        else:
+            self.surfs = list(set([i if i < len(self.p_sorted) else (len(self.p_sorted)-1) for i in surfs_to_plot])) # This makes sure that indicies are always within the range of available surfaces (stops errors for occuring)
+            self.surfs = self.surfs.sort() # Sorts list in ascending order, has to be done speratly as sort acts of list and returns nothing
+        # print(self.surfs)
+        if save is True:
+            dir = input('Enter Directory you want to save stacked surfaces to > ')
+
+            if os.path.isdir('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}'.format(dir)) is False:
+                make_d = input('Directory {} does not exist, do you want to create it? (y/n)'.format(dir))
+                if make_d =='y':
+                    print('Ok, creating directory {}'.format(dir))
+                    os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}'.format(dir))
+                else:
+                    print('Exiting....')
+                    sys.exit()
+
+        for s in self.surfs:
+            stat,date,time = self.p_sorted.STAT.values[s],self.p_sorted.DATE.values[s], self.p_sorted.TIME.values[s]
+            # Note that dtlag and dfast are multiplied through by sigma HERE !!
+            fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
+            fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
+            lam2 = self.p_sorted.LAM2.values[s]
+            print('Stat {}, Evt Time {}-{} LAM2 = {}'.format(stat,date,time,lam2))
+            l_path = '{}/{}/{}_{}_{}'.format(self.spath,stat,stat,date,time) #Path to lambda 2 surfaces for SKS and SKKS
+            self.lam2_surface(l_path)
+
+            # fig = plt.figure(figsize=(12,12))
+            fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,8),sharey=True)
+            fig.patch.set_facecolor('None')
+            plt.suptitle(r'Event {}_{}_{}. Stacked $\lambda _2$ value = {:4.3f}'.format(stat,date,time,self.p_sorted.LAM2.values[s]),fontsize=28)
+            # gs = gridspec.GridSpec(3,2)
+            # ax0 = plt.subplot(gs[0,0])
+            ax0.set_title(r'SKS $\lambda _2$ surface',fontsize=24)
+            C0 = ax0.contourf(self.T,self.F,(self.sks_lam2),[0.005,0.01,0.025,0.05,0.075,0.1,0.2,0.3,0.4,0.5,0.75,1.0,1.25,1.5],cmap='inferno_r',extend='both')
+            ax0.contour(C0,colors='k')
+            # ax0.clabel(C0,C0.levels,inline=True,fmt ='%2.3f')
+            #Plot SKS Solution
+            ax0.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
+            ax0.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
+            ax0.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
+            ax0.set_ylabel(r'Fast,$\phi$, (deg)')
+            ax0.set_xlabel(r'Lag ,$\delta$ t, (sec)')
+            #Plot SKKS Solution
+            ax0.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
+            ax0.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
+            ax0.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
+            ax0.set_ylim([-90,90])
+            ax0.set_xlim([0,4])
+            ax0.set_yticks([-90,-60,-30,0,30,60,90])
+            # ax0.contourf(self.sks_lam2,cmap='inferno_r')
+            # ax1 = plt.subplot(gs[0,1])
+            C1 = ax1.contourf(self.T,self.F,self.skks_lam2,[0,0.005,0.01,0.025,0.05,0.075,0.1,0.2,0.3,0.4,0.5,0.75,1.0,1.25,1.5],cmap='inferno_r',extend='both')
+            C3 = ax1.contour(C1,colors='k')
+            # ax1.clabel(C1,C1.levels,inline=True,fmt ='%2.3f')
+            # ax1.contourf(self.skks_lam2,cmap='magma')
+            #Plot SKS Solution
+            ax1.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
+            ax1.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
+            ax1.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
+            #Plot SKKS Solution
+            ax1.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
+            ax1.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
+            ax1.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
+            ax1.set_xlabel(r'Lag ,$\delta$ t, (sec)')
+            ax1.set_ylim([-90,90])
+            ax1.set_xlim([0,4])
+            ax1.set_yticks([-90,-60,-30,0,30,60,90])
+            ax1.set_title(r'SKKS $\lambda _2$ surface',fontsize=24)
+            # ax2 = plt.subplot(gs[1:,:])
+
+            self.show_stacks(ax2,l_path.split('/')[-1])
+            # print('STK_FAST: {} +/- {}'.format(self.df_fast,self.df_dfast))
+            # Modify stk_dlag and stk_dfast by sigma
+            ##########################
+            # self.stk_dlag = self.stk_dlag*sigma
+            # self.stk_dfast = self.stk_dfast*sigma
+            ############################
+            ax2.set_ylim([-90,90])
+            ax2.set_xlim([0,4])
+            ax2.set_yticks([-90,-60,-30,0,30,60,90])
+            #Plto SKS solution
+            ax2.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
+            ax2.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
+            ax2.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
+            #Plot SKKS solution
+            ax2.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
+            ax2.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
+            ax2.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
+            # Plot Stacked solution on SKS
+            ax0.plot(self.stk_lag,self.stk_fast,'g.',label='Stacked Solution')
+            # ax0.plot([self.stk_lag- self.stk_dlag, self.stk_lag + self.stk_dlag],[ self.stk_fast, self.stk_fast],'g-')
+            # ax0.plot([self.stk_lag, self.stk_lag],[ self.stk_fast - self.stk_dfast ,self.stk_fast +self.stk_dfast],'g-')
+            # Plot Stacked Solution on SKKS surface
+            ax1.plot(self.stk_lag,self.stk_fast,'g.',label='Stacked Solution')
+            # ax1.plot([self.stk_lag-self.stk_dlag,self.stk_lag+self.stk_dlag],[self.stk_fast,self.stk_fast],'g-')
+            # ax1.plot([self.stk_lag,self.stk_lag],[self.stk_fast-self.stk_dfast,self.stk_fast+self.stk_dfast],'g-')
+            ## Add a legend (on ax0)
+            ax0.legend(bbox_to_anchor=(0,1),loc='upper left')
+
+
+            # cb = fig.colorbar(C1)
+            # cb.add_lines(C3)
+
+            ax2.set_title('Stacked SKS SKKS surface',fontsize=24)
+            if save is True:
+                # dir = input('Enter Directory you want to save stacked surfaces to > ')
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.eps'.format(dir,lam2,stat),format='eps',dpi=800)
+                plt.close()
+            elif save is False:
+                plt.show()
+
+    def lam2_surface(self,fstem):
+        ''' Function to read  SKS and SKKS .lam2 surface files from sheba '''
+        # print(fstem)
+        t_sks = '{}/SKS/{}??_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1])
+        t_skks = '{}/SKKS/{}??_SKKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1])
+        sks =glob(t_sks)
+        skks = glob(t_skks)
+        # print(t_sks)
+        if len(sks) == 0:
+            stem = '_'.join(fstem.split('/')[-1].split('_')[0:-1]) # aka cut off time part of file extension
+            # print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1]))
+            sks = glob('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
+            skks = glob('{}/SKKS/{}*_SKKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
+
+        self.sks_lam2 = np.loadtxt(sks[0])#,skiprows=4) # skip rows not needed for .lamR files
+        self.skks_lam2 = np.loadtxt(skks[0])#,skiprows=4)
+
+        nfast,nlag = self.sks_lam2.shape ;
+        lag_max = 4.
+        [self.T,self.F] = np.meshgrid(np.linspace(0,lag_max,num=nlag),np.arange(-90,91,1)) ;
+
+    def show_stacks(self,ax,evt,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Nulls'):
+        '''Function to find and plot desired surface stacks based on the LAMDA2 value '''
+        ### Plot Min Lamnda 2
+        print('{}/Stacks/{}??.lamSTK'.format(path,evt))
+        file =glob('{}/Stacks/{}??.lamSTK'.format(path,evt))
+        if len(file) == 0:
+            file = glob('{}/Stacks/{}*.lamSTK'.format(path,'_'.join(evt.split('_')[0:-1])))
+
+        stk = np.loadtxt(file[0])
+        nfast,nlag = stk.shape ;
+        lag_step = 0.025
+        lag_max = (nlag) * lag_step;
+        [T,F] = np.meshgrid(np.arange(0,lag_max,lag_step),np.arange(-90,91,1)) ;
+        jf,jt  = np.unravel_index(stk.argmin(),stk.shape)
+        print(stk.argmin())
+        print(jf,jt)
+
+        fast = np.arange(-90,91,1)[jf]
+        lag = np.arange(0,lag_max,lag_step)[jt]
+        C = ax.contourf(T,F,stk,[0.01,0.025,0.05,0.075,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.6,0.7,0.8,0.9,1.0,1.5],cmap='inferno_r',extend='both')
+        C2 = ax.contour(C,colors='k')
+        ax.set_ylabel(r'Fast,$\phi$, (deg)')
+        ax.set_xlabel(r'Lag ,$\delta$ t, (sec)')
+        # ax.plot([lag-dlag,lag+dlag],[fast,fast],'g-')
+        # ax.plot([lag,lag],[fast-dfast,fast+dfast],'g-')
+        ax.plot(lag,fast,'g.')
+        # ax.clabel(C,C.levels,inline=True,fmt ='%4.3f')
+
+        # self.cbar = plt.colorbar(C)
+        # self.cbar.add_lines(C2)
+        # ax.set_title(r'Event {}. $\lambda$ 2 value = {}'.format(evt,lam2))
+        # Add fast, lag as attributes so we can plot them elsewhere
+        sol = stk.min()
+
+        print('Lam2 {}, fast {} lag {}'.format(sol,fast,lag))
+        self.stk_fast = fast
+        self.stk_lag = lag
 
 #####################################################################################################
 # Top level where script is invoked from command line
