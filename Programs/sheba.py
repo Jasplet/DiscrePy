@@ -44,13 +44,18 @@ def tidyup(path,phase,outfile):
 
     path - [str]: path to the Run directory (e.g. /users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Run_Name)
     phase - Phase that you want to collect results for
-    outfile - [str]: outfile name (including full path)
+    outfile - [str]: outfile name (filename only! Path taken from Path variable)
     """
-    fnames = glob('{}/*/{}/*final_result'.format(path,phase))
+    if phase == 'SYNTH':
+        fnames = glob('{}/*.final_result'.format(path))
+        print('{}*.final_result'.format(path))
+    else:
+        fnames = glob('{}/*/{}/*final_result'.format(path,phase))
     results = []
-    #print(fnames)
+    print(fnames)
     for i,file in enumerate(fnames):
         f_stat = fnames[i].rstrip('final_result') + 'stats'
+
         with open(file,'r') as input, open(f_stat,'r') as stats:
              head = input.readline()
              head_s = stats.readline()
@@ -62,6 +67,7 @@ def tidyup(path,phase,outfile):
              del s[0:2] ,s[-1]
              j = h.index('STAT')
              h[2],h[3:j+1]= h[j],h[2:j]
+
              header = ' '.join(h) + ' ' + ' '.join(s)
 
              for line in input.readlines():
@@ -147,15 +153,26 @@ class Interface:
         for i in [0,1,2]:
             st[i].stats.sac.kstnm = '{:>8}'.format(st[i].stats.sac.kstnm)
 #§          Formats Station name in headers so that it is 8 characters long, with emtpy character fill with whitespaces
-        self.BHE = st.select(channel='BHE')
-        self.BHE[0].stats.sac.cmpinc = 90
-        self.BHE[0].stats.sac.cmpaz = 90
-        self.BHN = st.select(channel='BHN')
-        self.BHN[0].stats.sac.cmpinc = 90
-        self.BHN[0].stats.sac.cmpaz = 0
-        self.BHZ = st.select(channel='BHZ')
-        self.BHZ[0].stats.sac.cmpinc = 0
-        self.BHZ[0].stats.sac.cmpaz = 0
+        try:
+            self.BHE = st.select(channel='BHE')
+            self.BHE[0].stats.sac.cmpinc = 90
+            self.BHE[0].stats.sac.cmpaz = 90
+            self.BHN = st.select(channel='BHN')
+            self.BHN[0].stats.sac.cmpinc = 90
+            self.BHN[0].stats.sac.cmpaz = 0
+            self.BHZ = st.select(channel='BHZ')
+            self.BHZ[0].stats.sac.cmpinc = 0
+            self.BHZ[0].stats.sac.cmpaz = 0
+        except IndexError:
+            self.BHE = st[0]
+            self.BHE.stats.sac.cmpinc = 90
+            self.BHE.stats.sac.cmpaz = 90
+            self.BHN = st[1]
+            self.BHN.stats.sac.cmpinc = 90
+            self.BHN.stats.sac.cmpaz = 0
+            self.BHZ = st[2]
+            self.BHZ.stats.sac.cmpinc = 0
+            self.BHZ.stats.sac.cmpaz = 0
 #       Also lets load the gcarc from each stream, so we can test for whether SKKS should be measuable
         self.gcarc = (st[0].stats.sac.gcarc)
         self.station = st[0].stats.station
@@ -204,7 +221,7 @@ class Interface:
             print('Phase {} not SKS or SKKS'.format(phase_to_check))
             return False
 
-    def process(self,c1=0.01,c2=0.5):
+    def process(self,synth=False,c1=0.01,c2=0.5):
         """
         Function to bandpass filter and trim the components
         Seismograms are trimmed so that they start 1 minute before the expected arrival and end 2 minutes after the arrival
@@ -226,26 +243,30 @@ class Interface:
         self.BHE.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
         self.BHZ.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
 #       Now trim each component to the input length
-
+        if synth == False: # We only need to trim and set the window length for real data, not synthetics made with sacsplitwave
 #       Now set the trim
-        t1 = (self.tt - 60) #I.e A minute before the arrival
-        t2 = (self.tt + 120) #I.e Two minutes after the arrival
-        self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
-        self.BHE.trim(self.BHE[0].stats.starttime + t1,self.BHE[0].stats.starttime + t2)
-        self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
-#       Add windowing ranges to sac headers user0,user1,user2,user3 [start1,start2,end1,end2]
-#       Set the range of window starttime (user0/user1)
-        user0 = self.tt - 15 #15 seconds before arrival
-        user1 = self.tt # t predicted arrival
-#       Set the raqnge of window endtime (user2/user3)
-        user2 = self.tt + 15 # 15 seconds after, gives a min window size of 20 seconds
-        user3 = self.tt + 30 # 30 seconds after, gives a max window size of 45 seconds
-#
-        self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (user0,user1,user2,user3)
-        self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
-        self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
+            t1 = (self.tt - 60) #I.e A minute before the arrival
+            t2 = (self.tt + 120) #I.e Two minutes after the arrival
+            self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
+            self.BHE.trim(self.BHE[0].stats.starttime + t1,self.BHE[0].stats.starttime + t2)
+            self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
+    #       Add windowing ranges to sac headers user0,user1,user2,user3 [start1,start2,end1,end2]
+    #       Set the range of window starttime (user0/user1)
+            user0 = self.tt - 15 #15 seconds before arrival
+            user1 = self.tt # t predicted arrival
+    #       Set the raqnge of window endtime (user2/user3)
+            user2 = self.tt + 15 # 15 seconds after, gives a min window size of 20 seconds
+            user3 = self.tt + 30 # 30 seconds after, gives a max window size of 45 seconds
+    #
+            self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (user0,user1,user2,user3)
+            self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
+            self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
+        else:
+            print('Synthetics Used, Windows *should* be predefined')
+            print(self.BHN.stats.sac.user0,self.BHN.stats.sac.user1,self.BHN.stats.sac.user2,self.BHN.stats.sac.user3)
 
-    def write_out(self,phase,label,path=None):
+
+    def write_out(self,phase,label,path=None,synth=False):
         """
         Function to write the component seismograms to SAC files within the sheba directory structure so Sheba can access them
         station [str] - station code
@@ -260,6 +281,10 @@ class Interface:
             self.BHN.write('{}/{}{}.BHN'.format(path,label,phase),format='SAC',byteorder=1)
             self.BHE.write('{}/{}{}.BHE'.format(path,label,phase),format='SAC',byteorder=1)
             self.BHZ.write('{}/{}{}.BHZ'.format(path,label,phase),format='SAC',byteorder=1)
+        elif synth == True:
+            self.BHN.write('{}SYNTH.BHN'.format(label),format='SAC',byteorder=1)
+            self.BHE.write('{}SYNTH.BHE'.format(label),format='SAC',byteorder=1)
+            self.BHZ.write('{}SYNTH.BHZ'.format(label),format='SAC',byteorder=1)
         else:
             self.BHN.write('{}.BHN'.format(label),format='SAC',byteorder=1)
             self.BHE.write('{}.BHE'.format(label),format='SAC',byteorder=1)
