@@ -101,7 +101,7 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
             station = st[0].stats.station
             f_check = '{}/{}/{}/{}{}_sheba.final_result'.format(runpath,station,phase,label,phase)
             # print('Fcheck is {}'.format(f_check))
-            if os.path.isfile(f_check) == True:
+            if os.path.isfile(f_check) == True: # Check if event has already been processed
                 print('File has already been processed: {} '.format(f_check))
             else:
                 #print('File to process: {} '.format(f_check))
@@ -204,7 +204,7 @@ class Interface:
             print('Phase {} not SKS or SKKS'.format(phase_to_check))
             return False
 
-    def process(self,phase,c1=0.01,c2=0.5):
+    def process(self,c1=0.01,c2=0.5):
         """
         Function to bandpass filter and trim the components
         Seismograms are trimmed so that they start 1 minute before the expected arrival and end 2 minutes after the arrival
