@@ -98,7 +98,7 @@ class Stacker:
 
         #perform stack by adding surfaces together.
         # No weighting applied
-        self.stk = self.sks_lamR + self.skks_lamR
+        self.stk = (self.sks_lamR + self.skks_lamR) / 2
 
         # find min lam2 value
         self.lam2 = self.stk.min()
