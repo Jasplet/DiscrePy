@@ -35,8 +35,8 @@ class Builder:
         start = ctime()
         print('Making Pairs')
         self.make_pairs()
-        self.P = self.snr_check(t=self.snr) # Foverwrite self.P eith only accepted events
-        self.write_out(self.P)
+        self.P = self.snr_check() # Foverwrite self.P eith only accepted events
+        self.write_out(self.P,name='{}_all.pairs'.format(self.sdb_stem))
         # Write initial pairs file so we can make piercepoints
         # Next generate the piercepoints and add them to the df
         print('Adding PiercePoints')
@@ -55,15 +55,15 @@ class Builder:
         # print('{} pairs'.format(len(self.P)))
 
         # And save the result
-        self.write_out(self.P)
+        self.write_out(self.P,'{}_{:02d}.pairs'.format(self.sdb_stem,int(self.snr)))
         end = ctime()
         print('END. start {}, end {}'.format(start,end))
 
     def gen_pp(self):
         ''' Fucntion to test for whether the .pp file exists and if not call TauP to generate it and the corresponding mspp files '''
-        if os.path.isfile('{}_{:02d}.pp'.format(self.fpath.split('.')[0],self.snr)):
+        if os.path.isfile('{}_{:02d}.pp'.format(self.fpath.split('.')[0],int(self.snr))):
             #print(pf[:-6])
-            self.pp = pd.read_csv('{}_{:02d}.pp'.format(self.fpath.split('.')[0],self.snr),delim_whitespace=True)
+            self.pp = pd.read_csv('{}_{:02d}.pp'.format(self.fpath.split('.')[0],int(self.snr)),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(self.fpath.split('.')[0]))
             p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(self.fpath)))
@@ -101,8 +101,8 @@ class Builder:
         # Sort the Pairs dataframe so the pairs are in chronological order (by origin time (DATE only))
         self.P = SKS_SKKS_pair.sort_values(by=['DATE'],ascending=True)
 
-    def write_out(self,df):
-        df.to_csv(self.fpath,sep=' ',index=False)
+    def write_out(self,df,name):
+        df.to_csv('{}/{}'.format(self.path,name),sep=' ',index=False)
 
     def add_DSI(self):
         '''Calculate the difference in Splitting Intensity for each pair and add it to dataframe'''
@@ -231,16 +231,17 @@ class Builder:
         mspp_diff.close()
         mspp_match.close()
 
-    def snr_check(self,t=2.0):
+    def snr_check(self):
         ''' Run a quick and dirty check on Signal to Noise Ratio. If is is less than the threshold events are rejected'''
-
+        t = self.snr
+        print(t)
         self.accepted_i = [ ]
         self.d = [ ]
         print('There are {} pairs pre-SNR < 2 test'.format(len(self.P)))
         for i,row in self.P.iterrows():
-            if row.SNR_SKS <= 2 or row.SNR_SKKS <= 2:
+            if row.SNR_SKS <= t or row.SNR_SKKS <= t:
                 #Test to see if Signal-to-Noise is too high
-                print('SNR for SKS or SKKS less than {}, auto-reject'.format(t))
+                print('SNR for SKS or SKKS less than {:02}, auto-reject'.format(t))
                 self.d.append(i)
             else:
                 self.accepted_i.append(i)
