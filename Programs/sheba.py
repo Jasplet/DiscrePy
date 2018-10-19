@@ -52,8 +52,9 @@ def tidyup(path,phase,outfile):
     else:
         fnames = glob('{}/*/{}/*final_result'.format(path,phase))
     results = []
-    print(fnames)
+    #print(fnames)
     for i,file in enumerate(fnames):
+        print(file)
         f_stat = fnames[i].rstrip('final_result') + 'stats'
 
         with open(file,'r') as input, open(f_stat,'r') as stats:
