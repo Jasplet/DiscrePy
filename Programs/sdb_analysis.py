@@ -19,7 +19,7 @@ class Builder:
     - path: [str] path to Sheba/Results directory that contains the sdb's that you want
     - RunDir: [str] path to the Run Directory than Contains the .lamR surfaces to stack
     """
-    def __init__(self,p,RunDir,sdb_stem,snr=2.0):
+    def __init__(self,p,RunDir,sdb_stem,snr=2.0,syn=False):
 
         self.path = p
         self.path_stk = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(RunDir)
@@ -27,6 +27,7 @@ class Builder:
         self.fpath =     '{}/{}_{:02d}_SKS_SKKS.pairs'.format(self.path,self.sdb_stem,int(snr))
         self.lam2 = [ ]
         self.snr = snr
+        self.syn=syn
         #if kwargs are none:\
 
     def run(self):
@@ -46,13 +47,15 @@ class Builder:
         print('Calculate difference in splitting intensity')
         self.add_DSI()
         # Finally stack the lamR surfaces to determine the lam2 values
-        print('Calculate lambda 2 values')
-        self.add_lam2()
-        #Now test for matching and disrecpent pairs
-        print('Apply 2-sigma test for discrepancy')
-        self.match()
-        # Apply a quick Signal to Noise test to get rid of the rreally bad data
-        # print('{} pairs'.format(len(self.P)))
+        if self.syn is False:
+            ''' I.e Are we using real data? Because of the set up of the synthetics (and I am only using 6 pairs) I will stack these more manually and I dont want to reject any '''
+            print('Calculate lambda 2 values')
+            self.add_lam2()
+            #Now test for matching and disrecpent pairs
+            print('Apply 2-sigma test for discrepancy')
+            self.match()
+            # Apply a quick Signal to Noise test to get rid of the rreally bad data
+            # print('{} pairs'.format(len(self.P)))
 
         # And save the result
         self.write_out(self.P,'{}_{:02d}.pairs'.format(self.sdb_stem,int(self.snr)))
@@ -83,8 +86,11 @@ class Builder:
 
         """
         ## Set Path to Sheba Directory
-        SKS_sdb = '{}_SKS_sheba_results.sdb'.format(self.sdb_stem)
-        SKKS_sdb = '{}_SKKS_sheba_results.sdb'.format(self.sdb_stem)
+        # SKS_sdb = '{}_SKS_sheba_results.sdb'.format(self.sdb_stem)
+        # SKKS_sdb = '{}_SKKS_sheba_results.sdb'.format(self.sdb_stem)
+        # For Synthetics I didnt bother putting in the sheba results part so use these
+        SKS_sdb = '{}_SKS.sdb'.format(self.sdb_stem)
+        SKKS_sdb = '{}_SKKS.sdb'.format(self.sdb_stem)
         # First import the SKS and SKKS .sdb files (sdb = splitting database)
         date_time_convert = {'TIME': lambda x: str(x),'DATE': lambda x : str(x)}
         SKS = pd.read_csv('{}/{}'.format(self.path,SKS_sdb),delim_whitespace=True,converters=date_time_convert)
@@ -256,22 +262,32 @@ class Builder:
 class Pairs:
     """ A class to actually hold a Pairs (read as a pandas dataframe) and then do useful stuff with it """
 
-    def __init__(self,df=None,file=False,fname=None):
+    def __init__(self,df=None,file=False,fname=None,syn=False,syn1=None,syn2=None,synstk=None):
         '''
         df - a pandas dataframe contaiing the pairs (implicitly assumed that this df has been made using builder)
         file [bool] - T/F flag for if you want to read in a already existing pairs file. This option is easier if you have not freshly created it as the correct converters to preserve
                     leading zeros in date and time will be applied
         fname [str] - Full path to (and including) the pairs file your want to read in.
         '''
+        self.syn = syn # [Bool] - is data synthetics or not?
+        if self.syn == True:
+            self.syn1 = syn1
+            self.syn2 = syn2
+            self.synstk = synstk
 
         if file is True:
             print('Read file option specified')
             date_time_convert = {'TIME': lambda x: str(x).zfill(4),'DATE': lambda x : str(x)}
             self.df = pd.read_csv(fname,delim_whitespace=True,converters=date_time_convert)
-            pmatch = '{}_matches.pairs'.format(fname.split('.')[0])
-            pdiff ='{}_diffs.pairs'.format(fname.split('.')[0])
-            self.matches = pd.read_csv(pmatch,delim_whitespace=True,converters=date_time_convert)
-            self.diffs = pd.read_csv(pdiff,delim_whitespace=True,converters=date_time_convert)
+            try:
+                pmatch = '{}_matches.pairs'.format(fname.split('.')[0])
+                pdiff ='{}_diffs.pairs'.format(fname.split('.')[0])
+                self.matches = pd.read_csv(pmatch,delim_whitespace=True,converters=date_time_convert)
+                self.diffs = pd.read_csv(pdiff,delim_whitespace=True,converters=date_time_convert)
+            except FileNotFoundError:
+                print('Match or Diff file not found. Are you using synhetics maybe??')
+
+
         elif file is False:
             print('Expectinf df input')
             self.df = df
@@ -421,7 +437,7 @@ class Pairs:
             cp_sacfile(file,mypath,outdir)
 
 
-    def discrepancy_plot(self,surf_path,nplots=2,surfs_to_plot=None,save=False,sigma=1,**kwargs):
+    def discrepancy_plot(self,surf_path=None,nplots=2,surfs_to_plot=None,save=False,sigma=1,**kwargs):
         '''Top level plotting function for surfaces to look for discrepancy in Splitting
             surf_path [str] - path to the runs directory containing the surfaces to plot
             nplots - the number of plots that you want (if the surfs_to_plot is not specified)
@@ -437,8 +453,8 @@ class Pairs:
             self.surfs= np.round(np.arange(0,len(self.p_sorted),round((len(self.p_sorted)/nplots))))
         else:
             self.surfs = list(set([i if i < len(self.p_sorted) else (len(self.p_sorted)-1) for i in surfs_to_plot])) # This makes sure that indicies are always within the range of available surfaces (stops errors for occuring)
-            self.surfs = self.surfs.sort() # Sorts list in ascending order, has to be done speratly as sort acts of list and returns nothing
-        # print(self.surfs)
+            #self.surfs = self.surfs.sort() # Sorts list in ascending order, has to be done speratly as sort acts of list and returns nothing
+        print(self.surfs)
         if save is True:
             dir = input('Enter Directory you want to save stacked surfaces to > ')
 
@@ -452,19 +468,31 @@ class Pairs:
                     sys.exit()
 
         for s in self.surfs:
+            print(s)
             stat,date,time = self.p_sorted.STAT.values[s],self.p_sorted.DATE.values[s], self.p_sorted.TIME.values[s]
             # Note that dtlag and dfast are multiplied through by sigma HERE !!
-            fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
-            fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
-            lam2 = self.p_sorted.LAM2.values[s]
-            print('Stat {}, Evt Time {}-{} LAM2 = {}'.format(stat,date,time,lam2))
-            l_path = '{}/{}/{}_{}_{}'.format(self.spath,stat,stat,date,time) #Path to lambda 2 surfaces for SKS and SKKS
-            self.lam2_surface(l_path)
 
+
+            if self.syn is True:
+                self.lam2_surface(f1=self.syn1[s],f2=self.syn2[s])
+                fast_sks,dfast_sks,lag_sks,dlag_sks = self.df.FAST_SKS.values[s],(sigma*self.df.DFAST_SKS.values[s]),self.df.TLAG_SKS.values[s],(sigma*self.df.DTLAG_SKS.values[s])
+                fast_skks,dfast_skks,lag_skks,dlag_skks = self.df.FAST_SKKS.values[s],(sigma*self.df.DFAST_SKKS.values[s]),self.df.TLAG_SKKS.values[s],(sigma*self.df.DTLAG_SKKS.values[s])
+                lam2 = self.df.LAM2.values[s]
+            else:
+                fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
+                fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
+                lam2 = self.p_sorted.LAM2.values[s]
+                l_path = '{}/{}/{}_{}_{}'.format(self.spath,stat,stat,date,time) #Path to lambda 2 surfaces for SKS and SKKS
+                self.lam2_surface(l_path)
+            print('Stat {}, Evt Time {}-{} LAM2 = {}'.format(stat,date,time,lam2))
             # fig = plt.figure(figsize=(12,12))
             fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,8),sharey=True)
             fig.patch.set_facecolor('None')
-            plt.suptitle(r'Event {}_{}_{}. Stacked $\lambda _2$ value = {:4.3f}'.format(stat,date,time,self.p_sorted.LAM2.values[s]),fontsize=28)
+            if self.syn is True:
+                plt.suptitle(r'Syn Stack E1: {} E2: {} $\lambda _2$ value = {:4.3f}'.format(self.syn1[s],self.syn2[s],self.df.LAM2.values[s]),fontsize=28)
+            else:
+                plt.suptitle(r'Event {}_{}_{}. Stacked $\lambda _2$ value = {:4.3f}'.format(stat,date,time,self.p_sorted.LAM2.values[s]),fontsize=28)
+
             # gs = gridspec.GridSpec(3,2)
             # ax0 = plt.subplot(gs[0,0])
             ax0.set_title(r'SKS $\lambda _2$ surface',fontsize=24)
@@ -473,6 +501,7 @@ class Pairs:
             # ax0.clabel(C0,C0.levels,inline=True,fmt ='%2.3f')
             #Plot SKS Solution
             ax0.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
+            print('Lag sks {}. Fast SKS {}.'.format(lag_sks,fast_sks))
             ax0.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
             ax0.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
             ax0.set_ylabel(r'Fast,$\phi$, (deg)')
@@ -504,8 +533,10 @@ class Pairs:
             ax1.set_yticks([-90,-60,-30,0,30,60,90])
             ax1.set_title(r'SKKS $\lambda _2$ surface',fontsize=24)
             # ax2 = plt.subplot(gs[1:,:])
-
-            self.show_stacks(ax2,l_path.split('/')[-1])
+            if self.syn is True:
+                self.show_stacks(ax2,evt=self.synstk[s],path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Stacks')
+            else:
+                self.show_stacks(ax2,l_path.split('/')[-1])
             # print('STK_FAST: {} +/- {}'.format(self.df_fast,self.df_dfast))
             # Modify stk_dlag and stk_dfast by sigma
             ##########################
@@ -546,22 +577,28 @@ class Pairs:
             elif save is False:
                 plt.show()
 
-    def lam2_surface(self,fstem):
-        ''' Function to read  SKS and SKKS .lam2 surface files from sheba '''
+    def lam2_surface(self,fstem=None,f1=None,f2=None):
+        ''' Function to read  SKS and SKKS .lam2 surface files from sheba
+        If syn if False (i.e real data is being used.) Then fstem in needed
+        IF syn is True then f1 , f2 are needed
+        '''
         # print(fstem)
-        t_sks = '{}/SKS/{}??_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1])
-        t_skks = '{}/SKKS/{}??_SKKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1])
-        sks =glob(t_sks)
-        skks = glob(t_skks)
-        # print(t_sks)
-        if len(sks) == 0:
-            stem = '_'.join(fstem.split('/')[-1].split('_')[0:-1]) # aka cut off time part of file extension
-            # print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1]))
-            sks = glob('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
-            skks = glob('{}/SKKS/{}*_SKKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
+        if self.syn == False:
+            t_sks = '{}/SKS/{}??_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1])
+            t_skks = '{}/SKKS/{}??_SKKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1])
+            sks =glob(t_sks)
+            skks = glob(t_skks)
+            if len(sks) == 0:
+                stem = '_'.join(fstem.split('/')[-1].split('_')[0:-1]) # aka cut off time part of file extension
+                # print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1]))
+                sks = glob('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
+                skks = glob('{}/SKKS/{}*_SKKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
+            self.sks_lam2 = np.loadtxt(sks[0])#,skiprows=4) # skip rows not needed for .lamR files
+            self.skks_lam2 = np.loadtxt(skks[0])#,skiprows=4)
 
-        self.sks_lam2 = np.loadtxt(sks[0])#,skiprows=4) # skip rows not needed for .lamR files
-        self.skks_lam2 = np.loadtxt(skks[0])#,skiprows=4)
+        elif self.syn == True:
+            self.sks_lam2 = np.loadtxt('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Stacks/{}'.format(f1))
+            self.skks_lam2 = np.loadtxt('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Stacks/{}'.format(f2))
 
         nfast,nlag = self.sks_lam2.shape ;
         lag_max = 4.
@@ -570,12 +607,16 @@ class Pairs:
     def show_stacks(self,ax,evt,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Nulls'):
         '''Function to find and plot desired surface stacks based on the LAMDA2 value '''
         ### Plot Min Lamnda 2
-        print('{}/Stacks/{}??.lamSTK'.format(path,evt))
-        file =glob('{}/Stacks/{}??.lamSTK'.format(path,evt))
-        if len(file) == 0:
-            file = glob('{}/Stacks/{}*.lamSTK'.format(path,'_'.join(evt.split('_')[0:-1])))
+        if self.syn is True:
+            stk = np.loadtxt('{}/{}'.format(path,evt))
+        else:
+            print('{}/Stacks/{}??.lamSTK'.format(path,evt))
+            file =glob('{}/Stacks/{}??.lamSTK'.format(path,evt))
+            if len(file) == 0:
+                file = glob('{}/Stacks/{}*.lamSTK'.format(path,'_'.join(evt.split('_')[0:-1])))
 
-        stk = np.loadtxt(file[0])
+            stk = np.loadtxt(file[0])
+
         nfast,nlag = stk.shape ;
         lag_step = 0.025
         lag_max = (nlag) * lag_step;
