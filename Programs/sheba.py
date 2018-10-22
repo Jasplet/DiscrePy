@@ -447,7 +447,7 @@ if __name__ == '__main__':
 #       Tidyup results
         print('Sheba run complete, time to tidy up')
         """ Loop over phases process and tidyup results """
-        tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs,/{}'.format(rundir)
+        tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
         outfile = '{}_SYNTH_sheba_results.sdb'.format(out_pre)
         tidyup(tidy_path,phase,outfile)
 
