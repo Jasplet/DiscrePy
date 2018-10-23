@@ -30,6 +30,7 @@ import subprocess as sub
 from subprocess import CalledProcessError
 import os.path
 import time
+import timeit
 import shlex
 from multiprocessing import Pool, current_process
 from functools import partial
@@ -38,7 +39,7 @@ from glob import glob
 ############################################################################################
 # Define Functions and Classes
 ############################################################################################
-def tidyup(path,phase,outfile):
+def tidyup(path,phase,outfile,outdir):
     """
     Function to collect .final_result files output from Sheba into the Run directory. Results are written in the SBD format to Sheba/Results
 
@@ -82,7 +83,7 @@ def tidyup(path,phase,outfile):
                 results.append(result)
 
     results.insert(0,header)
-    outdir = path.split('/')[-1]
+    # outdir = path.split('/')[-1]
     print('Writing Results to {} in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile,outdir))
     with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/{}'.format(outdir,outfile),'w') as writer:
         for r in results:
@@ -102,13 +103,14 @@ def run_synth_i(runpath,filepath):
             # print(label)
             st_id = '{}.BH?'.format(file)
             st = obspy.read(st_id)
+            stat= st[0].stats.station
             #print(st)
             Event = Interface(st)
             Event.process(synth=True)
             # print(r_dir)
             print(label)
             Event.write_out('SYNTH',label,path=r_dir)
-            Event.sheba('SWAV','SYNTH',label,path=r_dir)
+            Event.sheba(stat,'SYNTH',label,path=r_dir)
      #End of loop
     tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH'
     tidyup(r_dir,'SYNTH','Synthetics_results.sdb')
@@ -119,9 +121,11 @@ def run_synth(runpath,filepath):
     '''
     # print('Running')
     label = '{}_'.format(filepath.split('/')[-1])
+    phase= 'SYNTH' #Empty String for phase are these are synthetics
     # print(label)
     st_id = '{}.BH?'.format(filepath)
     st = obspy.read(st_id)
+    stat = st[0].stats.station
     #print(st)
     Event = Interface(st)
     # print('Synthetics Used, Windows *should* be predefined')
@@ -129,7 +133,7 @@ def run_synth(runpath,filepath):
     # print(r_dir)
     print(label)
     Event.write_out('SYNTH',label,path=runpath)
-    Event.sheba('SWAV','SYNTH',label,nwind=False,path=runpath)
+    Event.sheba(stat,phase,label,path=runpath,nwind=False)
 
 
 
@@ -396,14 +400,15 @@ if __name__ == '__main__':
 
     #Loop over all stations in the list.
     #################### Time run #################
-    start = time.time()
+    start = timeit.default_timer()
     #####################################################################################
     # Setup Paths, Constants and sort out input Arguements #############
     #####################################################################################
     # Set full path to station list
-    evt_list = sys.argv[1]
-    rundir=sys.argv[2]
-    mode=sys.argv[3]
+    evt_list = sys.argv[1] # A .events file containing a list of filestems to al teh data we want to measure
+    rundir=sys.argv[2] # The run directory that you want to house the output files
+    run_mode = sys.argv[3] # par is wanting to run in parallel, ser if running serially
+    mode=sys.argv[4] # None if using real data, syn is using synthetics
     print(mode,type(mode))
     file_list ='/Users/ja17375/Shear_Wave_Splitting/Data/{}'.format(evt_list)
     # echo out where I expect the staiton list to be
@@ -422,34 +427,50 @@ if __name__ == '__main__':
     ######################################################################################
     ############### Run Sheba - using parallel processing with Pool ######################
     ######################################################################################
-    if mode is None:
+    if mode == 'data':
         runpath ='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
         runner = partial(run_sheba,runpath)
-        with contextlib.closing( Pool(processes = 8) ) as pool:
-        #           Iterate over stations in the station list.
-            pool.map(runner,files)
-        #               pool.map(tidyup,stations) ??? Maybe this would work???
-#       Tidy up results
-        print('Sheba run complete, time to tidy up')
+        if run_mode == 'par':
+            with contextlib.closing( Pool(processes = 8) ) as pool:
+            #           Iterate over stations in the station list.
+                pool.map(runner,files)
+            #               pool.map(tidyup,stations) ??? Maybe this would work???
+    #       Tidy up results
+            print('Sheba run complete, time to tidy up')
+        elif run_mode == 'ser':
+            #Run in serial mode (booooo)
+            for file in files:
+                runner(file)
+
         for phase in phases:
             """ Loop over phases process and tidyup results """
             tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
             outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
-            tidyup(tidy_path,phase,outfile)
+            outdir = tidy_path.split('/')[-1]
+            tidyup(tidy_path,phase,outfile,outdir)
+
+
     elif mode == 'syn':
         phase='SYNTH'
         runpath ='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
         runner = partial(run_synth,runpath)
+        # As all the synthetics files are in the same directory (They share a "station") we cannot run in parralel and use the sac macro. (Maybe switch to making my own infiles then?)
+        # THis is because the workers trip over each other an corrupt the majority of infiles.
         print('Synthetics Run')
-        with contextlib.closing( Pool(processes = 8) ) as pool:
+        # with contextlib.closing( Pool(processes = 8) ) as pool:
         #           Iterate over stations in the station list.
-            pool.map(runner,files)
-#       Tidyup results
+            # pool.map(runner,files)
+#
+        for file in files:
+            runner(file)
+
+        #Tidyup results
         print('Sheba run complete, time to tidy up')
         """ Loop over phases process and tidyup results """
         tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
         outfile = '{}_SYNTH_sheba_results.sdb'.format(out_pre)
-        tidyup(tidy_path,phase,outfile)
+        outdir = rundir.split('/')[0]
+        tidyup(tidy_path,phase,outfile,outdir)
 
     # print('Sheba run complete, time to tidy up')
     ######################################################################################
@@ -462,7 +483,7 @@ if __name__ == '__main__':
     ######################################################################################
     # End Timing of run
     ######################################################################################
-    end = time.time()
+    end = timeit.default_timer()
     runtime = end - start
     print('The runtime of main is {} seconds'.format(runtime))
 # END
