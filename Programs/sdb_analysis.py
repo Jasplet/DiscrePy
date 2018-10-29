@@ -36,7 +36,8 @@ class Builder:
         start = ctime()
         print('Making Pairs')
         self.make_pairs()
-        self.P = self.snr_check() # Foverwrite self.P eith only accepted events
+        # Apply a quick Signal to Noise test to get rid of the rreally bad data
+        self.P = self.snr_check() # Overwrite self.P weith only accepted events
         self.write_out(self.P,name='{}_all.pairs'.format(self.sdb_stem))
         # Write initial pairs file so we can make piercepoints
         # Next generate the piercepoints and add them to the df
@@ -54,7 +55,7 @@ class Builder:
             #Now test for matching and disrecpent pairs
             print('Apply 2-sigma test for discrepancy')
             self.match()
-            # Apply a quick Signal to Noise test to get rid of the rreally bad data
+
             # print('{} pairs'.format(len(self.P)))
 
         # And save the result
@@ -144,7 +145,7 @@ class Builder:
                 # I.e if glob has managed to find the sks lam2 surface file
                 sks_lam2 = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
                 skks_lam2 = glob('{}/{}/SKKS/{}??_SKKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
-                Stk = Stacker(sks_lam2,skks_lam2,fstem,out)
+                Stk = Stacker(sks_lam2,skks_lam2,out)
                 if mode == 'man':
                     self.lam2.append(Stk.lam2)
                 elif mode == 'sheba':
