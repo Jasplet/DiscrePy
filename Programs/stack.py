@@ -35,7 +35,7 @@ class Stacker:
     Class for doing the stacking
     '''
 
-    def __init__(self,lam2_sks,lam2_skks,fstem,outpath,stk_type='man',syn='False',i=None):
+    def __init__(self,lam2_sks,lam2_skks,outpath,outfile=None,stk_type='man'):#,syn='False',i=None):
         '''
         Initialises class, checks if lam2 surfaces exist
         lam2_sks - [str] full path to lam2 surface for SKS
@@ -44,14 +44,11 @@ class Stacker:
         These should be provided as FULL PATHS !
         '''
         # print('Starting Stacker')
-        self.syn= syn
-        if syn ==True:
-            self.i = i
 
         if os.path.isfile(lam2_sks) is False:
             raise NameError('Lambda 2 (for sks) provided does not exist')
         elif os.path.isfile(lam2_skks) is False:
-            raise NameError('Lambda 2 (for sks) provided does not exist')
+            raise NameError('Lambda 2 (for skks) provided does not exist')
         # else:
             # print('Lambda 2 surfaces exist')
     #   make input paths attribute, we need these full paths for man stacking mode
@@ -62,11 +59,14 @@ class Stacker:
         self.skks = lam2_skks.split('/')[-1]
     #   make output filestem (but cutting off the phase extension from self.sks)
 
-        if syn == False:
+        if outfile == None:
             self.out = '_'.join(self.sks.split('_')[:-1])
-        elif syn == True:
-            self.out = 'SYNTH_pair_{:02d}'.format(i+1)
-            self.copy_files(lam2_sks,lam2_skks,outpath)
+        else:
+            print(outfile)
+            self.out = outfile
+
+        #Copy .lamR files to our Stacks directory so we still have them for plotting if I decide to Purge the Runs directory
+        self.copy_files(lam2_sks,lam2_skks,outpath)
 
         self.outfile = '{}/{}'.format(outpath,self.out)
     #   make arrays of dt and fast that we can use to identify solution of the stack (for man mode)
@@ -153,6 +153,7 @@ class Stacker:
             writer.write(self.skks)
 
         # print('sheba_stack.in written to {}'.format(self.path))
+
 
 ########
 
