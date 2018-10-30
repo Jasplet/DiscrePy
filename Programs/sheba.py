@@ -170,7 +170,8 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
                             print('NO Traveltimes, bad data file {}'.format(st_id))
                             pass
                         else:
-                            Event.process(phase)
+                            Event.process(synth=False)
+                            # print('Function', Event.process(phase,synth=False))
                             outdir = '{}/{}/{}'.format(runpath,station,phase)
                             try:
                                 Event.write_out(phase,label,path=outdir)
@@ -179,11 +180,11 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
                                 os.makedirs(outdir)
                                 # print('Label is {}. Path is {}'.format(label,path))
                                 Event.write_out(phase,label,path=outdir)
-
+                            print('RUn sheba, stat {}, phase {}, label {}, out {}'.format(station,phase,label,outdir))
                             Event.sheba(station,phase,label,path=outdir)
                             #tidyup_by_stat(path,station,phase,label,outfile)
                     else:
-                        # print('Fail')
+                        # print('Fail, Distance ')
                         pass
                 else:
                     print(' len(st) is not 3. Passing')
@@ -247,7 +248,7 @@ class Interface:
             traveltime = model.get_travel_times(10,self.BHN[0].stats.sac.gcarc,[phase])[0].time
         else:
             tt = model.get_travel_times((self.BHN[0].stats.sac.evdp),self.BHN[0].stats.sac.gcarc,[phase])
-            print(self.BHN)
+            # print(self.BHN)
             try:
                 traveltime = tt[0].time
             except IndexError:
@@ -265,7 +266,7 @@ class Interface:
             if self.gcarc >= 105.0:
                 return True
             else:
-                # print('Event-Station distance less than 105 deg, too short for SKKS')
+                print('Event-Station distance less than 105 deg, too short for SKKS')
                 return False
         else:
             print('Phase {} not SKS or SKKS'.format(phase_to_check))
@@ -279,6 +280,7 @@ class Interface:
         c2 - [Hz] Upper corner frequency
         By default traces will be filtered between 0.01Hz-0.5Hz
         """
+        # print(synth)
       # De-mean and detrend each component
         self.BHN.detrend(type='demean') #demeans the component
         self.BHE.detrend(type='demean')
@@ -295,6 +297,7 @@ class Interface:
 #       Now trim each component to the input length
         if synth == False: # We only need to trim and set the window length for real data, not synthetics made with sacsplitwave
 #       Now set the trim
+            # print('Set Windows')
             t1 = (self.tt - 60) #I.e A minute before the arrival
             t2 = (self.tt + 120) #I.e Two minutes after the arrival
             self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
@@ -409,7 +412,7 @@ if __name__ == '__main__':
     rundir=sys.argv[2] # The run directory that you want to house the output files
     run_mode = sys.argv[3] # par is wanting to run in parallel, ser if running serially
     mode=sys.argv[4] # None if using real data, syn is using synthetics
-    print(mode,type(mode))
+    # print(mode,type(mode))
     file_list ='/Users/ja17375/Shear_Wave_Splitting/Data/{}'.format(evt_list)
     # echo out where I expect the staiton list to be
     print('Processing Data from the Downloaded Event List {}'.format(file_list))
@@ -429,7 +432,8 @@ if __name__ == '__main__':
     ######################################################################################
     if mode == 'data':
         runpath ='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
-        runner = partial(run_sheba,runpath)
+        print('Runpath is :',runpath)
+        # runner = partial(run_sheba,runpath)
         if run_mode == 'par':
             with contextlib.closing( Pool(processes = 8) ) as pool:
             #           Iterate over stations in the station list.
@@ -440,7 +444,8 @@ if __name__ == '__main__':
         elif run_mode == 'ser':
             #Run in serial mode (booooo)
             for file in files:
-                runner(file)
+                # print(file)
+                run_sheba(runpath=runpath,filepath=file)
 
         for phase in phases:
             """ Loop over phases process and tidyup results """
@@ -485,5 +490,5 @@ if __name__ == '__main__':
     ######################################################################################
     end = timeit.default_timer()
     runtime = end - start
-    print('The runtime of main is {} seconds'.format(runtime))
+    print('The runtime of main is {} minutes'.format(runtime/60))
 # END
