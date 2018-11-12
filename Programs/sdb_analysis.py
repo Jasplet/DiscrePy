@@ -65,9 +65,10 @@ class Builder:
 
     def gen_pp(self):
         ''' Fucntion to test for whether the .pp file exists and if not call TauP to generate it and the corresponding mspp files '''
-        if os.path.isfile('{}_{:02d}.pp'.format(self.fpath.split('.')[0],int(self.snr))):
+        print('Fpath is',self.fpath)
+        if os.path.isfile('{}.pp'.format(self.fpath.split('.')[0],)):
             #print(pf[:-6])
-            self.pp = pd.read_csv('{}_{:02d}.pp'.format(self.fpath.split('.')[0],int(self.snr)),delim_whitespace=True)
+            self.pp = pd.read_csv('{}.pp'.format(self.fpath.split('.')[0]),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(self.fpath.split('.')[0]))
             p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(self.fpath)))
@@ -87,11 +88,11 @@ class Builder:
 
         """
         ## Set Path to Sheba Directory
-        # SKS_sdb = '{}_SKS_sheba_results.sdb'.format(self.sdb_stem)
-        # SKKS_sdb = '{}_SKKS_sheba_results.sdb'.format(self.sdb_stem)
+        SKS_sdb = '{}_SKS_sheba_results.sdb'.format(self.sdb_stem)
+        SKKS_sdb = '{}_SKKS_sheba_results.sdb'.format(self.sdb_stem)
         # For Synthetics I didnt bother putting in the sheba results part so use these
-        SKS_sdb = '{}_SKS.sdb'.format(self.sdb_stem)
-        SKKS_sdb = '{}_SKKS.sdb'.format(self.sdb_stem)
+        # SKS_sdb = '{}_SKS.sdb'.format(self.sdb_stem)
+        # SKKS_sdb = '{}_SKKS.sdb'.format(self.sdb_stem)
         # First import the SKS and SKKS .sdb files (sdb = splitting database)
         date_time_convert = {'TIME': lambda x: str(x),'DATE': lambda x : str(x)}
         SKS = pd.read_csv('{}/{}'.format(self.path,SKS_sdb),delim_whitespace=True,converters=date_time_convert)
@@ -140,7 +141,7 @@ class Builder:
 
             lam2_stem = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))
             # print(lam2_stem)
-            # print('{}/{}/SKS/{}??_SKS.lam2'.format(self.path_stk,stat,fstem))
+            print('{}/{}/SKS/{}??_SKS.lam2'.format(self.path_stk,stat,fstem))
             if len(lam2_stem) is not 0:
                 # I.e if glob has managed to find the sks lam2 surface file
                 sks_lam2 = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
@@ -153,12 +154,12 @@ class Builder:
             else:
                 fstem2 = '{}_{}'.format(stat,date)
                 print('fstem2')
-                # print('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))
+                print('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))
                 sks_lam2 = glob('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))[0]
                 skks_lam2 = glob('{}/{}/SKKS/{}_*_SKKS.{}'.format(self.path_stk,stat,fstem2,ext))[0]
                 # Now for a sanity check
                 if (len(sks_lam2) is not 0) or (len(skks_lam2) is not 0):
-                    Stk = Stacker(sks_lam2,skks_lam2,fstem2,out)
+                    Stk = Stacker(sks_lam2,skks_lam2,out)
                     if mode == 'man':
                         self.lam2.append(Stk.lam2)
                     elif mode == 'sheba':
@@ -209,15 +210,15 @@ class Builder:
         fast_test = (lbf_SKKS <= ubf_SKS) & (lbf_SKS <= ubf_SKKS)
         lag_test = (lbt_SKKS <= ubt_SKS) & (lbt_SKS <= ubt_SKKS)
 
-        match  = self.P[fast_test & lag_test] # Test for pairs that match within the given sigma range
+        match  = self.P[(fast_test & lag_test)] # Test for pairs that match within the given sigma range
         diff =  self.P.drop(index=match.index) # Remove matching pairs from original df to get the different pairs.
         # Write out matching and discepent dataframes
-        match.to_csv('{}/{}_matches.pairs'.format(fstem,self.sdb_stem),index=False,sep=' ')
+        match.to_csv('{}/{}_matches.pairs'.format(self.path,self.sdb_stem),index=False,sep=' ')
         diff.to_csv('{}/{}_diffs.pairs'.format(self.path,self.sdb_stem),index=False,sep=' ')
         # Open up mspp files
         print('Writing to {}/{}'.format(self.path,self.sdb_stem))
-        mspp_match = open('{}/{}_matches.mspp'.format(self.path,self.sdb_stem),'w+')
-        mspp_diff = open('{}/{}_diffs.mspp'.format(self.path,self.sdb_stem),'w+')
+        mspp_match = open('{}/{}_{:02d}_matches.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+        mspp_diff = open('{}/{}_{:02d}_diffs.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
 
         for i,index in enumerate(diff.index):
             SKS_pp_lat = self.pp.lat_SKS.values[index]
@@ -237,6 +238,50 @@ class Builder:
 
         mspp_diff.close()
         mspp_match.close()
+
+    def match_l2(self,t_l2 = 0.01, t_dSI = 0.15):
+        """
+        Function to test if a SK(K)S pair are matching or discrepant. This test is based on lb2 and dSI (see synthetics_stakcs notes)
+        This function assumes that lam2 and dSI have already been calculated and added to the pairs file. It also assumes that you
+        want to keep the same file names but just add _match_l2 and _diff_l2self.
+        The lam2 threshold used is 0.01 and the dSI threshold is 0.15
+        """
+
+        fstem = self.path.split('.')[0]# Split('.')[0] takes off the extension
+        # Set the logic for the tests
+        l2_test = (self.P.LAM2 > t_l2)
+        dSI_test = (self.P.D_SI > t_dSI)
+        # Now apply the test to find the discrepant pairs, by definition the remainder must by the matches
+        diff= self.P[(l2_test & dSI_test)]
+        match = self.P.copy().drop(diff.index)
+        #
+        match.to_csv('{}/{}_{:02d}_matches_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        diff.to_csv('{}/{}_{:02d}_diffs_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        # Open up mspp files
+        print('Writing to {}/{}_{:02d}'.format(self.path,self.sdb_stem,int(self.snr)))
+        mspp_match = open('{}/{}_{:02d}_matches_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+        mspp_diff = open('{}/{}_{:02d}_diffs_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+
+        for i,index in enumerate(diff.index):
+            SKS_pp_lat = self.pp.lat_SKS.values[index]
+            SKS_pp_lon = self.pp.lon_SKS.values[index]
+            SKKS_pp_lat = self.pp.lat_SKKS.values[index]
+            SKKS_pp_lon = self.pp.lon_SKKS.values[index]
+            #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
+            mspp_diff.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
+
+        for i,index in enumerate(match.index):
+            SKS_pp_lat = self.pp.lat_SKS.values[index]
+            SKS_pp_lon = self.pp.lon_SKS.values[index]
+            SKKS_pp_lat = self.pp.lat_SKKS.values[index]
+            SKKS_pp_lon = self.pp.lon_SKKS.values[index]
+            #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
+            mspp_match.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
+
+        mspp_diff.close()
+        mspp_match.close()
+
+
 
     def snr_check(self):
         ''' Run a quick and dirty check on Signal to Noise Ratio. If is is less than the threshold events are rejected'''
@@ -281,10 +326,16 @@ class Pairs:
             date_time_convert = {'TIME': lambda x: str(x).zfill(4),'DATE': lambda x : str(x)}
             self.df = pd.read_csv(fname,delim_whitespace=True,converters=date_time_convert)
             try:
+                # Read in standard match,diff files
                 pmatch = '{}_matches.pairs'.format(fname.split('.')[0])
                 pdiff ='{}_diffs.pairs'.format(fname.split('.')[0])
                 self.matches = pd.read_csv(pmatch,delim_whitespace=True,converters=date_time_convert)
                 self.diffs = pd.read_csv(pdiff,delim_whitespace=True,converters=date_time_convert)
+                # Now read in new match,diffs made using lam2/dSI test
+                pmatch = '{}_matches_l2.pairs'.format(fname.split('.')[0])
+                pdiff ='{}_diffs_l2.pairs'.format(fname.split('.')[0])
+                self.matches_l2 = pd.read_csv(pmatch,delim_whitespace=True,converters=date_time_convert)
+                self.diffs_l2 = pd.read_csv(pdiff,delim_whitespace=True,converters=date_time_convert)
             except FileNotFoundError:
                 print('Match or Diff file not found. Are you using synhetics maybe??')
 
@@ -295,23 +346,88 @@ class Pairs:
 
     def plot_dist_v_discrep(self):
 
-        fig,(ax1,ax2) = plt.subplots(1,2, figsize = [12,6])
+        fig,((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2, figsize = [12,6])
 
-        ax1.plot(self.matches.DIST,self.matches.LAM2,'k.',label='Matching')
-        ax1.plot(self.diffs.DIST,self.diffs.LAM2,'r.',label='Discrepant')
+        ax1.plot(self.matches.DIST,self.matches.LAM2,marker='.',color='blue',label='Matching')
+        ax1.plot(self.diffs.DIST,self.diffs.LAM2,marker='.',color='darkorange',label='Discrepant')
         ax1.set_xlim([105, 140])
-        ax1.set_ylim([0, 1.0])
+        ax1.set_ylim([0, np.around(self.df.LAM2.max(),decimals=1)])
         ax1.set_xlabel('Epicentral Distance (Deg)')
-        ax1.set_ylabel(r'$\lambda _2$ values')
+        ax1.set_ylabel(r'$\bar{\lambda _2}$ values')
+        ax1.set_title('Match/Diff according to  2 sigma test')
         ax1.legend()
 
-        ax2.plot(self.matches.DIST,self.matches.D_SI,'k.',label='Matching')
-        ax2.plot(self.diffs.DIST,self.diffs.D_SI,'r.',label='Discrepant')
+        ax2.plot(self.matches.DIST,self.matches.D_SI,marker='.',color='blue',label='Matching')
+        ax2.plot(self.diffs.DIST,self.diffs.D_SI,marker='.',color='darkorange',label='Discrepant')
         ax2.set_xlim([105,140])
-        ax2.set_ylim([0,4.0])
+        ax2.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
         ax2.set_xlabel('Epicentral Distrance (Deg)')
         ax2.set_ylabel(R'$\Delta SI $')
 
+        ax3.plot(self.matches_l2.DIST,self.matches_l2.LAM2,marker='.',color='blue',label='Matching')
+        ax3.plot(self.diffs_l2.DIST,self.diffs_l2.LAM2,marker='.',color='darkorange',label='Discrepant')
+        ax3.set_xlim([105, 140])
+        ax3.set_ylim([0, np.around(self.df.LAM2.max(),decimals=1)])
+        ax3.set_xlabel('Epicentral Distance (Deg)')
+        ax3.set_ylabel(r'$\bar{\lambda _2}$ values')
+        ax3.set_title(r'Match/Diff according to $\bar{lambda _2} / \Delta SI $ test')
+        ax3.legend()
+
+        ax4.plot(self.matches_l2.DIST,self.matches_l2.D_SI,marker='.',color='blue',label='Matching')
+        ax4.plot(self.diffs_l2.DIST,self.diffs_l2.D_SI,marker='.',color='darkorange',label='Discrepant')
+        ax4.set_xlim([105,140])
+        ax4.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
+        ax4.set_xlabel('Epicentral Distrance (Deg)')
+        ax4.set_ylabel(R'$\Delta SI $')
+
+        plt.show()
+
+    def lam2_v_SI(self,figname=None,save=False):
+        '''Plot a scatter plot of lambda2 values verus splitting INtensity difference.For both methods of categorising matching and discrepanct results'''
+
+        fig,(ax1,ax2) = plt.subplots(1,2,figsize=(16,8))
+        # 2 sigma test
+        ax1.plot(self.matches.LAM2,self.matches.D_SI,color='blue',marker='.',ls='None',label="'Matching'")
+        ax1.plot(self.diffs.LAM2,self.diffs.D_SI,color='darkorange',marker='.',ls='None',label="'Discrepant'")
+        ax1.plot([0, 1.0],[0.4,0.4],ls='dashed',color='black')
+        ax1.set_xlabel(r'$\bar{\lambda _2}$')
+        ax1.set_ylabel(r'$\Delta$ SI')
+        ax1.set_title(r'Matching/Discrepant pairs according to $2 \sigma$.')
+        ax1.legend()
+        ax1.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
+        ax1.set_xlim([0, np.around(self.df.LAM2.max(),decimals=1)])
+        #Lam2 / dSI test
+        ax2.plot(self.matches_l2.LAM2,self.matches_l2.D_SI,color='blue',marker='.',ls='None',label="'Matching'")
+        ax2.plot(self.diffs_l2.LAM2,self.diffs_l2.D_SI,color='darkorange',marker='.',ls='None',label="'Discrepant'")
+        ax2.plot([0, 1.0],[0.4,0.4],ls='dashed',color='black')
+        ax2.set_xlabel(r'$\bar{\lambda _2}$')
+        ax2.set_ylabel(r'$\Delta$ SI')
+        ax2.legend()
+        ax2.set_title(r'Matching/Discrepant pairs according to $\bar{\lambda _2}$ & $\Delta SI$.')
+        ax2.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
+        ax2.set_xlim([0, np.around(self.df.LAM2.max(),decimals=1)])
+        if save is True:
+            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/{}.eps'.format(figname),format='eps',dpi=1000)
+
+        plt.show()
+
+    def l2_dSI_hist(self):
+
+        fig,(ax1,ax2) = plt.subplots(1,2,figsize=(14,6))
+        bins_l2 = np.linspace(0,0.5,10)
+        bins_dsi = np.linspace(0,3.5,10)
+        ax1.hist([self.matches_l2.LAM2,self.diffs_l2.LAM2],bins_l2, histtype='bar', stacked=True,label=["'Matching'","'Discrepent'"])
+        ax1.set_xlabel(r'$\bar {\lambda _2}$ values')
+        ax1.set_ylabel('Count')
+        ax1.legend()
+        ax1.set_xlim([0, np.around(self.df.LAM2.max(),decimals=1)])
+        ax2.hist([self.matches_l2.D_SI,self.diffs_l2.D_SI],bins_dsi, histtype='bar', stacked=True,label=["'Matching'","'Discrepent'"])
+        ax2.set_xlabel(r'$\Delta SI$ values')
+        ax2.set_ylabel('Count')
+        ax2.legend()
+        ax2.set_xlim([0,np.around(self.df.D_SI.max(),decimals=1)])
+        # ax2.set_ylim([0,4.0])
+        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/hist_and_dVs.eps',format='eps',dpi=1000)
         plt.show()
 
     def plot_dist_v_split(self,save=False):
@@ -471,9 +587,7 @@ class Pairs:
         for s in self.surfs:
             print(s)
             stat,date,time = self.p_sorted.STAT.values[s],self.p_sorted.DATE.values[s], self.p_sorted.TIME.values[s]
-            # Note that dtlag and dfast are multiplied through by sigma HERE !!
-
-
+            # Note that dtlag and dfast are multiplied through by sigma HERE !
             if self.syn is True:
                 self.lam2_surface(f1=self.syn1[s],f2=self.syn2[s])
                 fast_sks,dfast_sks,lag_sks,dlag_sks = self.df.FAST_SKS.values[s],(sigma*self.df.DFAST_SKS.values[s]),self.df.TLAG_SKS.values[s],(sigma*self.df.DTLAG_SKS.values[s])
@@ -483,8 +597,10 @@ class Pairs:
                 fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
                 fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
                 lam2 = self.p_sorted.LAM2.values[s]
-                l_path = '{}/{}/{}_{}_{}'.format(self.spath,stat,stat,date,time) #Path to lambda 2 surfaces for SKS and SKKS
+                l_path = '{}/{}_{}_{}'.format(self.spath,stat,date,time) #Path to lambda 2 surfaces for SKS and SKKS
+                print(l_path)
                 self.lam2_surface(l_path)
+
             print('Stat {}, Evt Time {}-{} LAM2 = {}'.format(stat,date,time,lam2))
             # fig = plt.figure(figsize=(12,12))
             fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,8),sharey=True)
@@ -585,15 +701,20 @@ class Pairs:
         '''
         # print(fstem)
         if self.syn == False:
-            t_sks = '{}/SKS/{}??_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1])
-            t_skks = '{}/SKKS/{}??_SKKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1])
+            t_sks = '{}??_SKS.lamR'.format(fstem)
+            t_skks = '{}??_SKKS.lamR'.format(fstem)
+
             sks =glob(t_sks)
             skks = glob(t_skks)
+            print(sks)
             if len(sks) == 0:
+                print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
                 stem = '_'.join(fstem.split('/')[-1].split('_')[0:-1]) # aka cut off time part of file extension
                 # print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1]))
                 sks = glob('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
                 skks = glob('{}/SKKS/{}*_SKKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
+                print(sks)
+
             self.sks_lam2 = np.loadtxt(sks[0])#,skiprows=4) # skip rows not needed for .lamR files
             self.skks_lam2 = np.loadtxt(skks[0])#,skiprows=4)
 
