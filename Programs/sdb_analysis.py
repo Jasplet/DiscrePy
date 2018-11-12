@@ -506,6 +506,34 @@ class Pairs:
         else:
             plt.show()
 
+    def Q_v_l2_dSI(self):
+        '''
+        Make plots of Q factor (Wuestefeld et al) sgainst lambda 2 and Delta SI
+        '''
+        fig,((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2,figsize=(14,6),sharex=True)#,sharey=True)
+
+        ax1.plot(self.df.Q_SKS,self.df.LAM2,'k.')
+        ax1.set_xlabel('SKS Q factor')
+        ax1.set_ylabel(r'$\bar{\lambda _2}$')
+        ax1.set_xlim([-1,1])
+        ax1.set_ylim([0,np.around(self.df.LAM2.max(),decimals=1)])
+
+        ax2.plot(self.df.Q_SKKS,self.df.LAM2,'k.')
+        ax2.set_xlabel('SKKS Q factor')
+        ax2.set_xlim([-1,1])
+        ax2.set_ylim([0,np.around(self.df.LAM2.max(),decimals=1)])
+
+        ax3.plot(self.df.Q_SKS,self.df.D_SI,'k.')
+        ax3.set_xlabel('SKS Q factor')
+        ax3.set_ylabel(r'$\Delta SI$')
+        ax3.set_xlim([-1,1])
+        ax3.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
+
+        ax4.plot(self.df.Q_SKKS,self.df.D_SI,'k.')
+        ax4.set_xlabel('SKKS Q factor')
+        ax4.set_xlim([-1,1])
+        ax4.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
+        plt.show()
 
     def plot_SNR(self):
         '''
@@ -513,12 +541,12 @@ class Pairs:
         '''
         fig, (ax1,ax2) = plt.subplots(nrows=1,ncols=2,sharey='row',figsize=(6,6))
         #Plot SNR for SKS
-        ax1.plot(self.P.SNR_SKS,self.P.DFAST_SKS,'k.')
+        ax1.plot(self.df.SNR_SKS,self.df.DFAST_SKS,'k.')
         ax1.set_ylabel('dfast')
         ax1.set_xlabel('S/N ratio')
         ax1.set_title('d fast SKS determination dependance on S/N')
         #Plot SNR for SKKS
-        ax2.plot(self.P.SNR_SKKS,self.P.DFAST_SKKS,'k.')
+        ax2.plot(self.df.SNR_SKKS,self.df.DFAST_SKKS,'k.')
         ax2.set_ylabel('dfast')
         ax2.set_xlabel('S/N ratio')
         ax2.set_title('d fast SKKS determination dependance on S/N')
