@@ -61,11 +61,13 @@ class Stacker:
 
         if outfile == None:
             self.out = '_'.join(self.sks.split('_')[:-1])
+            print('Outfile:', self.out)
         else:
             print(outfile)
             self.out = outfile
 
         #Copy .lamR files to our Stacks directory so we still have them for plotting if I decide to Purge the Runs directory
+        print('Outpath:',outpath)
         self.copy_files(lam2_sks,lam2_skks,outpath)
 
         self.outfile = '{}/{}'.format(outpath,self.out)
