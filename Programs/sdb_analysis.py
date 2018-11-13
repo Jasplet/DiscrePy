@@ -66,18 +66,19 @@ class Builder:
 
     def gen_pp(self):
         ''' Fucntion to test for whether the .pp file exists and if not call TauP to generate it and the corresponding mspp files '''
-        print('Fpath is',self.fpath)
+
+        print('Looking for pp file {}.pp'.format(self.fpath.split('.')[0]))
         if os.path.isfile('{}.pp'.format(self.fpath.split('.')[0])):
             #print(pf[:-6])
             self.pp = pd.read_csv('{}.pp'.format(self.fpath.split('.')[0]),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(self.fpath.split('.')[0]))
-            p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}/{}_all.pairs'.format(self.path,self.sdb_stem)))
+            p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(self.fpath)))
             self.pp = pd.read_csv('{}.pp'.format(self.fpath.split('.')[0]),delim_whitespace=True)
         # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
-        if os.path.isfile('{}_{}.mspp'.format(self.fpath.split('.')[0])) is False:
-            print('{}.mspp does not exist, creating'.format(self.fpath.split('.')[0])
+        if os.path.isfile('{}.mspp'.format(self.fpath.split('.')[0])) is False:
+            print('{}.mspp does not exist, creating'.format(self.fpath.split('.')[0]))
             with open('{}.mspp'.format(self.fpath.split('.')[0]),'w+') as writer:
                 for i,row in enumerate(self.pp.index):
                     writer.write('> \n {} {} \n {} {} \n'.format(self.pp.lon_SKS[i],self.pp.lat_SKS[i],self.pp.lon_SKKS[i],self.pp.lat_SKKS[i]))
