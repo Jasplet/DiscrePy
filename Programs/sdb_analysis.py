@@ -55,7 +55,8 @@ class Builder:
             #Now test for matching and disrecpent pairs
             print('Apply 2-sigma test for discrepancy')
             self.match()
-
+            print(r'Apply $\bar{\lambda_2}$ & $\Delta SI$ test')
+            self.match_l2()
             # print('{} pairs'.format(len(self.P)))
 
         # And save the result
@@ -66,17 +67,17 @@ class Builder:
     def gen_pp(self):
         ''' Fucntion to test for whether the .pp file exists and if not call TauP to generate it and the corresponding mspp files '''
         print('Fpath is',self.fpath)
-        if os.path.isfile('{}.pp'.format(self.fpath.split('.')[0],)):
+        if os.path.isfile('{}.pp'.format(self.fpath.split('.')[0])):
             #print(pf[:-6])
             self.pp = pd.read_csv('{}.pp'.format(self.fpath.split('.')[0]),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(self.fpath.split('.')[0]))
-            p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(self.fpath)))
+            p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}/{}_all.pairs'.format(self.path,self.sdb_stem)))
             self.pp = pd.read_csv('{}.pp'.format(self.fpath.split('.')[0]),delim_whitespace=True)
         # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
-        if os.path.isfile('{}_{}.mspp'.format(self.fpath.split('.')[0],int(self.snr))) is False:
-            print('{}.mspp does not exist, creating'.format(self.fpath.strip('.pairs')))
+        if os.path.isfile('{}_{}.mspp'.format(self.fpath.split('.')[0])) is False:
+            print('{}.mspp does not exist, creating'.format(self.fpath.split('.')[0])
             with open('{}.mspp'.format(self.fpath.split('.')[0]),'w+') as writer:
                 for i,row in enumerate(self.pp.index):
                     writer.write('> \n {} {} \n {} {} \n'.format(self.pp.lon_SKS[i],self.pp.lat_SKS[i],self.pp.lon_SKKS[i],self.pp.lat_SKKS[i]))
@@ -186,7 +187,8 @@ class Builder:
             self.P['SKS_PP_LON'] = self.pp.lon_SKS
             self.P['SKKS_PP_LAT'] = self.pp.lat_SKKS
             self.P['SKKS_PP_LON'] = self.pp.lon_SKKS
-
+        else:
+            print('Dimension mismatch, not adding piercepoints')
     def match(self,sigma=2):
         """
         Funntion to see if the SKS and SKKS splititng measurements for a pair of measurements match within error
@@ -213,10 +215,10 @@ class Builder:
         match  = self.P[(fast_test & lag_test)] # Test for pairs that match within the given sigma range
         diff =  self.P.drop(index=match.index) # Remove matching pairs from original df to get the different pairs.
         # Write out matching and discepent dataframes
-        match.to_csv('{}/{}_matches.pairs'.format(self.path,self.sdb_stem),index=False,sep=' ')
-        diff.to_csv('{}/{}_diffs.pairs'.format(self.path,self.sdb_stem),index=False,sep=' ')
+        match.to_csv('{}/{}_{:02d}_matches.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        diff.to_csv('{}/{}_{:02d}_diffs.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         # Open up mspp files
-        print('Writing to {}/{}'.format(self.path,self.sdb_stem))
+        print('Writing to {}/{}_{:02d}'.format(self.path,self.sdb_stem,int(self.snr)))
         mspp_match = open('{}/{}_{:02d}_matches.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
         mspp_diff = open('{}/{}_{:02d}_diffs.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
 
@@ -258,10 +260,11 @@ class Builder:
         # Now combined matching and discrepant pairs together
         diff = null_split_pair.append(s_diff) # Combine the null-split pairs and pairs of discrepant splitting
         match = null_pairs.append(s_match)
-        uID = self.P.drop(diff.index,match.index)
+        uID_int = self.P.drop(diff.index)
+        uID     = uID_int.drop(match.index)
         match.to_csv('{}/{}_{:02d}_matches_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         diff.to_csv('{}/{}_{:02d}_diffs_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
-        uID.to_csv('{}/{}_{:02d}_uDI_l2.pairs'.formart(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        uID.to_csv('{}/{}_{:02d}_uDI_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         # Open up mspp files
         print('Writing to {}/{}_{:02d}'.format(self.path,self.sdb_stem,int(self.snr)))
         mspp_match = open('{}/{}_{:02d}_matches_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
@@ -548,28 +551,30 @@ class Pairs:
         '''
         fig,((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2,figsize=(14,6),sharex=True)#,sharey=True)
 
-        ax1.plot(self.matches_l2.Q_SKS,self.matches_l2.LAM2,marker='.',color='blue',ls='None')
-        ax1.plot(self.diffs_l2.Q_SKS,self.diffs_l2.LAM2,marker='.',color='darkorange',ls='None')
+        C1 = ax1.scatter(self.df.Q_SKS,self.df.LAM2,c=self.df.SNR_SKS,marker='.',vmin=2,vmax=20)
+        # ax1.plot(self.matches_l2.Q_SKS,self.matches_l2.LAM2,marker='.',color='blue',ls='None')
+        #ax1.plot(self.diffs_l2.Q_SKS,self.diffs_l2.LAM2,marker='.',color='darkorange',ls='None')
         ax1.set_xlabel('SKS Q factor')
         ax1.set_ylabel(r'$\bar{\lambda _2}$')
         ax1.set_xlim([-1,1])
         ax1.set_ylim([0,np.around(self.df.LAM2.max(),decimals=1)])
+        plt.colorbar(C1,ax=ax1)
 
         ax2.plot(self.matches_l2.Q_SKKS,self.matches_l2.LAM2,marker='.',color='blue',ls='None')
-        ax2.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.LAM2,marker='.',color='darkorange',ls='None')
+        #ax2.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.LAM2,marker='.',color='darkorange',ls='None')
         ax2.set_xlabel('SKKS Q factor')
         ax2.set_xlim([-1,1])
         ax2.set_ylim([0,np.around(self.df.LAM2.max(),decimals=1)])
 
         ax3.plot(self.matches_l2.Q_SKS,self.matches_l2.D_SI,marker='.',color='blue',ls='None')
-        ax3.plot(self.diffs_l2.Q_SKS,self.diffs_l2.D_SI,marker='.',color='darkorange',ls='None')
+        #ax3.plot(self.diffs_l2.Q_SKS,self.diffs_l2.D_SI,marker='.',color='darkorange',ls='None')
         ax3.set_xlabel('SKS Q factor')
         ax3.set_ylabel(r'$\Delta SI$')
         ax3.set_xlim([-1,1])
         ax3.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
 
         ax4.plot(self.matches_l2.Q_SKKS,self.matches_l2.D_SI,marker='.',color='blue',ls='None')
-        ax4.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.D_SI,marker='.',color='darkorange',ls='None')
+        #ax4.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.D_SI,marker='.',color='darkorange',ls='None')
         ax4.set_xlabel('SKKS Q factor')
         ax4.set_xlim([-1,1])
         ax4.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
@@ -591,6 +596,38 @@ class Pairs:
         ax2.set_xlabel('S/N ratio')
         ax2.set_title('d fast SKKS determination dependance on S/N')
 
+        plt.show()
+
+    def hist_SNR(self):
+        ''' Plots SNR histogram'''
+        print('Max S/N SKS: ', self.df.SNR_SKS.max())
+        print('Max S/N SKKS: ', self.df.SNR_SKKS.max())
+        fig, (ax1,ax2) = plt.subplots(1,2,figsize=(14,7))
+        ax1.hist(self.df.SNR_SKS,bins=np.arange(0,50,5),histtype='bar')
+        ax1.set_xlabel('S/N ratio (SKS)')
+        ax1.set_ylabel('Count')
+
+        ax2.hist(self.df.SNR_SKKS,bins=np.arange(0,50,5),histtype='bar')
+        ax2.set_xlabel('S/N ratio (SKKS)')
+        ax2.set_ylabel('Count')
+        plt.show()
+
+
+    def plot_SNR_v_l2(self):
+        '''
+        Make plots of SNR v lambda2. In the style of phi_i v SNR from Restivo and Helffrich (2006)
+        '''
+        fig, (ax1,ax2) = plt.subplots(nrows=1,ncols=2,sharey='row',figsize=(8,8))
+        #Plot SNR for SKS
+        ax1.plot(self.df.SNR_SKS,self.df.LAM2,'k.')
+        ax1.set_ylabel(r'$\bar{\lambda_2}$')
+        ax1.set_xlabel('S/N ratio')
+        ax1.set_title('d fast SKS determination dependance on S/N')
+        #Plot SNR for SKKS
+        ax2.plot(self.df.SNR_SKKS,self.df.LAM2,'k.')
+        ax2.set_ylabel(r'$\bar{\lambda_2}$')
+        ax2.set_xlabel('S/N ratio')
+        ax2.set_title('d fast SKKS determination dependance on S/N')
         plt.show()
 
     def package(self,outdir,mypath='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'):
