@@ -248,25 +248,25 @@ class Builder:
         """
 
         fstem = self.path.split('.')[0]# Split('.')[0] takes off the extension
-        # Set the logic for the tests
-        split_test = ((self.P.Q_SKS > 0.5) & (self.P.Q_SKKS > 0.5 )) # Test for split results (all events that sit in the range  -0.5 < Q < 0.5 are discarded )
-        l2_test = (self.P.LAM2 > t_l2)
-        dSI_test = (self.P.D_SI > t_dSI)
         # Now apply the test to find the discrepant pairs, by definition the remainder must by the matches
+        null_pairs  = self.P[((self.P.Q_SKS < -0.5) & (self.P.Q_SKKS < -0.5))] # Pairs where both phases are nulls (according to Q), auto classify as matching
+        null_split_pair = self.P[(((self.P.Q_SKS < -0.5) & (self.P.Q_SKKS > 0.5)) | ((self.P.Q_SKS > 0.5) & (self.P.Q_SKKS < -0.5)))] # Test for pairs with 1 null 1 split, discrepant by definition
+        splits = self.P[((self.P.Q_SKS > 0.5) & (self.P.Q_SKKS > 0.5 ))] # Test for pairs whjere both phases are split
+        s_diff= splits[((self.P.LAM2 >= t_l2) &  (self.P.D_SI > t_dSI))] # Apply tests for discrepant splitting
+        s_match = splits[((self.P.LAM2 < t_l2) & (self.P.D_SI < t_dSI))]
 
-        null_pairs  = ((self.P.Q_SKS < -0.5) & (self.P.Q_SKKS < -0.5))
-        null_split_pair = (((self.P.Q_SKS < -0.5) & (self.P.Q_SKKS > 0.5)) | ((self.P.Q_SKS > 0.5) & (self.P.Q_SKKS < -0.5))) # Test for pairs with 1 null 1 split, discrepant by definition
-
-        splits = self.P[split_test]
-        s_diff= splits[(l2_test & dSI_test)]
-        s_match = splits.P.copy().drop(diff.index)
-        #
+        # Now combined matching and discrepant pairs together
+        diff = null_split_pair.append(s_diff) # Combine the null-split pairs and pairs of discrepant splitting
+        match = null_pairs.append(s_match)
+        uID = self.P.drop(diff.index,match.index)
         match.to_csv('{}/{}_{:02d}_matches_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         diff.to_csv('{}/{}_{:02d}_diffs_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        uID.to_csv('{}/{}_{:02d}_uDI_l2.pairs'.formart(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         # Open up mspp files
         print('Writing to {}/{}_{:02d}'.format(self.path,self.sdb_stem,int(self.snr)))
         mspp_match = open('{}/{}_{:02d}_matches_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
         mspp_diff = open('{}/{}_{:02d}_diffs_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+        mspp_uID = open('{}/{}_{:02d}_diffs_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
 
         for i,index in enumerate(diff.index):
             SKS_pp_lat = self.pp.lat_SKS.values[index]
@@ -284,6 +284,15 @@ class Builder:
             #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
             mspp_match.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
 
+        for i,index in enumerate(uID.index):
+            SKS_pp_lat = self.pp.lat_SKS.values[index]
+            SKS_pp_lon = self.pp.lon_SKS.values[index]
+            SKKS_pp_lat = self.pp.lat_SKKS.values[index]
+            SKKS_pp_lon = self.pp.lon_SKKS.values[index]
+            #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
+            mspp_uID.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
+
+        mspp_uID.close()
         mspp_diff.close()
         mspp_match.close()
 
