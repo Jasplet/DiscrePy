@@ -38,7 +38,7 @@ class Builder:
         self.make_pairs()
         # Apply a quick Signal to Noise test to get rid of the rreally bad data
         self.P = self.snr_check() # Overwrite self.P weith only accepted events
-        self.write_out(self.P,name='{}_all.pairs'.format(self.sdb_stem))
+        self.write_out(self.P,name='{}_{:02d}_SKS_SKKS.pairs'.format(self.sdb_stem,int(self.snr)))
         # Write initial pairs file so we can make piercepoints
         # Next generate the piercepoints and add them to the df
         print('Adding PiercePoints')
@@ -60,7 +60,7 @@ class Builder:
             # print('{} pairs'.format(len(self.P)))
 
         # And save the result
-        self.write_out(self.P,'{}_{:02d}.pairs'.format(self.sdb_stem,int(self.snr)))
+        self.write_out(self.P,'{}_{:02d}_SKS_SKKS.pairs'.format(self.sdb_stem,int(self.snr)))
         end = ctime()
         print('END. start {}, end {}'.format(start,end))
 
@@ -70,6 +70,7 @@ class Builder:
         print('Looking for pp file {}.pp'.format(self.fpath.split('.')[0]))
         if os.path.isfile('{}.pp'.format(self.fpath.split('.')[0])):
             #print(pf[:-6])
+            print('Exists')
             self.pp = pd.read_csv('{}.pp'.format(self.fpath.split('.')[0]),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(self.fpath.split('.')[0]))
@@ -188,6 +189,7 @@ class Builder:
             self.P['SKS_PP_LON'] = self.pp.lon_SKS
             self.P['SKKS_PP_LAT'] = self.pp.lat_SKKS
             self.P['SKKS_PP_LON'] = self.pp.lon_SKKS
+            print('Added piercepoints')
         else:
             print('Dimension mismatch, not adding piercepoints')
     def match(self,sigma=2):
@@ -198,7 +200,7 @@ class Builder:
         """
         fstem = self.path.split('.')[0]# Split('.')[0] takes off the extension
         # First Add piercepoints to pairas files
-        self.add_pp()
+        # self.add_pp()
         # Set the SKS and SKKS 2-sigma rnages
         lbf_SKS = self.P.FAST_SKS - sigma*self.P.DFAST_SKS
         ubf_SKS = self.P.FAST_SKS + sigma*self.P.DFAST_SKS
@@ -255,8 +257,8 @@ class Builder:
         null_pairs  = self.P[((self.P.Q_SKS < -0.5) & (self.P.Q_SKKS < -0.5))] # Pairs where both phases are nulls (according to Q), auto classify as matching
         null_split_pair = self.P[(((self.P.Q_SKS < -0.5) & (self.P.Q_SKKS > 0.5)) | ((self.P.Q_SKS > 0.5) & (self.P.Q_SKKS < -0.5)))] # Test for pairs with 1 null 1 split, discrepant by definition
         splits = self.P[((self.P.Q_SKS > 0.5) & (self.P.Q_SKKS > 0.5 ))] # Test for pairs whjere both phases are split
-        s_diff= splits[((self.P.LAM2 >= t_l2) &  (self.P.D_SI > t_dSI))] # Apply tests for discrepant splitting
-        s_match = splits[((self.P.LAM2 < t_l2) & (self.P.D_SI < t_dSI))]
+        s_diff= splits[((splits.LAM2 >= t_l2) &  (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
+        s_match = splits[((splits.LAM2 < t_l2) & (splits.D_SI < t_dSI))]
 
         # Now combined matching and discrepant pairs together
         diff = null_split_pair.append(s_diff) # Combine the null-split pairs and pairs of discrepant splitting
@@ -265,12 +267,12 @@ class Builder:
         uID     = uID_int.drop(match.index)
         match.to_csv('{}/{}_{:02d}_matches_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         diff.to_csv('{}/{}_{:02d}_diffs_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
-        uID.to_csv('{}/{}_{:02d}_uDI_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        uID.to_csv('{}/{}_{:02d}_uID_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         # Open up mspp files
         print('Writing to {}/{}_{:02d}'.format(self.path,self.sdb_stem,int(self.snr)))
         mspp_match = open('{}/{}_{:02d}_matches_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
         mspp_diff = open('{}/{}_{:02d}_diffs_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
-        mspp_uID = open('{}/{}_{:02d}_diffs_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+        mspp_uID = open('{}/{}_{:02d}_uID_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
 
         for i,index in enumerate(diff.index):
             SKS_pp_lat = self.pp.lat_SKS.values[index]
@@ -310,9 +312,9 @@ class Builder:
         self.d = [ ]
         print('There are {} pairs pre-SNR < 2 test'.format(len(self.P)))
         for i,row in self.P.iterrows():
-            if row.SNR_SKS <= t or row.SNR_SKKS <= t:
+            if row.SNR_SKS <= self.snr or row.SNR_SKKS <= self.snr:
                 #Test to see if Signal-to-Noise is too high
-                print('SNR for SKS or SKKS less than {:02}, auto-reject'.format(t))
+                print('SNR for SKS or SKKS less than {:02}, auto-reject'.format(self.snr))
                 self.d.append(i)
             else:
                 self.accepted_i.append(i)
