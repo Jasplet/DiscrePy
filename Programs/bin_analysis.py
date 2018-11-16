@@ -15,6 +15,70 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import misc
+# import subprocess as sub
+# import shlex
+
+class Binning:
+    '''A class to perform the triagonal binning (using Wookey's geogeom) at the desired level and to the create the .binned file. It is assumed that the bining has already been done'''
+    def __init__(self,path,level):
+        '''
+        path - [str] Path to the .pairs file that you want to bin
+        level - [str] Level of trigonal binning you want (T1-5)
+        '''
+        self.fstem = path.split('/')[-1]
+        self.fpath = '/'.join(path.split('/')[:-1])
+        self.level = level
+        c =  {'TIME': lambda x: str(x),'DATE': lambda x : str(x)}
+        self.df = pd.read_csv(path,delim_whitespace=True,converters=c)
+
+    def add_bins(self):
+        '''
+        Adds the bin numbers and verticies to df
+        '''
+        b_path = self.fpath + '/binned_{}.tri'.format(self.level)
+        b_df = pd.read_csv(b_path, delim_whitespace=True)
+        self.df['bin_no'] = b_df['Bin_no']
+        self.df['bin_lat'] = b_df['lat']
+        self.df['bin_lon'] = b_df['lon']
+        self.df['V1_lat'] = b_df['V1_lat']
+        self.df['V1_lon'] = b_df['V1_lon']
+        self.df['V2_lat'] = b_df['V2_lat']
+        self.df['V2_lon'] = b_df['V2_lon']
+        self.df['V3_lat'] = b_df['V3_lat']
+        self.df['V3_lon'] = b_df['V3_lon']
+
+
+
+    def add_midpointbaz(self):
+        '''
+        Adds the midpoint BAZ to df
+        '''
+        m_path = self.fpath + '/midpoints.tri'
+        m_df = pd.read_csv(m_path, delim_whitespace=True)
+        self.df['Mid_BAZ'] = m_df['baz']
+
+    def write_out(self):
+        '''
+        Outputs df
+        '''
+        self.df.to_csv('{}/{}_{}.binned'.format(self.fpath,self.fstem.split('.')[0],self.level),sep=' ',index=False)
+
+    # def mk_bins(self):
+    #     '''
+    #     Calls the geogeom code to perform the binning
+    #     '''
+    #     print('Binning')
+    #     args =
+    #     p=sub.Popen(['geogeom'],stdout = sub.PIPE,
+    #                                 stdin  = sub.PIPE,
+    #                                 stderr = sub.STDOUT,
+    #                                 cwd = self.path,
+    #                                 encoding='utf8',
+    #                                 shell=True)
+    #
+    #     p.communicate('-wgt one')
+
+
 
 class Bin:
     '''A class to hold a signle bin and all in containing events. Requires pairs file (as dataframe) and desired Bin_number as inputs'''
@@ -23,13 +87,13 @@ class Bin:
         self.bin = df[df.bin_no == bin_no].copy()
         self.fig_path = path # This path to the directory where the figures will be saved
         self.lat = self.bin.bin_lat.values[0]
-        self.long = self.bin.bin_long.values[0]
+        self.lon = self.bin.bin_lon.values[0]
         self.V1_lat = self.bin.V1_lat.values[0]
-        self.V1_long = self.bin.V1_long.values[0]
+        self.V1_lon = self.bin.V1_lon.values[0]
         self.V2_lat = self.bin.V2_lat.values[0]
-        self.V2_long = self.bin.V2_long.values[0]
+        self.V2_lon = self.bin.V2_lon.values[0]
         self.V3_lat = self.bin.V3_lat.values[0]
-        self.V3_long = self.bin.V3_long.values[0]
+        self.V3_lon = self.bin.V3_lon.values[0]
         #parse nulls
 
     def plot_fast_v_lag(self,ax,data,c='b',t=r'Plot of $\delta t$ versus $\phi$'):
@@ -274,12 +338,13 @@ def run(bins_file,plot,lim=10):
     counts = bf.bin_no.value_counts().copy() # make a dataframe with the bin number and the count of how many times it occurs
     print('There are {} bins with {} pairs'.format(len(counts),len(bf)))
     print('Highest count is {} in bin {}'.format(counts[counts.idxmax()],counts.idxmax()))
+    
     l2 = [ ] # Initialise lists to hold the average lambda 2 values for each bin
     dSI = [ ] # Initialise list to hold the average delta SI value for each bin
-    no,cts,lat,long,V1_lat,V1_long,V2_lat,V2_long,V3_lat,V3_long = [ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ]
+    no,cts,lat,lon,V1_lat,V1_lon,V2_lat,V2_lon,V3_lat,V3_lon = [ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ]
     for i in counts.index:
         if counts[i] >= lim:
-            # print(i)
+            print(i)
             B = Bin(bf,bin_no=i)
             if plot is True:
                 B.plot(save=True)
@@ -289,20 +354,20 @@ def run(bins_file,plot,lim=10):
             l2.append(B.avg_lam2())
             dSI.append(B.avg_dSI())
             lat.append(B.bin.bin_lat.values[0])
-            long.append(B.bin.bin_long.values[0])
+            lon.append(B.bin.bin_lon.values[0])
             V1_lat.append(B.bin.V1_lat.values[0])
-            V1_long.append(B.bin.V1_long.values[0])
+            V1_lon.append(B.bin.V1_lon.values[0])
             V2_lat.append(B.bin.V2_lat.values[0])
-            V2_long.append(B.bin.V2_long.values[0])
+            V2_lon.append(B.bin.V2_lon.values[0])
             V3_lat.append(B.bin.V3_lat.values[0])
-            V3_long.append(B.bin.V3_long.values[0])
+            V3_lon.append(B.bin.V3_lon.values[0])
         else :
             print('Bin {} has {} counts, which is less than lim of {}'.format(i,counts[i],lim))
 
     # Make a dictioary of the series that we want to combine to make the datatframe
     dict = {'Bin_no' : no , 'Count' : cts , 'avg_lam2' : l2 ,
-            'avg_dSI' : dSI , 'bin_lat' : lat, 'bin_long' : long , 'V1_lat' : V1_lat ,
-            'V1_long' : V1_long , 'V2_lat' : V2_lat , 'V3_lat' : V3_lat , 'V3_long' : V3_long}
+            'avg_dSI' : dSI , 'bin_lat' : lat, 'bin_lon' : lon , 'V1_lat' : V1_lat ,
+            'V1_lon' : V1_lon , 'V2_lat' : V2_lat , 'V3_lat' : V3_lat , 'V3_lon' : V3_lon}
 
     # Make a dataframe for each bin
 

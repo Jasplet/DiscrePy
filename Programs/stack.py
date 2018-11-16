@@ -35,17 +35,20 @@ class Stacker:
     Class for doing the stacking
     '''
 
-    def __init__(self,lam2_sks,lam2_skks,fstem,outpath,stk_type='man'):
+    def __init__(self,lam2_sks,lam2_skks,outpath,outfile=None,stk_type='man'):#,syn='False',i=None):
         '''
         Initialises class, checks if lam2 surfaces exist
-
+        lam2_sks - [str] full path to lam2 surface for SKS
+        lam2_skk - [str] full path to lam2 surface for SKKS
+        fstem - [str]
         These should be provided as FULL PATHS !
         '''
         # print('Starting Stacker')
+
         if os.path.isfile(lam2_sks) is False:
             raise NameError('Lambda 2 (for sks) provided does not exist')
         elif os.path.isfile(lam2_skks) is False:
-            raise NameError('Lambda 2 (for sks) provided does not exist')
+            raise NameError('Lambda 2 (for skks) provided does not exist')
         # else:
             # print('Lambda 2 surfaces exist')
     #   make input paths attribute, we need these full paths for man stacking mode
@@ -55,23 +58,34 @@ class Stacker:
         self.sks = lam2_sks.split('/')[-1]
         self.skks = lam2_skks.split('/')[-1]
     #   make output filestem (but cutting off the phase extension from self.sks)
-        self.out = '_'.join(self.sks.split('_')[:-1])
+
+        if outfile == None:
+            self.out = '_'.join(self.sks.split('_')[:-1])
+            print('Outfile:', self.out)
+        else:
+            print(outfile)
+            self.out = outfile
+
+        #Copy .lamR files to our Stacks directory so we still have them for plotting if I decide to Purge the Runs directory
+        print('Outpath:',outpath)
+        self.copy_files(lam2_sks,lam2_skks,outpath)
+
         self.outfile = '{}/{}'.format(outpath,self.out)
     #   make arrays of dt and fast that we can use to identify solution of the stack (for man mode)
         self.T = np.arange(0,4.025,0.025)
         self.F = np.arange(-90,91,1)
 
-        path_stem = lam2_sks.split('/')[0:8] + [fstem]
-        # print(path_stem)
-        self.path = '/'.join(path_stem)
-        if os.path.isdir(self.path) is False:
-            os.mkdir(self.path)
-        #Copy lam2 files to where we want to work on them
-        self.copy_files(lam2_sks,lam2_skks)
-#       Make infile
-
 #       Perform stack
         if stk_type == 'sheba':
+
+            path_stem = lam2_sks.split('/')[0:7] #+ [fstem]
+            # print(path_stem)
+            self.path = '/'.join(path_stem)
+            if os.path.isdir(self.path) is False:
+                os.mkdir(self.path)
+            #Copy lam2 files to where we want to work on them
+            self.copy_files(lam2_sks,lam2_skks,self.path)
+    #       Make infile
             self.make_infile()
             self.stack_sheba()
             self.collect()
@@ -98,16 +112,18 @@ class Stacker:
 
         #perform stack by adding surfaces together.
         # No weighting applied
-        self.stk = self.sks_lamR + self.skks_lamR
+        self.stk = (self.sks_lamR + self.skks_lamR) / 2
 
         # find min lam2 value
         self.lam2 = self.stk.min()
         # find its location
 
         jf,jt  = np.unravel_index(self.stk.argmin(),self.stk.shape)
-        # print('Min Lam2 of stack is {}, located at dt = {}  and phi = {}'.format(self.lam2,self.T[jt],self.F[jf]))
+        print('Min Lam2 of stack is {}, located at dt = {}  and phi = {}'.format(self.lam2,self.T[jt],self.F[jf]))
+        print(self.outfile)
         # write out stack
         # print(self.stk.shape)
+
         np.savetxt('{}.lamSTK'.format(self.outfile),self.stk,fmt='%.5f')
 
         self.sol = self.lam2
@@ -126,10 +142,10 @@ class Stacker:
             # print('lambda 2 value is {}'.format(lam2))
             self.sol = [f,df,l,dl,float(lam2)]
 
-    def copy_files(self,sks,skks):
+    def copy_files(self,sks,skks,path):
         ''' Copies lambda 2 files to corrrect place for stacking '''
-        sub.call(['cp',sks,self.path])
-        sub.call(['cp',skks,self.path])
+        sub.call(['cp',sks,path])
+        sub.call(['cp',skks,path])
 
 
     def make_infile(self):
@@ -139,6 +155,7 @@ class Stacker:
             writer.write(self.skks)
 
         # print('sheba_stack.in written to {}'.format(self.path))
+
 
 ########
 
