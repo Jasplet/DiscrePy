@@ -80,7 +80,7 @@ class Synth:
         l = self.T.ravel()
         dsi = self.pairs.D_SI.values.reshape(17,37)
         # C = ax.scatter(l,f,c=self.pairs.D_SI.values,marker='.',label='d_SI grid')
-        C = ax.contourf(self.T,self.F,dsi,18,vmin=0.4,extend='max')
+        C = ax.contourf(self.T,self.F,dsi,18,vmin=0,extend='max')
         C.cmap.set_under('white')
         # Plot the singular A
         # ax.plot(self.a_lag,self.a_fast,'rx')
@@ -272,7 +272,9 @@ class Synth:
         self.synth_stack(a,b)
 
         if save is True:
+            f = self.F.ravel()
+            l = self.T.ravel()
             if f[self.a_ind] < 0:
-                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}_A_{:2.2f}_N{:03.0f}_B_grid.pairs'.format(self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ')
+                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}_lowSNR_A_{:2.2f}_N{:03.0f}_B_grid.pairs'.format(self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ')
             else:
-                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}_A_{:2.2f}_{:03.0f}_B_grid.pairs'.format(self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ')
+                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}__lowSNR_A_{:2.2f}_{:03.0f}_B_grid.pairs'.format(self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ')
