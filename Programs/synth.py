@@ -38,9 +38,9 @@ class Synth:
         if file.split('.')[-1] == 'sdb':
             print('Sdb file read in')
             self.syn = pd.read_csv(file,delim_whitespace=True,converters=date_time_convert)
-            self.nulls = self.syn[self.syn.Q <= -0.7] # df of clear nulls
-            self.splits = self.syn[self.syn.Q >= 0.7] # df of clear splits
-            self.unID = self.syn[(self.syn.Q > -0.7) & (self.syn.Q < 0.7)] # df of undeterminate events, in thoery there should be any ... ?
+            self.nulls = self.syn[self.syn.Q <= -0.5] # df of clear nulls
+            self.splits = self.syn[self.syn.Q >= 0.5] # df of clear splits
+            self.unID = self.syn[(self.syn.Q > -0.5) & (self.syn.Q < 0.5)] # df of undeterminate events, in thoery there should be any ... ?
         elif file.split('.')[-1] == 'pairs':
             print('Pairs file read in. Can do plotting only. Also a is required')
             self.pairs =  pd.read_csv(file,delim_whitespace=True,converters=date_time_convert)
