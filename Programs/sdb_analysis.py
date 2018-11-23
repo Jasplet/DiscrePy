@@ -254,19 +254,22 @@ class Builder:
         """
 
         fstem = self.path.split('.')[0]# Split('.')[0] takes off the extension
+        P = self.P.copy()
         # Now apply the test to find the discrepant pairs, by definition the remainder must by the matches
-        uID = self.P[((self.P.Q_SKS > -0.5) & (self.P.Q_SKS < 0.5)) & ((self.P.Q_SKKS > -0.5) & (self.P.Q_SKKS < 0.5))]
-        null_pairs  = self.P[((self.P.Q_SKS <= -0.5) & (self.P.Q_SKKS <= -0.5))] # Pairs where both phases are nulls (according to Q), auto classify as matching
-        null_split_pair = self.P[(((self.P.Q_SKS <= -0.5) & (self.P.Q_SKKS >= 0.5)) | ((self.P.Q_SKS >= 0.5) & (self.P.Q_SKKS <= -0.5)))] # Test for pairs with 1 null 1 split, discrepant by definition
-        splits = self.P[((self.P.Q_SKS > 0.5) & (self.P.Q_SKKS > 0.5 ))] # Test for pairs whjere both phases are split
-        s_diff= splits[((splits.LAM2 > t_l2) &  (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
-        s_match = splits[((splits.LAM2 <= t_l2) & (splits.D_SI <= t_dSI))]
+        uID = P[((P.Q_SKS > -0.5) & (P.Q_SKS < 0.5)) | ((P.Q_SKKS > -0.5) & (P.Q_SKKS < 0.5))]
+        P.drop(uID.index)
+        null_pairs  = P[((P.Q_SKS <= -0.5) & (P.Q_SKKS <= -0.5))] # Pairs where both phases are nulls (according to Q), auto classify as matching
+        null_split_pair = P[(((P.Q_SKS <= -0.5) & (P.Q_SKKS >= 0.5)) | ((P.Q_SKS >= 0.5) & (P.Q_SKKS <= -0.5)))] # Test for pairs with 1 null 1 split, discrepant by definition
+        splits = P[((P.Q_SKS > 0.5) & (P.Q_SKKS > 0.5 ))] # Test for pairs whjere both phases are split
+        diff= splits[((splits.LAM2 > t_l2) | (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
+        match = splits[((splits.LAM2 <= t_l2) & (splits.D_SI <= t_dSI))]
         print(len(self.P))
-        test = len(uID) + len(null_pairs) + len(null_split_pair) + len(s_diff) + len(s_match)
+        print('There are {} split pairs. {} are matches and {} are discrepant!'.format(len(splits),len(match),len(diff)))
+        test = len(uID) + len(null_pairs) + len(null_split_pair) + len(diff) + len(match)
         print(test)
         # Now combined matching and discrepant pairs together
-        null_pairs.to_csv('{}/{}_{:02d}_matches_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
-        null_split_pair.to_csv('{}/{}_{:02d}_matches_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        null_pairs.to_csv('{}/{}_{:02d}_nulls.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        null_split_pair.to_csv('{}/{}_{:02d}_null_split.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         match.to_csv('{}/{}_{:02d}_matches_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         diff.to_csv('{}/{}_{:02d}_diffs_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         uID.to_csv('{}/{}_{:02d}_uID_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
@@ -275,6 +278,8 @@ class Builder:
         mspp_match = open('{}/{}_{:02d}_matches_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
         mspp_diff = open('{}/{}_{:02d}_diffs_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
         mspp_uID = open('{}/{}_{:02d}_uID_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+        mspp_null_pairs = open('{}/{}_{:02d}_nulls.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+        mspp_null_split = open('{}/{}_{:02d}_null_split.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
 
         for i,index in enumerate(diff.index):
             SKS_pp_lat = self.pp.lat_SKS.values[index]
@@ -283,6 +288,22 @@ class Builder:
             SKKS_pp_lon = self.pp.lon_SKKS.values[index]
             #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
             mspp_diff.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
+
+        for i,index in enumerate(null_pairs.index):
+            SKS_pp_lat = self.pp.lat_SKS.values[index]
+            SKS_pp_lon = self.pp.lon_SKS.values[index]
+            SKKS_pp_lat = self.pp.lat_SKKS.values[index]
+            SKKS_pp_lon = self.pp.lon_SKKS.values[index]
+            #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
+            mspp_null_pairs.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
+
+        for i,index in enumerate( null_split_pair.index):
+            SKS_pp_lat = self.pp.lat_SKS.values[index]
+            SKS_pp_lon = self.pp.lon_SKS.values[index]
+            SKKS_pp_lat = self.pp.lat_SKKS.values[index]
+            SKKS_pp_lon = self.pp.lon_SKKS.values[index]
+            #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
+            mspp_null_split.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
 
         for i,index in enumerate(match.index):
             SKS_pp_lat = self.pp.lat_SKS.values[index]
@@ -303,8 +324,8 @@ class Builder:
         mspp_uID.close()
         mspp_diff.close()
         mspp_match.close()
-
-
+        mspp_null_pairs.close()
+        mspp_null_split.close()
 
     def snr_check(self):
         ''' Run a quick and dirty check on Signal to Noise Ratio. If is is less than the threshold events are rejected'''
@@ -360,6 +381,8 @@ class Pairs:
                 self.matches_l2 = pd.read_csv(pmatch,delim_whitespace=True,converters=date_time_convert)
                 self.diffs_l2 = pd.read_csv(pdiff,delim_whitespace=True,converters=date_time_convert)
                 self.uID = pd.read_csv('{}_uID_l2.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
+                self.null_split = pd.read_csv('{}_null_split.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
+                self.nulls = pd.read_csv('{}_nulls.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
             except FileNotFoundError:
                 print('Match or Diff file not found. Are you using synhetics maybe??')
 
@@ -456,48 +479,51 @@ class Pairs:
         # Isloate clear Splits
         ms_sig= self.matches[(self.matches.Q_SKS > 0.5) & (self.matches.Q_SKKS > 0.5)]
         ds_sig = self.diffs[(self.diffs.Q_SKS > 0.5) & (self.diffs.Q_SKKS > 0.5)]
-        ms_lam = self.matches_l2[(self.matches_l2.Q_SKS > 0.5) & (self.matches_l2.Q_SKKS >0.5)]
-        ds_lam = self.diffs_l2[(self.diffs_l2.Q_SKS > 0.5) & (self.diffs_l2.Q_SKKS >0.5)]
+        ms_lam = self.matches_l2
+        ds_lam = self.diffs_l2
         # Isolate clear nulls
         mn_sig = self.matches[(self.matches.Q_SKS < -0.5) & (self.matches.Q_SKKS < -0.5)]
         dn_sig = self.diffs[(self.diffs.Q_SKS < -0.5) & (self.diffs.Q_SKKS < -0.5)]
-        mn_lam = self.matches_l2[(self.matches_l2.Q_SKS < -0.5) & (self.matches_l2.Q_SKKS < -0.5)]
-        dn_lam = self.diffs_l2[(self.diffs_l2.Q_SKS < -0.5) | (self.diffs_l2.Q_SKKS < -0.5)]
+        # mn_lam = self.matches_l2[(self.matches_l2.Q_SKS < -0.5) & (self.matches_l2.Q_SKKS < -0.5)]
+        # dn_lam = self.diffs_l2[(self.diffs_l2.Q_SKS < -0.5) | (self.diffs_l2.Q_SKKS < -0.5)]
         # Plot clear splits - matches and diff according to 2 sigma
         ax1.plot(ms_sig.LAM2,ms_sig.D_SI,color='blue',marker='.',ls='None',label="'Matching' splits")
         ax1.plot(ds_sig.LAM2,ds_sig.D_SI,color='darkorange',marker='.',ls='None',label="'Discrepant' splits")
         # # Plot clear nulls - matches and diff according to 2 sigma
-        # ax1.plot(mn_sig.LAM2,mn_sig.D_SI,color='blue',marker='x',ls='None',label="'Matching' nulls")
-        # ax1.plot(dn_sig.LAM2,dn_sig.D_SI,color='darkorange',marker='x',ls='None',label="'Discrepant' nulls")
+        ax1.plot(mn_sig.LAM2,mn_sig.D_SI,color='blue',marker='x',ls='None',label="'Matching' nulls")
+        ax1.plot(dn_sig.LAM2,dn_sig.D_SI,color='darkorange',marker='x',ls='None',label="'Discrepant' nulls")
         # Plot Deng threshold
         # ax1.plot([0, 1.0],[0.4,0.4],ls='dashed',color='black')
         ax1.set_xlabel(r'$\bar{\lambda _2}$')
         ax1.set_ylabel(r'$\Delta$ SI')
         ax1.set_title(r'Matching/Discrepant pairs according to $2 \sigma$.')
         ax1.legend()
-        # ax1.set_ylim([0,max([np.around(ms_sig.D_SI.max(),decimals=1),np.around(mn_sig.D_SI.max(),decimals=1)])])
-        # ax1.set_xlim([0,max([np.around(ms_sig.LAM2.max(),decimals=1),np.around(mn_sig.LAM2.max(),decimals=1)])])
+        ax1.set_ylim([0,max([np.around(ms_sig.D_SI.max(),decimals=1),np.around(mn_sig.D_SI.max(),decimals=1)])])
+        ax1.set_xlim([0,max([np.around(ms_sig.LAM2.max(),decimals=1),np.around(mn_sig.LAM2.max(),decimals=1)])])
         #Lam2 / dSI test
         # Plot unidentifiable results
         ax2.plot(self.uID.LAM2,self.uID.D_SI,color='black',marker='.',ls='None',label='uID',markersize=1)
         # Plot clear nulls - matches and diff according to lam2/dSI
-        ax2.plot(mn_lam.LAM2,mn_lam.D_SI,color='blue',marker='x',ls='None',label="'Matching' nulls",markersize=3)
-        ax2.plot(dn_lam.LAM2,dn_lam.D_SI,color='darkorange',marker='x',ls='None',label="'Discrepant' nulls",markersize=3)
+        ax2.plot(self.nulls.LAM2,self.nulls.D_SI,color='blue',marker='x',ls='None',label="'Matching' nulls",markersize=3)
+        ax2.plot(self.null_split.LAM2,self.null_split.D_SI,color='darkorange',marker='x',ls='None',label="'Discrepant' nulls",markersize=3)
         # Plot clear splits - matches and diff according to lam2/dSI
         ax2.plot(ms_lam.LAM2,ms_lam.D_SI,color='blue',marker='.',ls='None',label="'Matching' splits")
         ax2.plot(ds_lam.LAM2,ds_lam.D_SI,color='darkorange',marker='.',ls='None',label="'Discrepant' splits")
         #Plot Thresholds
-        ax2.plot([0,max([np.around(ms_lam.LAM2.max(),decimals=1),np.around(mn_lam.LAM2.max(),decimals=1) ] ) ],[0.2,0.2],'k--')
-        ax2.plot([0.03,0.03],[0,max([np.around(ms_lam.D_SI.max(),decimals=1),np.around(mn_lam.D_SI.max(),decimals=1)])],'k--')
-
+        # ax2.plot([0,max([np.around(ms_lam.LAM2.max(),decimals=1),np.around(mn_lam.LAM2.max(),decimals=1) ] ) ],[0.2,0.2],'k--')
+        # ax2.plot([0.03,0.03],[0,max([np.around(ms_lam.D_SI.max(),decimals=1),np.around(mn_lam.D_SI.max(),decimals=1)])],'k--')
+        ax2.plot([0,0.03],[0.2,0.2],'k--')
+        ax2.plot([0.03,0.03],[0,0.2],'k--')
 
         # ax2.plot([0, 1.0],[0.4,0.4],ls='dashed',color='black')
         ax2.set_xlabel(r'$\bar{\lambda _2}$')
         ax2.set_ylabel(r'$\Delta$ SI')
         ax2.legend()
         ax2.set_title(r'Matching/Discrepant pairs according to $\bar{\lambda _2}$ & $\Delta SI$.')
-        ax2.set_ylim([0,max([np.around(ms_lam.D_SI.max(),decimals=1),np.around(mn_lam.D_SI.max(),decimals=1)])])
-        ax2.set_xlim([0,max([np.around(ms_lam.LAM2.max(),decimals=1),np.around(mn_lam.LAM2.max(),decimals=1)])])
+        ax2.set_ylim([0,self.df.D_SI.max()])
+        ax2.set_xlim([0,self.df.LAM2.max()])
+        # ax2.set_ylim([0,max([np.around(ms_lam.D_SI.max(),decimals=1),np.around(mn_lam.D_SI.max(),decimals=1)])])
+        # ax2.set_xlim([0,max([np.around(ms_lam.LAM2.max(),decimals=1),np.around(mn_lam.LAM2.max(),decimals=1)])])
         if save is True:
             plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/{}.eps'.format(figname),format='eps',dpi=1000)
 
