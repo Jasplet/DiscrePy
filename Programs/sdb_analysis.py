@@ -443,8 +443,35 @@ class Pairs:
 
         plt.show()
 
-    def l2_dSI_SNR(self,fname=None,save=False):
+    def l2_v_SNR(self,fname=None,save=False):
+        '''Plots lambda 2 for clear split pairs (Q> 0.5 for both phases) against the pair SNR. '''
+        fig, (ax1,ax2,ax3) = plt.subplots(1,3,figsize=(18,6))
+        # Isolate clear split pairs
+        splits = self.df[(self.df.Q_SKS >= 0.5) & self.df.Q_SKKS >= 0.5]
+        # Calc snr
+        SNR = (splits.SNR_SKS + splits.SNR_SKKS )/2
+        # plot lam2 v SNR
+        ax1.scatter(SNR,splits.LAM2,marker='.')
+        ax1.set_title(r'$\bar{\lambda_2}$ for split pairs against SNR')
+        ax1.set_xlabel('Signal-to-Noise Ratio (SNR)')
+        ax1.set_ylabel(r'$\bar{\lambda_2}$')
+        #plot log(lam2) v SNR
+        ax2.semilogy(SNR,splits.LAM2,'.')
+        ax2.set_title(r'$log(\bar{\lambda_2})$ for split pairs against SNR')
+        ax2.set_xlabel('Signal-to-Noise Ratio (SNR)')
+        ax2.set_ylabel(r'$log(\bar{\lambda_2})$')
+        #make log-log plot
+        ax3.loglog(SNR,splits.LAM2,'.')
+        ax3.set_title(r'loglog plot of $\bar{\lambda_2})$ for split pairs against SNR')
+        ax3.set_xlabel('Signal-to-Noise Ratio (SNR)')
+        ax3.set_ylabel(r'$(\bar{\lambda_2})$')
 
+        if save is True:
+            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/{}.eps'.format(fname),format='eps',dpi=1000)
+        plt.show()
+
+    def l2_dSI_SNR(self,fname=None,save=False):
+        '''Plots lam2 and dSI agaisnt each other for SKS and SKKS, coloured by signal-to-noise ratio (SNR)'''
         fig, (ax1,ax2) = plt.subplots(1,2,figsize=(12,6))
         # Isolate clear split pairs
         splits = self.df[(self.df.Q_SKS >= 0.5) & self.df.Q_SKKS >= 0.5]
