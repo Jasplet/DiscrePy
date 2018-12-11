@@ -80,7 +80,10 @@ class Synth:
         l = self.T.ravel()
         dsi = self.pairs.D_SI.values.reshape(17,37)
         # C = ax.scatter(l,f,c=self.pairs.D_SI.values,marker='.',label='d_SI grid')
-        C = ax.contourf(self.T,self.F,dsi,18,vmin=0,extend='max')
+        # print(dsi.max())
+        C = ax.contourf(self.T,self.F,dsi,18,levels=np.arange(0,dsi.max(),0.2),vmin=0.2,extend='max',cmap='viridis_r')
+        ax.contour(self.T,self.F,dsi,levels=[0.2],colors=['black'],linestyles='solid')
+        ax.contour(self.T,self.F,dsi,levels=[0.4],colors=['black'],linestyles='dashed')
         C.cmap.set_under('white')
         # Plot the singular A
         # ax.plot(self.a_lag,self.a_fast,'rx')
@@ -94,9 +97,9 @@ class Synth:
             print('dSI',self.spol,l[self.a_ind],f[self.a_ind])
             if f[self.a_ind] < 0:
                 # print(abs(f[self.a_ind]))
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.eps'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
             else:
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}_A_{:2.2f}_{:03.0f}_dSI_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
             plt.close('a')
         else:
             plt.show()
@@ -108,9 +111,9 @@ class Synth:
         f = self.F.ravel()
         l = self.T.ravel()
         lam2 = self.pairs.LAM2.values.reshape(17,37)
-        C = ax.contourf(self.T,self.F,lam2,18,cmap='magma_r',vmin=0,vmax=0.1,extend='both')
-        C.cmap.set_over('black')
-
+        C = ax.contourf(self.T,self.F,lam2,18,cmap='magma_r',vmax=0.1,extend='max')
+        # C.cmap.set_under('white')
+        ax.contour(self.T,self.F,lam2,levels=[0.03],colors=['black'],linestyles='solid')
         #C = ax.scatter(l,f,self.LAM2,marker='.',label='d_SI grid')
         # Plot the singular A
         # ax.plot(self.a_lag,self.a_fast,'rx')
@@ -124,9 +127,9 @@ class Synth:
             print('Lam2', self.spol,l[self.a_ind],f[self.a_ind])
             if f[self.a_ind] < 0:
                 # print(abs(f[self.a_ind]))
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}_A_{:2.2f}_N{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
             else:
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
             plt.close('a')
         else:
             plt.show()
@@ -230,6 +233,7 @@ class Synth:
         a - [int] indicies of events you want to be the "SKS" (called SKS for sake of comparison to real data)
         b - [int] indicies of events you want to be the "SKKS" (called SKKS for sake of comparison to real data)
         '''
+        self.pairs = []
         # First lets select the relevent rows
         key = np.arange(0,len(a)) # Create a key so that we can merge rows without getting duplications
         # Slice out the rows we need to make the pairs
@@ -274,7 +278,14 @@ class Synth:
         if save is True:
             f = self.F.ravel()
             l = self.T.ravel()
+            self.grid_dSI(save=True)
+            self.grid_lam2(save=True)
+            plt.close('all')
             if f[self.a_ind] < 0:
-                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}_lowSNR_A_{:2.2f}_N{:03.0f}_B_grid.pairs'.format(self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ')
+                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.spol,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ')
             else:
-                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}__lowSNR_A_{:2.2f}_{:03.0f}_B_grid.pairs'.format(self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ')
+                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Noise025/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.spol,self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ')
+        else:
+            pass
+            # self.grid_dSI()
+            # self.grid_lam2()
