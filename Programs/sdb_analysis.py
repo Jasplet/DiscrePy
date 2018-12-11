@@ -445,26 +445,49 @@ class Pairs:
 
     def l2_v_SNR(self,fname=None,save=False):
         '''Plots lambda 2 for clear split pairs (Q> 0.5 for both phases) against the pair SNR. '''
-        fig, (ax1,ax2,ax3) = plt.subplots(1,3,figsize=(18,6))
+        fig =  plt.figure(figsize=(18,12))
         # Isolate clear split pairs
+
         splits = self.df[(self.df.Q_SKS >= 0.5) & self.df.Q_SKKS >= 0.5]
         # Calc snr
         SNR = (splits.SNR_SKS + splits.SNR_SKKS )/2
+        # Define a range of SNR values to evaltue models for ...
+        snr_mod = np.arange(SNR.min()-0.1,SNR.max()+20,0.1)
+        #print(len(snr_mod))
         # plot lam2 v SNR
+        ax1 = fig.add_subplot(121)
         ax1.scatter(SNR,splits.LAM2,marker='.')
         ax1.set_title(r'$\bar{\lambda_2}$ for split pairs against SNR')
         ax1.set_xlabel('Signal-to-Noise Ratio (SNR)')
         ax1.set_ylabel(r'$\bar{\lambda_2}$')
         #plot log(lam2) v SNR
-        ax2.semilogy(SNR,splits.LAM2,'.')
-        ax2.set_title(r'$log(\bar{\lambda_2})$ for split pairs against SNR')
+        # Semiplog plot removed as it wasnt determined to be unhelpful
+        ax2 = fig.add_subplot(122)
+        ax2.loglog(SNR,splits.LAM2,'.')
+        # Fit a straight line to THIS (log-log) data
+        m2, c2 = np.polyfit(np.log(SNR),np.log(splits.LAM2),1)
+        # Calculate line as estimated by ployfit
+        y_fit2 = m2 * np.log(snr_mod) + (c2)
+        # Also calulate the model we got from the syntetics (m = ~2, c = 0.37)
+        m = -2.04
+        c = 0.37
+        y_mod_log = (m * np.log(snr_mod)) + c
+        print(max(SNR),min(SNR))
+
+        ax2.set_title(r'log ($\bar{\lambda_2})$ for split pairs against log(SNR)')
         ax2.set_xlabel('Signal-to-Noise Ratio (SNR)')
-        ax2.set_ylabel(r'$log(\bar{\lambda_2})$')
-        #make log-log plot
-        ax3.loglog(SNR,splits.LAM2,'.')
-        ax3.set_title(r'loglog plot of $\bar{\lambda_2})$ for split pairs against SNR')
-        ax3.set_xlabel('Signal-to-Noise Ratio (SNR)')
-        ax3.set_ylabel(r'$(\bar{\lambda_2})$')
+        ax2.set_ylabel(r'$(\bar{\lambda_2})$')
+        ax2.text(0.06,0.2,r'Data Model : $ln(\lambda _2$) = {:4.2f} * ln(SNR) + {:4.2f}'.format(m2,c2),transform=ax2.transAxes)
+        ax2.text(0.06,0.15,r'Synthetics Model : $ln(\lambda _2$) = -2.04 * ln(SNR) + 0.37'.format(m2,c2),transform=ax2.transAxes)
+
+        #Add Fit lines to linear plot
+
+        f1, = ax1.plot(snr_mod,np.exp(y_fit2),'k--',label='Log fit (to data)')
+        f2, = ax1.plot(snr_mod,np.exp(y_mod_log),'r--',label='Model from Synthetics')
+
+        ax2.loglog(snr_mod,np.exp(y_mod_log),'--r')
+        ax2.loglog(snr_mod,np.exp(y_fit2),'--k')
+        ax1.legend((f1,f2),('Model from Data','Model from Synthetics'))
 
         if save is True:
             plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/{}.eps'.format(fname),format='eps',dpi=1000)
@@ -734,12 +757,12 @@ class Pairs:
         ax1.plot(self.df.SNR_SKS,self.df.LAM2,'k.')
         ax1.set_ylabel(r'$\bar{\lambda_2}$')
         ax1.set_xlabel('S/N ratio')
-        ax1.set_title('d fast SKS determination dependance on S/N')
+        ax1.set_title(r'$\bar{\lambda_2}$ v SNR for SKS')
         #Plot SNR for SKKS
         ax2.plot(self.df.SNR_SKKS,self.df.LAM2,'k.')
         ax2.set_ylabel(r'$\bar{\lambda_2}$')
         ax2.set_xlabel('S/N ratio')
-        ax2.set_title('d fast SKKS determination dependance on S/N')
+        ax2.set_title(r'$\bar{\lambda_2}$ v SNR for SKKS')
         plt.show()
 
     def package(self,outdir,mypath='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'):
