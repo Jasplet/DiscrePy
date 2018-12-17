@@ -19,14 +19,16 @@ class Builder:
     - path: [str] path to Sheba/Results directory that contains the sdb's that you want
     - RunDir: [str] path to the Run Directory than Contains the .lamR surfaces to stack
     """
-    def __init__(self,p,RunDir,sdb_stem,snr=2.0,syn=False):
+    def __init__(self,p,RunDir,sdb_stem,snr=5.0,syn=False):
 
         self.path = p
         self.path_stk = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(RunDir)
         self.sdb_stem = sdb_stem
         self.fpath =     '{}/{}_{:02d}.pairs'.format(self.path,self.sdb_stem,int(snr))
-        self.lam2 = [ ]
-        self.snr = snr
+        self.lam2 = [ ] # Variabel to hold lambda2 values returned from stacking routine
+        self.lam2_sks = [ ] # Variable to hold list of lam2 values for SKS splititng
+        self.lam2_skks = [ ] # Variable to holf lam2 values for SKKS
+        self.snr = snr # Holds SNR cutoff (defaul is 5)
         self.syn=syn
         #if kwargs are none:\
 
@@ -125,7 +127,7 @@ class Builder:
         del self.P['INTENS_x']
         del self.P['INTENS_y']
 
-    def pair_stack(self,mode='man'):
+    def pair_stack(self):
         ''' Runs Stacker for all the desired pairs (a .pairs file)'''
 
         ext ='lamR'
@@ -150,10 +152,10 @@ class Builder:
                 sks_lam2 = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
                 skks_lam2 = glob('{}/{}/SKKS/{}??_SKKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
                 Stk = Stacker(sks_lam2,skks_lam2,out)
-                if mode == 'man':
-                    self.lam2.append(Stk.lam2)
-                elif mode == 'sheba':
-                    self.lam2.append(Stk.sol[-1])
+                self.lam2_bar.append(Stk.lam2_bar)
+                self.lam2_sks.append(Stk.lam2_sks)
+                self.lam2_skks.append(Stk.lam2_skks)
+
             else:
                 fstem2 = '{}_{}'.format(stat,date)
                 print('fstem2')
@@ -163,10 +165,9 @@ class Builder:
                 # Now for a sanity check
                 if (len(sks_lam2) is not 0) or (len(skks_lam2) is not 0):
                     Stk = Stacker(sks_lam2,skks_lam2,out)
-                    if mode == 'man':
-                        self.lam2.append(Stk.lam2)
-                    elif mode == 'sheba':
-                        self.lam2.append(Stk.sol[-1])
+                    self.lam2.append(Stk.lam2)
+                    self.lam2_sks.append(Stk.lam2_sks)
+                    self.lam2_skks.append(Stk.lam2_skks)
                 else:
                     #print('lam2 surfaces cannot be found, skipping')
                     pass
@@ -177,9 +178,9 @@ class Builder:
         '''
 
         self.pair_stack()
-        l2df = {'LAM2' : self.lam2}
+        l2df = {'LAM2_BAR' : self.lam2_bar, 'LAM2_SKS' : self.lam2_sks, 'LAM2_SKKS' : self.lam2_skks}
         ldf = pd.DataFrame(l2df)
-        self.P['LAM2'] = ldf
+        self.P[['LAM2_BAR','LAM2_SKS','LAM2_SKKS']] = ldf
 
     def add_pp(self):
         '''Adds piercepoints to .pairs file'''
