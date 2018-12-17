@@ -112,10 +112,12 @@ class Stacker:
 
         #perform stack by adding surfaces together.
         # No weighting applied
-        self.stk = (self.sks_lamR + self.skks_lamR) / 2
+        self.stk = (self.sks_lamR + self.skks_lamR)
 
-        # find min lam2 value
-        self.lam2 = self.stk.min()
+        # find min lam2 value - for both phases and for the stacked surface
+        self.lam2_sks = self.sks_lamR.min()
+        self.lam2_skks = self.skks_lamR.min()
+        self.lam2_bar = self.stk.min()
         # find its location
 
         jf,jt  = np.unravel_index(self.stk.argmin(),self.stk.shape)
