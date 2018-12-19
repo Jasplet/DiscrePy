@@ -289,3 +289,58 @@ class Synth:
             pass
             # self.grid_dSI()
             # self.grid_lam2()
+
+def synth_l2_v_snr():
+
+    fig,(ax1,ax3) = plt.subplots(1,2,figsize= (12,6))
+    #for pairs in pairs_list:
+
+    snr_mod = np.arange(0.5,200,0.5)
+
+    ax1.scatter(pairs_p1_p1.SNR,pairs_p1_p1.LAM2,marker='.',c='xkcd:blue',label=r'P1 - P1 pair "perfect" match')
+    ax1.scatter(pairs_p2_match.SNR,pairs_p2_match.LAM2,marker='.',c='black',label=r'P2 - P2 pair "realistic" (0.2 diff in $\delta t$) match')
+    ax1.scatter(pairs_p2_p2.SNR,pairs_p2_p2.LAM2,marker='.',c='xkcd:green',label=r'P2 - P2 pair "perfect" match')
+    ax1.scatter(pairs_p1_p2.SNR,pairs_p1_p2.LAM2,marker='.',c='xkcd:goldenrod',label=r'P1 - P2 pair (discrepant)')
+    #ax1.scatter(pairs_p1_p3.SNR,pairs_p1_p3.LAM2,marker='.',c='xkcd:pink',label=r'P1 - P3 pair (discrepant)')
+    ax1.scatter(pairs_p2_p3.SNR,pairs_p2_p3.LAM2,marker='.',c='xkcd:red',label='P2 - P3 pair')
+    ax1.set_title(r'$\bar{\lambda_2}$ for split pairs against SNR')
+    ax1.set_xlabel('SNR of SYN1')
+    ax1.legend()
+    # Make a log-log plot for lam2 v SNR
+    ax3.loglog(pairs_p1_p1.SNR,pairs_p1_p1.LAM2,'.',color='xkcd:blue',label=None)
+    ax3.loglog(pairs_p2_p2.SNR,pairs_p2_p2.LAM2,'.',color='xkcd:green',label=None)
+    ax3.loglog(pairs_p2_match.SNR,pairs_p2_match.LAM2,'.',color='black',label=None)
+    ax3.loglog(pairs_p1_p2.SNR,pairs_p1_p2.LAM2,'.',color='xkcd:goldenrod',label=None)
+    #ax3.loglog(pairs_p1_p3.SNR,pairs_p1_p3.LAM2,'.',color='xkcd:pink',label=None)
+    ax3.loglog(pairs_p2_p3.SNR,pairs_p2_p3.LAM2,'.',color='xkcd:red',label=None)
+    # Fit a straight line to THIS (log-log) data
+    m2, c2 = np.polyfit(np.log(SNR),np.log(L2),1)
+    # Calculate line
+    y_fit = m2*np.log(snr_mod) + c2
+    #print(max(SNR),min(SNR))
+    # ax3.plot(snr_mod,10**y_fit,'k--')
+    ax3.set_title(r'loglog plot of $\bar{\lambda_2}$ for split pairs against SNR')
+    # Plot models on ax1
+    print(m2,c2)
+    ax3.text(5,0.1,r'$log(\lambda _2$) = {:4.2f} * log(SNR) + {:4.2f}'.format(m2,c2),transform=ax3.transAxes)
+    ax3.set_ylabel(r'log($\lambda _2$)')
+    ax3.set_xlabel('SNR')
+
+    y_mod = (m2 * np.log(snr_mod)) + c2
+
+    # Set some limits
+
+    #f1, = ax1.plot(snr_mod,y_fit1,'--',label='Semilog fit')
+    ax1.plot(snr_mod,np.exp(y_mod),'k--',label='Model')
+    ax1.plot(snr_mod,np.exp(y_mod)+0.003, 'k-.')
+    f1, = ax3.loglog((snr_mod),np.exp(y_mod), 'k--',label='Model for "Perfect" matches')
+    f2, = ax3.loglog(snr_mod,np.exp(y_mod)+0.003 ,'k-.',label=r'$\bar{\lambda _2} = A. SNR^{-b} + \kappa_{\bar{\lambda_2}}$ Model')
+    #ax1.plot([10,10],[0,L2.max()],'-k')
+    ax1.set_ylim([-0.01,0.3])
+    ax1.set_xlim([1,55])
+    ax3.set_xlim([1,55])
+    ax3.legend([f1,f2],['Model for Perfect Matches',r'$\bar{\lambda _2} = A. SNR^{-b} + \kappa_{\bar{\lambda_2}}$ Model'])
+    #f4 = ax3.plot(snr_mod,y_mod,'k-')
+    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/LAM2_v_SNR_w_models.eps',format='eps',dpi=400)
+    #plt.savefig('LAM2_v_SNR_matches.eps',format='eps',dpi=400)
+    plt.show()
