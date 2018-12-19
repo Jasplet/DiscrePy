@@ -25,7 +25,7 @@ class Builder:
         self.path_stk = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(RunDir)
         self.sdb_stem = sdb_stem
         self.fpath =     '{}/{}_{:02d}.pairs'.format(self.path,self.sdb_stem,int(snr))
-        self.lam2 = [ ] # Variabel to hold lambda2 values returned from stacking routine
+        self.lam2_bar = [ ] # Variabel to hold lambda2 values returned from stacking routine
         self.lam2_sks = [ ] # Variable to hold list of lam2 values for SKS splititng
         self.lam2_skks = [ ] # Variable to holf lam2 values for SKKS
         self.snr = snr # Holds SNR cutoff (defaul is 5)
@@ -262,8 +262,8 @@ class Builder:
         null_pairs  = P[((P.Q_SKS <= -0.5) & (P.Q_SKKS <= -0.5))] # Pairs where both phases are nulls (according to Q), auto classify as matching
         null_split_pair = P[(((P.Q_SKS <= -0.5) & (P.Q_SKKS >= 0.5)) | ((P.Q_SKS >= 0.5) & (P.Q_SKKS <= -0.5)))] # Test for pairs with 1 null 1 split, discrepant by definition
         splits = P[((P.Q_SKS > 0.5) & (P.Q_SKKS > 0.5 ))] # Test for pairs whjere both phases are split
-        diff= splits[((splits.LAM2 > t_l2) | (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
-        match = splits[((splits.LAM2 <= t_l2) & (splits.D_SI <= t_dSI))]
+        diff= splits[((splits.LAM2_BAR > t_l2) | (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
+        match = splits[((splits.LAM2_BAR <= t_l2) & (splits.D_SI <= t_dSI))]
         print(len(self.P))
         print('There are {} split pairs. {} are matches and {} are discrepant!'.format(len(splits),len(match),len(diff)))
         test = len(uID) + len(null_pairs) + len(null_split_pair) + len(diff) + len(match)
@@ -396,10 +396,10 @@ class Pairs:
 
         fig,((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2, figsize = [12,6])
 
-        ax1.plot(self.matches.DIST,self.matches.LAM2,marker='.',color='blue',label='Matching')
-        ax1.plot(self.diffs.DIST,self.diffs.LAM2,marker='.',color='darkorange',label='Discrepant')
+        ax1.plot(self.matches.DIST,self.matches.LAM2_BAR,marker='.',color='blue',label='Matching')
+        ax1.plot(self.diffs.DIST,self.diffs.LAM2_BAR,marker='.',color='darkorange',label='Discrepant')
         ax1.set_xlim([105, 140])
-        ax1.set_ylim([0, np.around(self.df.LAM2.max(),decimals=1)])
+        ax1.set_ylim([0, np.around(self.df.LAM2_BAR.max(),decimals=1)])
         ax1.set_xlabel('Epicentral Distance (Deg)')
         ax1.set_ylabel(r'$\bar{\lambda _2}$ values')
         ax1.set_title('Match/Diff according to  2 sigma test')
@@ -412,10 +412,10 @@ class Pairs:
         ax2.set_xlabel('Epicentral Distrance (Deg)')
         ax2.set_ylabel(R'$\Delta SI $')
 
-        ax3.plot(self.matches_l2.DIST,self.matches_l2.LAM2,marker='.',color='blue',label='Matching')
-        ax3.plot(self.diffs_l2.DIST,self.diffs_l2.LAM2,marker='.',color='darkorange',label='Discrepant')
+        ax3.plot(self.matches_l2.DIST,self.matches_l2.LAM2_BAR,marker='.',color='blue',label='Matching')
+        ax3.plot(self.diffs_l2.DIST,self.diffs_l2.LAM2_BAR,marker='.',color='darkorange',label='Discrepant')
         ax3.set_xlim([105, 140])
-        ax3.set_ylim([0, np.around(self.df.LAM2.max(),decimals=1)])
+        ax3.set_ylim([0, np.around(self.df.LAM2_BAR.max(),decimals=1)])
         ax3.set_xlabel('Epicentral Distance (Deg)')
         ax3.set_ylabel(r'$\bar{\lambda _2}$ values')
         ax3.set_title(r'Match/Diff according to $\bar{lambda _2} / \Delta SI $ test')
@@ -457,16 +457,16 @@ class Pairs:
         #print(len(snr_mod))
         # plot lam2 v SNR
         ax1 = fig.add_subplot(121)
-        ax1.scatter(SNR,splits.LAM2,marker='.')
+        ax1.scatter(SNR,splits.LAM2_BAR,marker='.')
         ax1.set_title(r'$\bar{\lambda_2}$ for split pairs against SNR')
         ax1.set_xlabel('Signal-to-Noise Ratio (SNR)')
         ax1.set_ylabel(r'$\bar{\lambda_2}$')
         #plot log(lam2) v SNR
         # Semiplog plot removed as it wasnt determined to be unhelpful
         ax2 = fig.add_subplot(122)
-        ax2.loglog(SNR,splits.LAM2,'.')
+        ax2.loglog(SNR,splits.LAM2_BAR,'.')
         # Fit a straight line to THIS (log-log) data
-        m2, c2 = np.polyfit(np.log(SNR),np.log(splits.LAM2),1)
+        m2, c2 = np.polyfit(np.log(SNR),np.log(splits.LAM2_BAR),1)
         # Calculate line as estimated by ployfit
         y_fit2 = m2 * np.log(snr_mod) + (c2)
         # Also calulate the model we got from the syntetics (m = ~2, c = 0.37)
@@ -500,22 +500,22 @@ class Pairs:
         # Isolate clear split pairs
         splits = self.df[(self.df.Q_SKS >= 0.5) & self.df.Q_SKKS >= 0.5]
         print(len(splits))
-        c1 = ax1.scatter(splits.LAM2,splits.D_SI,c=splits.SNR_SKS,marker='.',vmax=15,vmin=5)
+        c1 = ax1.scatter(splits.LAM2_BAR,splits.D_SI,c=splits.SNR_SKS,marker='.',vmax=15,vmin=5)
         plt.colorbar(c1,ax=ax1)
-        c2 = ax2.scatter(splits.LAM2,splits.D_SI,c=splits.SNR_SKKS,marker='.',vmax=15,vmin=5)
+        c2 = ax2.scatter(splits.LAM2_BAR,splits.D_SI,c=splits.SNR_SKKS,marker='.',vmax=15,vmin=5)
         plt.colorbar(c2,ax=ax2)
         #Plot Thresholds
-        ax1.plot([0,max([np.around(splits.LAM2.max(),decimals=2),np.around(splits.LAM2.max(),decimals=2) ] ) ],[0.2,0.2],'k--')
+        ax1.plot([0,max([np.around(splits.LAM2_BAR.max(),decimals=2),np.around(splits.LAM2_BAR.max(),decimals=2) ] ) ],[0.2,0.2],'k--')
         ax1.plot([0.03,0.03],[0,max([np.around(splits.D_SI.max(),decimals=2),np.around(splits.D_SI.max(),decimals=2)])],'k--')
         ax1.set_ylim([0,max([np.around(splits.D_SI.max(),decimals=1),np.around(splits.D_SI.max(),decimals=2)])])
-        ax1.set_xlim([0,max([np.around(splits.LAM2.max(),decimals=1),np.around(splits.LAM2.max(),decimals=2)])])
+        ax1.set_xlim([0,max([np.around(splits.LAM2_BAR.max(),decimals=1),np.around(splits.LAM2_BAR.max(),decimals=2)])])
         ax1.set_xlabel(r'$\bar{\lambda _2}$')
         ax1.set_ylabel(r'$\Delta$ SI')
         ax1.set_title('SKS')
-        ax2.plot([0,max([np.around(splits.LAM2.max(),decimals=2),np.around(splits.LAM2.max(),decimals=2) ] ) ],[0.2,0.2],'k--')
+        ax2.plot([0,max([np.around(splits.LAM2_BAR.max(),decimals=2),np.around(splits.LAM2_BAR.max(),decimals=2) ] ) ],[0.2,0.2],'k--')
         ax2.plot([0.03,0.03],[0,max([np.around(splits.D_SI.max(),decimals=2),np.around(splits.D_SI.max(),decimals=2)])],'k--')
         ax2.set_ylim([0,np.around(splits.D_SI.max(),decimals=2)])
-        ax2.set_xlim([0,np.around(splits.LAM2.max(),decimals=2)])
+        ax2.set_xlim([0,np.around(splits.LAM2_BAR.max(),decimals=2)])
         ax2.set_xlabel(r'$\bar{\lambda _2}$')
         ax2.set_ylabel(r'$\Delta$ SI')
         ax2.set_title('SKKS')
@@ -550,16 +550,16 @@ class Pairs:
         ax1.set_title(r'Matching/Discrepant pairs according to $2 \sigma$.')
         ax1.legend()
         ax1.set_ylim([0,max([np.around(ms_sig.D_SI.max(),decimals=1),np.around(mn_sig.D_SI.max(),decimals=1)])])
-        ax1.set_xlim([0,max([np.around(ms_sig.LAM2.max(),decimals=1),np.around(mn_sig.LAM2.max(),decimals=1)])])
+        ax1.set_xlim([0,max([np.around(ms_sig.LAM2_BAR.max(),decimals=1),np.around(mn_sig.LAM2_BAR.max(),decimals=1)])])
         #Lam2 / dSI test
         # Plot unidentifiable results
-        ax2.plot(self.uID.LAM2,self.uID.D_SI,color='black',marker='.',ls='None',label='uID',markersize=1)
+        ax2.plot(self.uID.LAM2_BAR,self.uID.D_SI,color='black',marker='.',ls='None',label='uID',markersize=1)
         # Plot clear nulls - matches and diff according to lam2/dSI
-        ax2.plot(self.nulls.LAM2,self.nulls.D_SI,color='blue',marker='x',ls='None',label="'Matching' nulls",markersize=3)
-        ax2.plot(self.null_split.LAM2,self.null_split.D_SI,color='darkorange',marker='x',ls='None',label="'Discrepant' nulls",markersize=3)
+        ax2.plot(self.nulls.LAM2_BAR,self.nulls.D_SI,color='blue',marker='x',ls='None',label="'Matching' nulls",markersize=3)
+        ax2.plot(self.null_split.LAM2_BAR,self.null_split.D_SI,color='darkorange',marker='x',ls='None',label="'Discrepant' nulls",markersize=3)
         # Plot clear splits - matches and diff according to lam2/dSI
-        ax2.plot(ms_lam.LAM2,ms_lam.D_SI,color='blue',marker='.',ls='None',label="'Matching' splits")
-        ax2.plot(ds_lam.LAM2,ds_lam.D_SI,color='darkorange',marker='.',ls='None',label="'Discrepant' splits")
+        ax2.plot(ms_lam.LAM2_BAR,ms_lam.D_SI,color='blue',marker='.',ls='None',label="'Matching' splits")
+        ax2.plot(ds_lam.LAM2_BAR,ds_lam.D_SI,color='darkorange',marker='.',ls='None',label="'Discrepant' splits")
         #Plot Thresholds
         # ax2.plot([0,max([np.around(ms_lam.LAM2.max(),decimals=1),np.around(mn_lam.LAM2.max(),decimals=1) ] ) ],[0.2,0.2],'k--')
         # ax2.plot([0.03,0.03],[0,max([np.around(ms_lam.D_SI.max(),decimals=1),np.around(mn_lam.D_SI.max(),decimals=1)])],'k--')
@@ -572,7 +572,7 @@ class Pairs:
         ax2.legend()
         ax2.set_title(r'Matching/Discrepant pairs according to $\bar{\lambda _2}$ & $\Delta SI$.')
         ax2.set_ylim([0,self.df.D_SI.max()])
-        ax2.set_xlim([0,self.df.LAM2.max()])
+        ax2.set_xlim([0,self.df.LAM2_BAR.max()])
         # ax2.set_ylim([0,max([np.around(ms_lam.D_SI.max(),decimals=1),np.around(mn_lam.D_SI.max(),decimals=1)])])
         # ax2.set_xlim([0,max([np.around(ms_lam.LAM2.max(),decimals=1),np.around(mn_lam.LAM2.max(),decimals=1)])])
         if save is True:
@@ -588,11 +588,11 @@ class Pairs:
         m_splits = self.matches_l2
         d_splits = self.diffs_l2
 
-        ax1.hist([m_splits.LAM2,d_splits.LAM2],bins_l2, histtype='bar', stacked=True,label=["'Matching'","'Discrepent'"])
+        ax1.hist(m_splits.LAM2_BAR,d_splits.LAM2_BAR,bins_l2, histtype='bar', stacked=True,label=["'Matching'","'Discrepent'"])
         ax1.set_xlabel(r'$\bar {\lambda _2}$ values')
         ax1.set_ylabel('Count')
         ax1.legend()
-        ax1.set_xlim([0, np.around(self.df.LAM2.max(),decimals=1)])
+        ax1.set_xlim([0, np.around(self.df.LAM2_BAR.max(),decimals=1)])
         ax2.hist([m_splits.D_SI,d_splits.D_SI],bins_dsi, histtype='bar', stacked=True,label=["'Matching'","'Discrepent'"])
         ax2.set_xlabel(r'$\Delta SI$ values')
         ax2.set_ylabel('Count')
@@ -610,7 +610,7 @@ class Pairs:
         deltaF = 90 -abs(abs(self.df.FAST_SKS - self.df.FAST_SKKS) - 90 ) # This should allow for differences to vary between 0 and 90 whilst also dealing with the wrap around properly
         ddt = abs(self.df.TLAG_SKS) - abs(self.df.TLAG_SKKS)
 
-        C1 = ax1.scatter(self.df.DIST,deltaF,c=self.df.LAM2,marker='.',label=r'$| \phi_{SKS} - \phi_{SKKS} |')
+        C1 = ax1.scatter(self.df.DIST,deltaF,c=self.df.LAM2_BAR,marker='.',label=r'$| \phi_{SKS} - \phi_{SKKS} |')
 
         ax1.set_xlim([105, 140])
         ax1.set_ylim([0,90])
@@ -618,7 +618,7 @@ class Pairs:
         ax1.set_ylabel(r'$ |\phi_{SKS} - \phi_{SKKS}|$')
         ax1.set_title(r'Difference in $\phi$, coloured by $\Lambda$')
 
-        C2 = ax2.scatter(self.df.DIST,ddt,c=self.df.LAM2,marker='.',label='delta deltaT')
+        C2 = ax2.scatter(self.df.DIST,ddt,c=self.df.LAM2_BAR,marker='.',label='delta deltaT')
         #ax2.plot(df.diffs.DIST,df.diffs.D_SI,'r.',label='Discrepant')
         ax2.set_xlim([105,140])
         ax2.set_ylim([0,4])
@@ -629,7 +629,7 @@ class Pairs:
         cbar1.set_label(r'$\Lambda$',rotation=270)
 
         fig2,(ax3) = plt.subplots(figsize= [6,6])
-        C3 = ax3.scatter(ddt,(deltaF),c=self.df.LAM2,marker='.')
+        C3 = ax3.scatter(ddt,(deltaF),c=self.df.LAM2_BAR,marker='.')
         ax3.set_xlim([0,4])
         ax3.set_ylim([0, 90])
         ax3.set_ylabel(r'$| \phi_{SKS} - \phi_{SKKS} | $')
@@ -685,20 +685,20 @@ class Pairs:
         fig,((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2,figsize=(14,6),sharex=True)#,sharey=True)
 
         # C1 = ax1.scatter(self.df.Q_SKS,self.df.LAM2,c=self.df.SNR_SKS,marker='.',vmin=2,vmax=20)
-        ax1.plot(self.matches_l2.Q_SKS,self.matches_l2.LAM2,marker='.',color='blue',ls='None')
-        ax1.plot(self.diffs_l2.Q_SKS,self.diffs_l2.LAM2,marker='.',color='darkorange',ls='None')
+        ax1.plot(self.matches_l2.Q_SKS,self.matches_l2.LAM2_BAR,marker='.',color='blue',ls='None')
+        ax1.plot(self.diffs_l2.Q_SKS,self.diffs_l2.LAM2_BAR,marker='.',color='darkorange',ls='None')
         ax1.set_xlabel('SKS Q factor')
         ax1.set_ylabel(r'$\bar{\lambda _2}$')
         ax1.set_xlim([-1,1])
-        ax1.set_ylim([0,np.around(self.df.LAM2.max(),decimals=1)])
+        ax1.set_ylim([0,np.around(self.df.LAM2_BAR.max(),decimals=1)])
         # plt.colorbar(C1,ax=ax1)
 
-        ax2.plot(self.matches_l2.Q_SKKS,self.matches_l2.LAM2,marker='.',color='blue',ls='None')
-        ax2.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.LAM2,marker='.',color='darkorange',ls='None')
+        ax2.plot(self.matches_l2.Q_SKKS,self.matches_l2.LAM2_BAR,marker='.',color='blue',ls='None')
+        ax2.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.LAM2_BAR,marker='.',color='darkorange',ls='None')
         #ax2.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.LAM2,marker='.',color='darkorange',ls='None')
         ax2.set_xlabel('SKKS Q factor')
         ax2.set_xlim([-1,1])
-        ax2.set_ylim([0,np.around(self.df.LAM2.max(),decimals=1)])
+        ax2.set_ylim([0,np.around(self.df.LAM2_BAR.max(),decimals=1)])
 
         ax3.plot(self.matches_l2.Q_SKS,self.matches_l2.D_SI,marker='.',color='blue',ls='None')
         ax3.plot(self.diffs_l2.Q_SKS,self.diffs_l2.D_SI,marker='.',color='darkorange',ls='None')
@@ -755,12 +755,12 @@ class Pairs:
         '''
         fig, (ax1,ax2) = plt.subplots(nrows=1,ncols=2,sharey='row',figsize=(8,8))
         #Plot SNR for SKS
-        ax1.plot(self.df.SNR_SKS,self.df.LAM2,'k.')
+        ax1.plot(self.df.SNR_SKS,self.df.LAM2_BAR,'k.')
         ax1.set_ylabel(r'$\bar{\lambda_2}$')
         ax1.set_xlabel('S/N ratio')
         ax1.set_title(r'$\bar{\lambda_2}$ v SNR for SKS')
         #Plot SNR for SKKS
-        ax2.plot(self.df.SNR_SKKS,self.df.LAM2,'k.')
+        ax2.plot(self.df.SNR_SKKS,self.df.LAM2_BAR,'k.')
         ax2.set_ylabel(r'$\bar{\lambda_2}$')
         ax2.set_xlabel('S/N ratio')
         ax2.set_title(r'$\bar{\lambda_2}$ v SNR for SKKS')
@@ -833,11 +833,11 @@ class Pairs:
                 self.lam2_surface(f1=self.syn1[s],f2=self.syn2[s])
                 fast_sks,dfast_sks,lag_sks,dlag_sks = self.df.FAST_SKS.values[s],(sigma*self.df.DFAST_SKS.values[s]),self.df.TLAG_SKS.values[s],(sigma*self.df.DTLAG_SKS.values[s])
                 fast_skks,dfast_skks,lag_skks,dlag_skks = self.df.FAST_SKKS.values[s],(sigma*self.df.DFAST_SKKS.values[s]),self.df.TLAG_SKKS.values[s],(sigma*self.df.DTLAG_SKKS.values[s])
-                lam2 = self.df.LAM2.values[s]
+                lam2 = self.df.LAM2_BAR.values[s]
             else:
                 fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
                 fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
-                lam2 = self.p_sorted.LAM2.values[s]
+                lam2 = self.p_sorted.LAM2_BAR.values[s]
                 l_path = '{}/{}_{}_{}'.format(self.spath,stat,date,time) #Path to lambda 2 surfaces for SKS and SKKS
                 print(l_path)
                 self.lam2_surface(l_path)
