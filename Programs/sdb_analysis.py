@@ -257,11 +257,14 @@ class Builder:
         fstem = self.path.split('.')[0]# Split('.')[0] takes off the extension
         P = self.P.copy()
         # Now apply the test to find the discrepant pairs, by definition the remainder must by the matches
-        uID = P[((P.Q_SKS > -0.5) & (P.Q_SKS < 0.5)) | ((P.Q_SKKS > -0.5) & (P.Q_SKKS < 0.5))]
+        # First find pairs that are split or not
+        uID = P[((P.Q_SKS > -0.7) & (P.Q_SKS < 0.5)) | ((P.Q_SKKS > -0.7) & (P.Q_SKKS < 0.5))]
         P.drop(uID.index)
-        null_pairs  = P[((P.Q_SKS <= -0.5) & (P.Q_SKKS <= -0.5))] # Pairs where both phases are nulls (according to Q), auto classify as matching
-        null_split_pair = P[(((P.Q_SKS <= -0.5) & (P.Q_SKKS >= 0.5)) | ((P.Q_SKS >= 0.5) & (P.Q_SKKS <= -0.5)))] # Test for pairs with 1 null 1 split, discrepant by definition
+        null_pairs  = P[((P.Q_SKS <= -0.7) & (P.Q_SKKS <= -0.7))] # Pairs where both phases are nulls (according to Q), auto classify as matching
+        null_split_pair = P[(((P.Q_SKS <= -0.7) & (P.Q_SKKS >= 0.5)) | ((P.Q_SKS >= 0.5) & (P.Q_SKKS <= -0.7)))] # Test for pairs with 1 null 1 split, discrepant by definition
         splits = P[((P.Q_SKS > 0.5) & (P.Q_SKKS > 0.5 ))] # Test for pairs whjere both phases are split
+        t_l2 = 1.1*(splits.LAM2_SKS + splits.LAM2_SKKS)
+        t_dSI = 0.2
         diff= splits[((splits.LAM2_BAR > t_l2) | (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
         match = splits[((splits.LAM2_BAR <= t_l2) & (splits.D_SI <= t_dSI))]
         print(len(self.P))
