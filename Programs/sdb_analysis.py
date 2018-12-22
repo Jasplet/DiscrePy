@@ -1052,6 +1052,21 @@ class Pairs:
         else:
             plt.show()
 
+    def plot_l2bar_v_l2sum():
+        fig,ax = plt.subplots(1,1,figsize=(7,7))
+        C = ax.scatter((splits.LAM2_SKS + splits.LAM2_SKKS),splits.LAM2_BAR,marker='.',label='Split Pairs')
+        mod = np.linspace(0,0.2,10)
+        ax.plot(mod,mod,'k--',label=r'$\lambda_2^{P1} + \lambda_2^{P2} = \bar{\lambda_2}$')
+        ax.plot(mod,mod + 0.01,'k-.',label=r'$\bar{\lambda_2} = (\lambda_2^{P1} + \lambda_2^{P2}) + 0.01$')
+        ax.set_xlabel(r'$\lambda_2^{P1} + \lambda_2^{P2}$')
+        ax.set_ylabel(r'$\bar{\lambda_2}$')
+        ax.set_xlim([0,0.2])
+        ax.set_ylim([0,0.2])
+        ax.legend()
+        #plt.colorbar(C)
+        #plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Lam2bar_v_Lam2sum_splits.eps',format='eps',dpi=400)
+        plt.show()
+
 #####################################################################################################
 # Top level where script is invoked from command line
 if __name__ == '__main__':
