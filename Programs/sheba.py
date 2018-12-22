@@ -53,9 +53,9 @@ def tidyup(path,phase,outfile,outdir):
     else:
         fnames = glob('{}/*/{}/*final_result'.format(path,phase))
     results = []
-    print(fnames)
+    # print(fnames)
     for i,file in enumerate(fnames):
-        print(file)
+        # print(file)
         f_stat = fnames[i].rstrip('final_result') + 'stats'
 
         with open(file,'r') as input, open(f_stat,'r') as stats:
@@ -272,12 +272,12 @@ class Interface:
             print('Phase {} not SKS or SKKS'.format(phase_to_check))
             return False
 
-    def process(self,synth=False,c1=0.01,c2=0.5):
+    def process(self,synth=False,c1=0.01,c2=0.3):
         """
         Function to bandpass filter and trim the components
         Seismograms are trimmed so that they start 1 minute before the expected arrival and end 2 minutes after the arrival
         c1 - [Hz] Lower corner frequency
-        c2 - [Hz] Upper corner frequency
+        c2 - [Hz] Upper corner frequency (N.B I have used c2 = 00.5 intially and am now trying c2 = 0.3 to see if that improves SNR without cutting oiut too mcuh singal)
         By default traces will be filtered between 0.01Hz-0.5Hz
         """
         # print(synth)
@@ -433,7 +433,8 @@ if __name__ == '__main__':
     if mode == 'data':
         runpath ='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
         print('Runpath is :',runpath)
-        # runner = partial(run_sheba,runpath)
+
+        runner = partial(run_sheba,runpath)
         if run_mode == 'par':
             with contextlib.closing( Pool(processes = 8) ) as pool:
             #           Iterate over stations in the station list.
