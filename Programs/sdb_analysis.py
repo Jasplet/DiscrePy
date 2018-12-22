@@ -115,6 +115,7 @@ class Builder:
         self.P = SKS_SKKS_pair.sort_values(by=['DATE'],ascending=True)
 
     def write_out(self,df,name):
+        print('Writing to {}'.format(name))
         df.to_csv('{}/{}'.format(self.path,name),sep=' ',index=False)
 
     def add_DSI(self):
@@ -133,12 +134,13 @@ class Builder:
         ext ='lamR'
         print('Stacking')
         rd = self.path_stk.split('/')[-1]
-        out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/Stacks'.format(rd)
+        out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Combined/{}/Stacks'.format(rd)
         if os.path.isdir(out) is False:
             print('{} does not exist, creating'.format(out))
-            os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/Stacks'.format(rd))
+            os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Combined/{}/Stacks'.format(rd))
 
         for i,f in enumerate(self.P.DATE.values):
+            # print(len(self.P))
             # print('It {}, time is {} '.format(i,str(datetime.now())))
             # First get the right DATE,TIME and STATION
             date,time,stat = self.P.DATE[i], self.P.TIME[i], self.P.STAT[i]
@@ -165,7 +167,7 @@ class Builder:
                 # Now for a sanity check
                 if (len(sks_lam2) is not 0) or (len(skks_lam2) is not 0):
                     Stk = Stacker(sks_lam2,skks_lam2,out)
-                    self.lam2.append(Stk.lam2)
+                    self.lam2_bar.append(Stk.lam2_bar)
                     self.lam2_sks.append(Stk.lam2_sks)
                     self.lam2_skks.append(Stk.lam2_skks)
                 else:
@@ -256,6 +258,8 @@ class Builder:
 
         fstem = self.path.split('.')[0]# Split('.')[0] takes off the extension
         P = self.P.copy()
+        # print(P.Q_SKS)
+        # print(P.Q_SKKS)
         # Now apply the test to find the discrepant pairs, by definition the remainder must by the matches
         # First find pairs that are split or not
         uID = P[((P.Q_SKS > -0.7) & (P.Q_SKS < 0.5)) | ((P.Q_SKKS > -0.7) & (P.Q_SKKS < 0.5))]
@@ -336,19 +340,28 @@ class Builder:
         t = self.snr
         print(t)
         self.accepted_i = [ ]
-        self.d = [ ]
+        self.snr_fail = [ ]
+        self.baz_spol_fail = [ ]
         print('There are {} pairs pre-SNR < 2 test'.format(len(self.P)))
         for i,row in self.P.iterrows():
-            if row.SNR_SKS <= self.snr or row.SNR_SKKS <= self.snr:
+            if row.SNR_SKS > self.snr and row.SNR_SKKS > self.snr:
                 #Test to see if Signal-to-Noise is too high
-                print('SNR for SKS or SKKS less than {:02}, auto-reject'.format(self.snr))
-                self.d.append(i)
-            else:
+                # if abs(row.BAZ - row.SPOL_SKS) <  15 and abs(row.BAZ - row.SPOL_SKKS) < 15:
+                # Test to see if there is a asignficiant difference between source polarisation and back azimuth abs
+                print('Event accepted')
                 self.accepted_i.append(i)
-                # print('Event accepted')
+                # else:
+                #     print('SPOL-BAZ differrence greater than 15, auto-reject')
+                #     self.baz_spol_fail.append(i)
 
-        print('{} accepted, {} rejected'.format(len(self.accepted_i),len(self.d)))
-        accepted_pairs = self.P.drop(self.d)
+            else:
+                print('SNR for SKS or SKKS less than {:02}, auto-reject'.format(self.snr))
+                self.snr_fail.append(i)
+
+
+        print('{} accepted, {} rejected for SNR, 0 rejected for BAZ-SPOL'.format(len(self.accepted_i),len(self.snr_fail)))#,len(self.baz_spol_fail)))
+        drop = self.snr_fail #+ self.baz_spol_fail
+        accepted_pairs = self.P.drop(drop)
         accepted_pairs.index = pd.RangeIndex(len(accepted_pairs.index))
         return accepted_pairs
 
@@ -1011,6 +1024,33 @@ class Pairs:
         print('Lam2 {}, fast {} lag {}'.format(sol,fast,lag))
         self.stk_fast = fast
         self.stk_lag = lag
+
+    def plot_l2sum_v_l2bar(self,save=False):
+        '''
+        Function to plot lambda2 bar against the sum of lambda2 for each phase in the pair
+
+        We only plto null split and split pairs
+        '''
+        fig,ax = plt.subplots(1,1,figsize=(7,7))
+        splits = self.diffs_l2.append(self.matches_l2)
+        #Plot split pairs
+        ax.scatter((splits.LAM2_SKS + splits.LAM2_SKKS),splits.LAM2_BAR,marker='.',label='Split Pairs')
+        #Plot null - split pairs
+        ax.scatter((self.null_split.LAM2_SKS + self.null_split.LAM2_SKKS),self.null_split.LAM2_BAR,marker='x',c='red',label='Null-Split Pairs')
+        mod = np.linspace(0,0.2,10)
+        ax.plot(mod,mod,'k--',label=r'$\lambda_2^{P1} + \lambda_2^{P2} = \bar{\lambda_2}$')
+        ax.plot(mod,mod + 0.01,'k-.',label=r'$\bar{\lambda_2} = (\lambda_2^{P1} + \lambda_2^{P2}) + 0.01$')
+        ax.set_xlabel(r'$\lambda_2^{P1} + \lambda_2^{P2}$')
+        ax.set_ylabel(r'$\bar{\lambda_2}$')
+        ax.set_xlim([0,0.2])
+        ax.set_ylim([0,0.2])
+        ax.legend()
+        #plt.colorbar(C)\
+        if save == True:
+            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Lam2bar_v_Lam2sum_splits.eps',format='eps',dpi=400)
+            plt.show()
+        else:
+            plt.show()
 
 #####################################################################################################
 # Top level where script is invoked from command line
