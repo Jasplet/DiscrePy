@@ -351,34 +351,129 @@ def synth_l2_v_snr():
     #plt.savefig('LAM2_v_SNR_matches.eps',format='eps',dpi=400)
     plt.show()
 
-    def synth_l2bar_v_l2(self):
-        '''
-        Form Ipython, needs recaasting into Class stcutre
-        '''
-        fig,ax = plt.subplots(1,1,figsize=(7,7))
-        C1 = ax.scatter((pairs_p1_p1.LAM2_P1+pairs_p1_p1.LAM2_P2),pairs_p1_p1.LAM2_BAR,marker='.',c='black',label=r'S1 - S1 pair "perfect" match',vmax=20.0)
-        ax.scatter((pairs_p2_match.LAM2_P1+pairs_p2_match.LAM2_P2),pairs_p2_match.LAM2_BAR,marker='.',c='green',label=r'S2 - S2 pair "realistic" (0.2 diff in $\delta t$) match')
-        #ax.scatter((pairs_p2_p2.LAM2_P1+pairs_p2_p2.LAM2_P2),pairs_p2_p2.LAM2_BAR,marker='.',c='xkcd:green',label=r'P2 - P2 pair "perfect" match')
-        C2 = ax.scatter((pairs_p1_p2.LAM2_P1+pairs_p1_p2.LAM2_P2),pairs_p1_p2.LAM2_BAR,marker='.',c='red',label=r'S1 - S2 pair (discrepant)',vmax=20.0)
-        #ax1.scatter(pairs_p1_p3.SNR,pairs_p1_p3.LAM2,marker='.',c='xkcd:pink',label=r'P1 - P3 pair (discrepant)')
-        C3 = ax.scatter((pairs_p2_p3.LAM2_P1+pairs_p2_p3.LAM2_P2),pairs_p2_p3.LAM2_BAR,marker='.',c='blue',label='S2 - S3 pair',vmax=20.0)
-        ax.set_xlabel(r'$\lambda_2^{P1} + \lambda_2^{P2}$')
-        ax.set_ylabel(r'$\bar{\lambda_2}$')
-        s1 = r'S1: $\phi = -10, \delta t = 2.0$'
-        s2 =r'S2: $\phi = 70, \delta t = 1.5 $'
-        s3 = r'S3: $\phi = 50, \delta t = 2.5 $'
-        s2m = r'S2_match: $ \phi = 70, \delta t = 1.3$.'
-        mod = np.linspace(0,0.8,10)
-        ax.plot(mod,mod,'k--',label=r'$\bar{\lambda_2} = \lambda_2^{P1} + \lambda_2^{P2}$')
-        ax.plot(mod,mod+0.1,'k-.',label=r'$\bar{\lambda_2} = (\lambda_2^{P1} + \lambda_2^{P2}) + 0.1$')
-        ax.legend()
-        ax.text(0.125,0.1,s1,fontsize=10,wrap=True)
-        ax.text(0.125,0.092,s2,fontsize=10,wrap=True)
-        ax.text(0.125,0.084,s2m,fontsize=10,wrap=True)
-        ax.text(0.125,0.076,s3,fontsize=10,wrap=True)
-        #ax.text(0.2,0.08,s_cont,fontsize=10)
-        ax.set_ylim([0,0.2])
-        ax.set_xlim([0,0.2])
-        # Add label detailing the splitting parmeters
-        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Lam2bar_v_lam2sum_synthetics.eps',format='eps',dpi=400)
-        plt.show()
+def synth_dsi_v_snr():
+
+             fig,(ax1,ax3) = plt.subplots(1,2,figsize= (12,6))
+             #for pairs in pairs_list:
+
+             snr_mod = np.arange(0.5,200,0.5)
+
+             ax1.scatter(pairs_p1_p1.SNR,pairs_p1_p1.D_SI,marker='.',label=r'P1 - P1 pair "perfect" match')
+             ax1.scatter(pairs_p2_match.SNR,pairs_p2_match.D_SI,marker='.',label=r'P2 - P2 pair "realistic" (0.2 diff in $\delta t$) match')
+             ax1.scatter(pairs_p2_p2.SNR,pairs_p2_p2.D_SI,marker='.',label=r'P2 - P2 pair "perfect" match')
+             #ax1.scatter(pairs_p1_p2.SNR,pairs_p1_p2.LAM2,marker='.',label=r'P1 - P2 pair (discrepant)')
+             #ax1.scatter(pairs_p1_p3.SNR,pairs_p1_p3.LAM2,marker='.',label=r'P1 - P3 pair (discrepant)')
+             ax1.scatter(pairs_p2_p3.SNR,pairs_p2_p3.D_SI,marker='.',label='P2 - P3 pair')
+             ax1.set_title(r'$\Delta SI$ for split pairs against SNR')
+             ax1.set_xlabel('SNR of SYN1')
+             ax1.legend()
+             # Make a log-log plot for lam2 v SNR
+             ax3.loglog(pairs_p1_p1.SNR,pairs_p1_p1.D_SI,'.')
+             ax3.loglog(pairs_p2_p2.SNR,pairs_p2_p2.D_SI,'.')
+             ax3.loglog(pairs_p2_match.SNR,pairs_p2_match.D_SI,'.')
+             #ax3.loglog(pairs_p1_p2.SNR,pairs_p1_p2.LAM2,'.')
+             #ax3.loglog(pairs_p1_p3.SNR,pairs_p1_p3.LAM2,'.')
+             ax3.loglog(pairs_p2_p3.SNR,pairs_p2_p3.D_SI,'.')
+             # Fit a straight line to THIS (log-log) data
+
+             # Calculate line
+             #y_fit = m2*np.log(snr_mod) + c2
+             #print(max(SNR),min(SNR))
+             # ax3.plot(snr_mod,10**y_fit,'k--')
+             ax3.set_title(r'loglog plot of $\Delta SI$ for split pairs against SNR')
+             # Plot models on ax1
+             #print(m2,c2)
+             #ax3.text(5,0.1,r'$log(\Delta SI) = {:4.2f} * log(SNR) + {:4.2f}'.format(m2,c2),transform=ax3.transAxes)
+             ax3.set_ylabel(r'log($\Delta SI$)')
+             ax3.set_xlabel('SNR')
+
+             #y_mod_log = [(m2*i +  c2) for i in snr_mod]
+             # Set some limits
+
+             #f1, = ax1.plot(snr_mod,y_fit1,'--',label='Semilog fit')
+             #f2, = ax1.plot(snr_mod,y_mod,'--',label='Model')
+             #f3, = ax3.plot(np.log(snr_mod),y_mod_log, '--')
+
+             #ax1.plot([10,10],[0,L2.max()],'-k')
+             #ax1.set_ylim([-0.01,0.3])
+             ax1.set_xlim([0,50])
+             ax2.set_xlim([0,50])
+             #f4 = ax3.plot(snr_mod,y_mod,'k-')
+             #plt.savefig('LAM2_v_SNR_P1_P2_P3.eps',format='eps',dpi=400)
+             #plt.savefig('LAM2_v_SNR_matches.eps',format='eps',dpi=400)
+             plt.show()
+
+def synth_l2bar_v_l2(self):
+    '''
+    Form Ipython, needs recaasting into Class stcutre
+    '''
+    fig,ax = plt.subplots(1,1,figsize=(7,7))
+    C1 = ax.scatter((pairs_p1_p1.LAM2_P1+pairs_p1_p1.LAM2_P2),pairs_p1_p1.LAM2_BAR,marker='.',c='black',label=r'S1 - S1 pair "perfect" match',vmax=20.0)
+    ax.scatter((pairs_p2_match.LAM2_P1+pairs_p2_match.LAM2_P2),pairs_p2_match.LAM2_BAR,marker='.',c='green',label=r'S2 - S2 pair "realistic" (0.2 diff in $\delta t$) match')
+    #ax.scatter((pairs_p2_p2.LAM2_P1+pairs_p2_p2.LAM2_P2),pairs_p2_p2.LAM2_BAR,marker='.',c='xkcd:green',label=r'P2 - P2 pair "perfect" match')
+    C2 = ax.scatter((pairs_p1_p2.LAM2_P1+pairs_p1_p2.LAM2_P2),pairs_p1_p2.LAM2_BAR,marker='.',c='red',label=r'S1 - S2 pair (discrepant)',vmax=20.0)
+    #ax1.scatter(pairs_p1_p3.SNR,pairs_p1_p3.LAM2,marker='.',c='xkcd:pink',label=r'P1 - P3 pair (discrepant)')
+    C3 = ax.scatter((pairs_p2_p3.LAM2_P1+pairs_p2_p3.LAM2_P2),pairs_p2_p3.LAM2_BAR,marker='.',c='blue',label='S2 - S3 pair',vmax=20.0)
+    ax.set_xlabel(r'$\lambda_2^{P1} + \lambda_2^{P2}$')
+    ax.set_ylabel(r'$\bar{\lambda_2}$')
+    s1 = r'S1: $\phi = -10, \delta t = 2.0$'
+    s2 =r'S2: $\phi = 70, \delta t = 1.5 $'
+    s3 = r'S3: $\phi = 50, \delta t = 2.5 $'
+    s2m = r'S2_match: $ \phi = 70, \delta t = 1.3$.'
+    mod = np.linspace(0,0.8,10)
+    ax.plot(mod,mod,'k--',label=r'$\bar{\lambda_2} = \lambda_2^{P1} + \lambda_2^{P2}$')
+    ax.plot(mod,mod+0.1,'k-.',label=r'$\bar{\lambda_2} = (\lambda_2^{P1} + \lambda_2^{P2}) + 0.1$')
+    ax.legend()
+    ax.text(0.125,0.1,s1,fontsize=10,wrap=True)
+    ax.text(0.125,0.092,s2,fontsize=10,wrap=True)
+    ax.text(0.125,0.084,s2m,fontsize=10,wrap=True)
+    ax.text(0.125,0.076,s3,fontsize=10,wrap=True)
+    #ax.text(0.2,0.08,s_cont,fontsize=10)
+    ax.set_ylim([0,0.2])
+    ax.set_xlim([0,0.2])
+    # Add label detailing the splitting parmeters
+    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Lam2bar_v_lam2sum_synthetics.eps',format='eps',dpi=400)
+    plt.show()
+
+def mk_syn_pairs(a,b):
+     '''
+     a = sdb for the first phase to be stacked
+     b = second sdb
+     '''
+     pairs = pd.merge(a,b,on=['DATE','TIME','STAT','STLA','STLO','EVLA','EVLO','EVDP','DIST','AZI','BAZ'],how='inner')
+     relabel = {'FAST_x':'FAST_P1', 'DFAST_x': 'DFAST_P1','TLAG_x':'TLAG_P1','DTLAG_x':'DTLAG_P1','SPOL_x':'SPOL_P1','DSPOL_x':'DSPOL_P1',
+               'WBEG_x':'WBEG_P1','WEND_x':'WEND_P1','EIGORIG_x':'EIGORIG_P1','EIGCORR_x':'EIGCORR_P1','Q_x':'Q_P1','SNR_x':'SNR_P1','NDF_x':'NDF_P1',
+               'FAST_y':'FAST_P2', 'DFAST_y': 'DFAST_P2','TLAG_y':'TLAG_P2','DTLAG_y':'DTLAG_P2','SPOL_y':'SPOL_P2','DSPOL_y':'DSPOL_P2',
+               'WBEG_y':'WBEG_P2','WEND_y':'WEND_P2','EIGORIG_y':'EIGORIG_P2','EIGCORR_y':'EIGCORR_P2','Q_y':'Q_P2','SNR_y':'SNR_P2','NDF_y':'NDF_P2'}
+     pairs.rename(relabel,axis='columns',inplace=True)
+     pairs['SNR'] = pairs.SNR_P1 + pairs.SNR_P2
+     pairs['D_SI'] = np.abs(pairs.INTENS_x - pairs.INTENS_y)
+     del pairs['INTENS_x']
+     del pairs['INTENS_y']
+     ldf = synth_stack(pairs.DATE.values)
+     #print(ldf)
+     pairs[['LAM2_BAR','LAM2_P1','LAM2_P2']] = ldf
+     return pairs
+
+
+def synth_stack(a):
+     ''' Stack  lamR surfaces for a set of synthetics of equal length'''
+     lam2_bar = [ ]
+     lam2_P1 = [ ]
+     lam2_P2 = [ ]
+     for i,k in enumerate(a):
+         f1 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/SNR_test/P3/SP30_{}_120000_SYNTH.lamR'.format(a[i]) # Select synth with correct date from direcotry P1
+         f2 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/SNR_test/P3/SP30_{}_120000_SYNTH.lamR'.format(a[i])  # Select synth from P2
+         print(f1)
+         print(f2)
+
+         out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/Stacks'
+         outfile = 'SP30_{:07d}'.format(a[i])
+         Stk = Stacker(f1,f2,out,outfile)
+         lam2_bar.append(Stk.lam2_bar)
+         lam2_P1.append(Stk.lam2_sks)
+         lam2_P2.append(Stk.lam2_skks)
+     # Now we've done the stacks, add Lam2 to Synth pair_stack
+     l2df = {'LAM2_BAR' : lam2_bar,'LAM2_P1' : lam2_P1,'LAM2_P2' : lam2_P2 }
+     ldf = pd.DataFrame(l2df)
+     return ldf
