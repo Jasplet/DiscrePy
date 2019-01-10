@@ -6,6 +6,8 @@ import os
 import shlex
 from subprocess import call
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib
 import numpy as np
 from stack import Stacker
 from time import ctime
@@ -454,8 +456,8 @@ class Pairs:
         ax1.plot(self.df.SPOL_SKS,self.df.BAZ,marker='.',color='blue')
         ax1.plot(self.df.SPOL_SKKS,self.df.BAZ,marker='x',color='blue')
         # ax1.set_xlim()
-        ax2.plot(self.diffs_l2.SPOL_SKS,self.matches_l2.BAZ,marker='.',color='darkorange')
-        ax2.plot(self.diffs_l2.SPOL_SKKS,self.matches_l2.BAZ,marker='x',color='darkorange')
+        ax2.plot(self.diffs_l2.SPOL_SKS,self.diffs_l2.BAZ,marker='.',color='darkorange',linestyle='None')
+        ax2.plot(self.matches_l2.SPOL_SKKS,self.matches_l2.BAZ,marker='x',color='darkorange')
 
 
         plt.show()
@@ -596,15 +598,15 @@ class Pairs:
 
         plt.show()
 
-    def l2_dSI_hist(self):
+    def l2_dSI_hist(self,save=False):
 
         fig,(ax1,ax2) = plt.subplots(1,2,figsize=(14,6))
-        bins_l2 = np.linspace(0,0.5,10)
-        bins_dsi = np.linspace(0,3.5,10)
-        m_splits = self.matches_l2
-        d_splits = self.diffs_l2
+        bins_l2 = np.linspace(0,0.5,20)
+        bins_dsi = np.linspace(0,3.5,20)
+        m_splits = self.matches
+        d_splits = self.diffs
 
-        ax1.hist(m_splits.LAM2_BAR,d_splits.LAM2_BAR,bins_l2, histtype='bar', stacked=True,label=["'Matching'","'Discrepent'"])
+        ax1.hist([m_splits.LAM2_BAR,d_splits.LAM2_BAR],bins_l2, histtype='bar', stacked=True,label=["'Matching'","'Discrepent'"])
         ax1.set_xlabel(r'$\bar {\lambda _2}$ values')
         ax1.set_ylabel('Count')
         ax1.legend()
@@ -615,7 +617,9 @@ class Pairs:
         ax2.legend()
         ax2.set_xlim([0,np.around(self.df.D_SI.max(),decimals=1)])
         # ax2.set_ylim([0,4.0])
-        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/hist_and_dVs.eps',format='eps',dpi=1000)
+        if save is True:
+            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/hist_and_dVs.png',format='png',dpi=1000)
+
         plt.show()
 
     def plot_dist_v_split(self,save=False):
@@ -818,8 +822,21 @@ class Pairs:
             surfs_to_plot - allows
             sigma - multiplier to error bounds of splitting results
         '''
+        #Set some plotting params
+        params = {
+            'savefig.dpi': 150,  # to adjust notebook inline plot size
+            'axes.labelsize': 12, # fontsize for x and y labels (was 10)
+            'axes.titlesize': 14,
+            'font.size': 12, # was 10
+            'legend.fontsize': 8, # was 10
+            'xtick.labelsize': 12,
+            'ytick.labelsize': 12,
+
+        }
+        matplotlib.rcParams.update(params)
+
         self.spath = surf_path
-        self.p_sorted = self.df.sort_values(by='LAM2',ascending=True)
+        self.p_sorted = self.df.sort_values(by='LAM2_BAR',ascending=True)
         self.p_sorted.reset_index(drop=True)
 
         # Find indecies of events we want to plot
@@ -845,32 +862,27 @@ class Pairs:
             print(s)
             stat,date,time = self.p_sorted.STAT.values[s],self.p_sorted.DATE.values[s], self.p_sorted.TIME.values[s]
             # Note that dtlag and dfast are multiplied through by sigma HERE !
-            if self.syn is True:
-                self.lam2_surface(f1=self.syn1[s],f2=self.syn2[s])
-                fast_sks,dfast_sks,lag_sks,dlag_sks = self.df.FAST_SKS.values[s],(sigma*self.df.DFAST_SKS.values[s]),self.df.TLAG_SKS.values[s],(sigma*self.df.DTLAG_SKS.values[s])
-                fast_skks,dfast_skks,lag_skks,dlag_skks = self.df.FAST_SKKS.values[s],(sigma*self.df.DFAST_SKKS.values[s]),self.df.TLAG_SKKS.values[s],(sigma*self.df.DTLAG_SKKS.values[s])
-                lam2 = self.df.LAM2_BAR.values[s]
-            else:
-                fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
-                fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
-                lam2 = self.p_sorted.LAM2_BAR.values[s]
-                l_path = '{}/{}_{}_{}'.format(self.spath,stat,date,time) #Path to lambda 2 surfaces for SKS and SKKS
-                print(l_path)
-                self.lam2_surface(l_path)
+
+            fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
+            fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
+            lam2 = self.p_sorted.LAM2_BAR.values[s]
+            l_path = '{}/{}'.format(self.spath,stat) #Path to lambda 2 surfaces for SKS and SKKS
+            print(l_path)
+            self.lam2_surface(l_path,stat,date,time)
 
             print('Stat {}, Evt Time {}-{} LAM2 = {}'.format(stat,date,time,lam2))
             # fig = plt.figure(figsize=(12,12))
             fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,8),sharey=True)
             fig.patch.set_facecolor('None')
             if self.syn is True:
-                plt.suptitle(r'Syn Stack E1: {} E2: {} $\lambda _2$ value = {:4.3f}'.format(self.syn1[s],self.syn2[s],self.df.LAM2.values[s]),fontsize=28)
+                plt.suptitle(r'Syn Stack E1: {} E2: {} $\lambda _2$ value = {:4.3f}'.format(self.syn1[s],self.syn2[s],self.df.LAM2_BAR.values[s]),fontsize=28)
             else:
-                plt.suptitle(r'Event {}_{}_{}. Stacked $\lambda _2$ value = {:4.3f}'.format(stat,date,time,self.p_sorted.LAM2.values[s]),fontsize=28)
+                plt.suptitle(r'Event {}_{}_{}. Stacked $\lambda _2$ value = {:4.3f}'.format(stat,date,time,self.p_sorted.LAM2_BAR.values[s]),fontsize=28)
 
             # gs = gridspec.GridSpec(3,2)
             # ax0 = plt.subplot(gs[0,0])
             ax0.set_title(r'SKS $\lambda _2$ surface',fontsize=24)
-            C0 = ax0.contourf(self.T,self.F,(self.sks_lam2),[0.005,0.01,0.025,0.05,0.075,0.1,0.2,0.3,0.4,0.5,0.75,1.0,1.25,1.5],cmap='inferno_r',extend='both')
+            C0 = ax0.contourf(self.T,self.F,(self.sks_lam2),20,cmap='inferno_r',extend='both')
             ax0.contour(C0,colors='k')
             # ax0.clabel(C0,C0.levels,inline=True,fmt ='%2.3f')
             #Plot SKS Solution
@@ -878,8 +890,8 @@ class Pairs:
             print('Lag sks {}. Fast SKS {}.'.format(lag_sks,fast_sks))
             ax0.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
             ax0.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
-            ax0.set_ylabel(r'Fast,$\phi$, (deg)')
-            ax0.set_xlabel(r'Lag ,$\delta$ t, (sec)')
+            ax0.set_ylabel(r'Fast,$\phi$, ($\degree$)')
+            ax0.set_xlabel(r'Lag ,$\delta$t, (s)')
             #Plot SKKS Solution
             ax0.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
             ax0.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
@@ -889,7 +901,7 @@ class Pairs:
             ax0.set_yticks([-90,-60,-30,0,30,60,90])
             # ax0.contourf(self.sks_lam2,cmap='inferno_r')
             # ax1 = plt.subplot(gs[0,1])
-            C1 = ax1.contourf(self.T,self.F,self.skks_lam2,[0,0.005,0.01,0.025,0.05,0.075,0.1,0.2,0.3,0.4,0.5,0.75,1.0,1.25,1.5],cmap='inferno_r',extend='both')
+            C1 = ax1.contourf(self.T,self.F,self.skks_lam2,20,cmap='inferno_r',extend='both')
             C3 = ax1.contour(C1,colors='k')
             # ax1.clabel(C1,C1.levels,inline=True,fmt ='%2.3f')
             # ax1.contourf(self.skks_lam2,cmap='magma')
@@ -901,16 +913,14 @@ class Pairs:
             ax1.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
             ax1.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
             ax1.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
-            ax1.set_xlabel(r'Lag ,$\delta$ t, (sec)')
+            ax1.set_xlabel(r'Lag ,$\delta$t, (s)')
             ax1.set_ylim([-90,90])
             ax1.set_xlim([0,4])
             ax1.set_yticks([-90,-60,-30,0,30,60,90])
             ax1.set_title(r'SKKS $\lambda _2$ surface',fontsize=24)
             # ax2 = plt.subplot(gs[1:,:])
-            if self.syn is True:
-                self.show_stacks(ax2,evt=self.synstk[s],path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Stacks')
-            else:
-                self.show_stacks(ax2,l_path.split('/')[-1])
+
+            C_plot = self.show_stacks(ax2,'{}_{}_{}'.format(stat,date,time))
             # print('STK_FAST: {} +/- {}'.format(self.df_fast,self.df_dfast))
             # Modify stk_dlag and stk_dfast by sigma
             ##########################
@@ -939,6 +949,10 @@ class Pairs:
             ## Add a legend (on ax0)
             ax0.legend(bbox_to_anchor=(0,1),loc='upper left')
 
+            divider = make_axes_locatable(ax2)
+            cax = divider.append_axes("right", size="5%", pad=0.3)
+            fig.colorbar(C1, cax=cax)
+
 
             # cb = fig.colorbar(C1)
             # cb.add_lines(C3)
@@ -946,55 +960,49 @@ class Pairs:
             ax2.set_title('Stacked SKS SKKS surface',fontsize=24)
             if save is True:
                 # dir = input('Enter Directory you want to save stacked surfaces to > ')
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.eps'.format(dir,lam2,stat),format='eps',dpi=800)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.png'.format(dir,lam2,stat),format='png',dpi=400)
                 plt.close()
             elif save is False:
                 plt.show()
 
-    def lam2_surface(self,fstem=None,f1=None,f2=None):
+
+
+    def lam2_surface(self,fstem=None,stat=None,date=None,time=None):
         ''' Function to read  SKS and SKKS .lam2 surface files from sheba
         If syn if False (i.e real data is being used.) Then fstem in needed
         IF syn is True then f1 , f2 are needed
         '''
-        # print(fstem)
-        if self.syn == False:
-            t_sks = '{}??_SKS.lamR'.format(fstem)
-            t_skks = '{}??_SKKS.lamR'.format(fstem)
+        print(fstem)
 
-            sks =glob(t_sks)
-            skks = glob(t_skks)
+        t_sks = '{}/SKS/{}_{}_{}??_SKS.lamR'.format(fstem,stat,date,time)
+        t_skks = '{}/SKKS/{}_{}_{}??_SKKS.lamR'.format(fstem,stat,date,time)
+
+        sks =glob(t_sks)
+        skks = glob(t_skks)
+        print(sks)
+        if len(sks) == 0:
+            # print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1]))
+            sks = glob('{}/SKS/{}_{}*_SKS.lamR'.format(fstem,stat,date))
+            skks = glob('{}/SKKS/{}_{}*_SKKS.lamR'.format(fstem,stat,date))
             print(sks)
-            if len(sks) == 0:
-                print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
-                stem = '_'.join(fstem.split('/')[-1].split('_')[0:-1]) # aka cut off time part of file extension
-                # print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1]))
-                sks = glob('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
-                skks = glob('{}/SKKS/{}*_SKKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),stem))
-                print(sks)
 
-            self.sks_lam2 = np.loadtxt(sks[0])#,skiprows=4) # skip rows not needed for .lamR files
-            self.skks_lam2 = np.loadtxt(skks[0])#,skiprows=4)
-
-        elif self.syn == True:
-            self.sks_lam2 = np.loadtxt('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Stacks/{}'.format(f1))
-            self.skks_lam2 = np.loadtxt('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Stacks/{}'.format(f2))
+        self.sks_lam2 = np.loadtxt(sks[0])#,skiprows=4) # skip rows not needed for .lamR files
+        self.skks_lam2 = np.loadtxt(skks[0])#,skiprows=4)
 
         nfast,nlag = self.sks_lam2.shape ;
         lag_max = 4.
         [self.T,self.F] = np.meshgrid(np.linspace(0,lag_max,num=nlag),np.arange(-90,91,1)) ;
 
-    def show_stacks(self,ax,evt,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Nulls'):
+    def show_stacks(self,ax,evt,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Combined/Filt_05Hz'):
         '''Function to find and plot desired surface stacks based on the LAMDA2 value '''
         ### Plot Min Lamnda 2
-        if self.syn is True:
-            stk = np.loadtxt('{}/{}'.format(path,evt))
-        else:
-            print('{}/Stacks/{}??.lamSTK'.format(path,evt))
-            file =glob('{}/Stacks/{}??.lamSTK'.format(path,evt))
-            if len(file) == 0:
-                file = glob('{}/Stacks/{}*.lamSTK'.format(path,'_'.join(evt.split('_')[0:-1])))
 
-            stk = np.loadtxt(file[0])
+        print('{}/Stacks/{}??.lamSTK'.format(path,evt))
+        file =glob('{}/Stacks/{}??.lamSTK'.format(path,evt))
+        if len(file) == 0:
+            file = glob('{}/Stacks/{}*.lamSTK'.format(path,'_'.join(evt.split('_')[0:-1])))
+
+        stk = np.loadtxt(file[0])
 
         nfast,nlag = stk.shape ;
         lag_step = 0.025
@@ -1006,10 +1014,10 @@ class Pairs:
 
         fast = np.arange(-90,91,1)[jf]
         lag = np.arange(0,lag_max,lag_step)[jt]
-        C = ax.contourf(T,F,stk,[0.01,0.025,0.05,0.075,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.6,0.7,0.8,0.9,1.0,1.5],cmap='inferno_r',extend='both')
+        C = ax.contourf(T,F,stk/2,20,cmap='inferno_r',extend='both')
         C2 = ax.contour(C,colors='k')
-        ax.set_ylabel(r'Fast,$\phi$, (deg)')
-        ax.set_xlabel(r'Lag ,$\delta$ t, (sec)')
+        # ax.set_ylabel(r'Fast,$\phi$, (deg)')
+        ax.set_xlabel(r'Lag ,$\delta$t, (s)')
         # ax.plot([lag-dlag,lag+dlag],[fast,fast],'g-')
         # ax.plot([lag,lag],[fast-dfast,fast+dfast],'g-')
         ax.plot(lag,fast,'g.')
@@ -1024,6 +1032,7 @@ class Pairs:
         print('Lam2 {}, fast {} lag {}'.format(sol,fast,lag))
         self.stk_fast = fast
         self.stk_lag = lag
+        return C
 
     def plot_l2sum_v_l2bar(self,save=False):
         '''
