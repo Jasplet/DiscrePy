@@ -408,7 +408,7 @@ if __name__ == '__main__':
     # Setup Paths, Constants and sort out input Arguements #############
     #####################################################################################
     # Set full path to station list
-    evt_list = sys.argv[1] # A .events file containing a list of filestems to al teh data we want to measure
+    evt_list = sys.argv[1] # A .events file containing a list of filestems to al the data we want to measure
     rundir=sys.argv[2] # The run directory that you want to house the output files
     run_mode = sys.argv[3] # par is wanting to run in parallel, ser if running serially
     mode=sys.argv[4] # None if using real data, syn is using synthetics
