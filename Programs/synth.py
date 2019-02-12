@@ -53,87 +53,105 @@ class Synth:
         self.lam2p1 = [ ]
         self.lam2p2 = [ ]
 
-    def syn_in_v_out(self):
+    def syn_in_v_out(self,save=False):
         '''Plot 2 subplot figure showing input synthetics (top) and the measurements made by sheba (bottom) '''
-        fig, (ax1,ax2) = plt.subplots(nrows=2,ncols=1,sharex=True,figsize= (8,8))
+        fig, (ax1,ax2) = plt.subplots(nrows=2,ncols=1,sharex=True,figsize= (7,14))
 
         ax1.scatter(self.T,self.F,c='black',marker='.')
         ax1.set_xlim([0,4.0])
         ax1.set_ylim([-90,90])
-        ax1.set_xlabel(r'$\delta t$ (s)')
-        ax1.set_ylabel(r'$\Phi$ ( $\degree$)' )
-        ax1.set_title(r'$ \Phi$ v $\delta t$ space sampled by synthetics')
+        # ax1.set_xlabel(r'$\delta t$ (s)',fontsize=14)
+        ax1.set_ylabel(r'$\Phi$ ( $\degree$)',fontsize=14 )
+        ax1.set_title(r'$ \Phi$ v $\delta t$ space sampled by synthetics',fontsize=15)
         #Bottom Axis
         ax2.scatter(self.syn.TLAG,self.syn.FAST,marker='.',label='-0.7 < Q < 0.7')
         ax2.scatter(self.nulls.TLAG,self.nulls.FAST,marker='.',c='darkorange',label='Q < -0.7')
         ax2.set_xlim([0,4.0])
         ax2.set_ylim([-90,90])
-        ax2.set_xlabel(r'$\delta t$ (s)')
-        ax2.set_ylabel(r'$\Phi$ ( $\degree$)' )
-        ax2.set_title('Shear-wave splitting measured from Synthetics by Sheba')
+        ax2.set_xlabel(r'$\delta t$ (s)',fontsize=16)
+        ax2.set_ylabel(r'$\Phi$ ( $\degree$)' ,fontsize=16)
+        ax2.set_title(r'Recovered $\Phi, \delta t$',fontsize=16)
+        if save is True:
+            plt.savefig('/Users/ja17375/Presentations/SYNTH_in_v_out.eps',format='eps',dpi=400)
+        plt.tick_params(labelsize=14)
         plt.show()
 
     def grid_dSI(self,save=False):
         ''' Plots dSI values (colurised) over the grid of fast, dt'''
-        fig = plt.figure(figsize=(10,10))
+        fig = plt.figure() #figsize=(10,10))
         ax = fig.add_subplot(111)
         f = self.F.ravel()
         l = self.T.ravel()
         dsi = self.pairs.D_SI.values.reshape(17,37)
         # C = ax.scatter(l,f,c=self.pairs.D_SI.values,marker='.',label='d_SI grid')
         # print(dsi.max())
-        C = ax.contourf(self.T,self.F,dsi,18,levels=np.arange(0,dsi.max(),0.2),vmin=0.2,extend='max',cmap='viridis_r')
-        ax.contour(self.T,self.F,dsi,levels=[0.2],colors=['black'],linestyles='solid')
-        ax.contour(self.T,self.F,dsi,levels=[0.4],colors=['black'],linestyles='dashed')
+        C = ax.contourf(self.T,self.F,dsi,18,levels=np.arange(0,dsi.max(),0.2),vmin=0.4,extend='max',cmap='viridis_r')
+        # ax.contour(self.T,self.F,dsi,levels=[0.2],colors=['black'],linestyles='solid')
+        ax.contour(self.T,self.F,dsi,levels=[0.4],colors=['black'],linestyles='solid')
         C.cmap.set_under('white')
         # Plot the singular A
         # ax.plot(self.a_lag,self.a_fast,'rx')
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
         cbar1 = fig.colorbar(C,use_gridspec=False)
-        cbar1.set_label(r'$\delta SI $',rotation=270)
-        ax.set_ylabel(r'$\phi$ ($\degree$)')
-        ax.set_xlabel(r' $\delta t$ (s)')
+        cbar1.set_label(r'$\Delta SI $',rotation=0)
+        ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
+        ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
         ax.set_title(r'${}: \Delta SI$ for  $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
+        plt.tick_params(labelsize=14)
         if save == True:
             print('dSI',self.spol,l[self.a_ind],f[self.a_ind])
             if f[self.a_ind] < 0:
                 # print(abs(f[self.a_ind]))
+                plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
                 plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
             else:
+                plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_dSI_grid.png'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
                 plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
-            plt.close('a')
-        else:
-            plt.show()
+            # plt.close('a')
+        plt.show()
+
 
     def grid_lam2(self,save=False):
-        ''' Plots dSI values (colurised) over the grid of fast, dt'''
-        fig = plt.figure(figsize=(10,10))
+        ''' Plots lam2 values (colurised) over the grid of fast, dt'''
+        fig = plt.figure()#figsize=(10,10))
         ax = fig.add_subplot(111)
+        # fig, (ax,ax2,ax3) = plt.subplots(nrows=,ncols=3)
         f = self.F.ravel()
         l = self.T.ravel()
-        lam2 = self.pairs.LAM2_BAR.values.reshape(17,37)
-        C = ax.contourf(self.T,self.F,lam2,18,cmap='magma_r',vmax=0.1,extend='max')
+        lam2_bar = self.pairs.LAM2_BAR.values.reshape(17,37)
+        lam2_p1 = self.pairs.LAM2_P1.values.min()
+        lam2_p2 = self.pairs.LAM2_P2.values.min()
+        l2_sum =  0.01 + (lam2_p1+lam2_p2)
+        C = ax.contourf(self.T,self.F,lam2_bar,18,cmap='magma_r',extend='max')
+        ax.contour(self.T,self.F,lam2_bar,levels=[l2_sum])
         # C.cmap.set_under('white')
-        ax.contour(self.T,self.F,lam2,levels=[0.03],colors=['black'],linestyles='solid')
+        # ax.contour(self.T,self.F,lam2,levels=[0.03],colors=['black'],linestyles='solid')
         #C = ax.scatter(l,f,self.LAM2,marker='.',label='d_SI grid')
         # Plot the singular A
         # ax.plot(self.a_lag,self.a_fast,'rx')
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
         cbar1 = fig.colorbar(C,use_gridspec=True)
         cbar1.set_label(r'$\bar{\lambda_2} $',rotation=0)
-        ax.set_ylabel(r'$\phi$ ($\degree$)')
-        ax.set_xlabel(r' $\delta t$ (s)')
-        ax.set_title(r'{}: $\lambda _2$ for $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
+        ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
+        ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
+        ax.set_title(r'{}: $\lambda_2$ for $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
+        plt.tick_params(labelsize=14)
+
+        # ax2 = fig.add_subplot(132)
+        # C2 = ax2.contourf(self.T,self.F,lam2_p1,18,cmap='magma_r',extend='max')
+        # ax3 = fig.add_subplot(133)
+        # C3 = ax3.contourf(self.T,self.F,lam2_p2,18,cmap='magma_r',extend='max')
         if save == True:
             print('Lam2', self.spol,l[self.a_ind],f[self.a_ind])
             if f[self.a_ind] < 0:
                 # print(abs(f[self.a_ind]))
+                plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
                 plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
             else:
+                plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
                 plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
-            plt.close('a')
-        else:
-            plt.show()
+
+        plt.show()
 
     def plot_lamR(self,file,save=False):
         '''
@@ -215,6 +233,7 @@ class Synth:
         self.lam2bar = [ ]
         self.lam2p1 = [ ]
         self.lam2p2 = [ ]
+        self.lam2sum = [ ]
         for i,k in enumerate(b):
 
             f1 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.spol,self.spol,(a[i]+1)) # Add 1 to indecides becuase python goes from 0 628
@@ -227,12 +246,13 @@ class Synth:
             self.lam2bar.append(Stk.lam2_bar)
             self.lam2p1.append(Stk.lam2_sks)
             self.lam2p2.append(Stk.lam2_skks)
+            self.lam2sum = self.lam2p1 + self.lam2p2
         # Now we've done the stacks, add Lam2 to Synth pair_stack
         print('{} {} {}'.format(len(self.lam2bar),len(self.lam2p1),len(self.lam2p2)))
 
-        l2df = {'LAM2_BAR' : self.lam2bar, 'LAM2_P1' : self.lam2p1, 'LAM2_P2' : self.lam2p2}
+        l2df = {'LAM2_BAR' : self.lam2bar, 'LAM2_P1' : self.lam2p1, 'LAM2_P2' : self.lam2p2,'LAM2_SUM' : self.lam2sum}
         ldf = pd.DataFrame(l2df)
-        self.pairs[['LAM2_BAR','LAM2_SKS','LAM2_SKKS']] = ldf
+        self.pairs[['LAM2_BAR','LAM2_P1','LAM2_P2','LAM2_SUM']] = ldf
 
     def synth_pairs(self,a,b,one_a=True,save=False):
         '''makes synthetics pairs file sbased on user input (i,e you need to say which synthetics need pairing)
@@ -296,6 +316,38 @@ class Synth:
             # self.grid_dSI()
             # self.grid_lam2()
 
+
+    def l2_v_dSI(self):
+        '''Plot lambda2 (bar) agaisnt splitting intensity'''
+        fig,ax = plt.subplots(1,1,figsize=(6,6))
+        ax.plot(self.pairs.LAM2_BAR,self.pairs.D_SI,'.')
+        ax.set_xlabel(r'$\bar{\lambda_2} $ value', fontsize=14)
+        ax.set_ylabel(r'$\Delta SI$ value',fontsize=14)
+        plt.show()
+
+    def l2bar_v_l2sum(self):
+        ''' Plots lambda2 bar against lambda2 sum (ideally for a pair grid)'''
+        fig,ax = plt.subplots(1,1,figsize=(7,7))
+        mod = np.linspace(0,0.1,10)
+        ax.plot(self.pairs.LAM2_SUM,self.pairs.LAM2_BAR,'k.')
+        ax.plot(mod,mod*1.15)
+        ax.set_xlabel(r'$\lambda_2^{P1} + \lambda_2^{P2}$')
+        ax.set_ylabel(r'$\bar{\lambda_2}$')
+        ax.set_xlim([0,0.005])
+        ax.set_ylim([0,0.5])
+        plt.show()
+
+    def plot_snr(self):
+        '''Plot Histograms of SNR for synthetics'''
+        fig,ax = plt.subplots(1,1,figsize=(6,6))
+        h = ax.hist(self.syn.SNR,20)
+        ax.set_xlabel('Singal-to-Noise Ratio')
+        ax.set_ylabel('Count')
+        plt.show()
+
+
+############ SYNTH CLASS ENDS #####################
+
 def synth_l2_v_snr():
 
     fig,(ax1,ax3) = plt.subplots(1,2,figsize= (12,6))
@@ -351,57 +403,10 @@ def synth_l2_v_snr():
     #plt.savefig('LAM2_v_SNR_matches.eps',format='eps',dpi=400)
     plt.show()
 
-def synth_dsi_v_snr():
 
-             fig,(ax1,ax3) = plt.subplots(1,2,figsize= (12,6))
-             #for pairs in pairs_list:
 
-             snr_mod = np.arange(0.5,200,0.5)
 
-             ax1.scatter(pairs_p1_p1.SNR,pairs_p1_p1.D_SI,marker='.',label=r'P1 - P1 pair "perfect" match')
-             ax1.scatter(pairs_p2_match.SNR,pairs_p2_match.D_SI,marker='.',label=r'P2 - P2 pair "realistic" (0.2 diff in $\delta t$) match')
-             ax1.scatter(pairs_p2_p2.SNR,pairs_p2_p2.D_SI,marker='.',label=r'P2 - P2 pair "perfect" match')
-             #ax1.scatter(pairs_p1_p2.SNR,pairs_p1_p2.LAM2,marker='.',label=r'P1 - P2 pair (discrepant)')
-             #ax1.scatter(pairs_p1_p3.SNR,pairs_p1_p3.LAM2,marker='.',label=r'P1 - P3 pair (discrepant)')
-             ax1.scatter(pairs_p2_p3.SNR,pairs_p2_p3.D_SI,marker='.',label='P2 - P3 pair')
-             ax1.set_title(r'$\Delta SI$ for split pairs against SNR')
-             ax1.set_xlabel('SNR of SYN1')
-             ax1.legend()
-             # Make a log-log plot for lam2 v SNR
-             ax3.loglog(pairs_p1_p1.SNR,pairs_p1_p1.D_SI,'.')
-             ax3.loglog(pairs_p2_p2.SNR,pairs_p2_p2.D_SI,'.')
-             ax3.loglog(pairs_p2_match.SNR,pairs_p2_match.D_SI,'.')
-             #ax3.loglog(pairs_p1_p2.SNR,pairs_p1_p2.LAM2,'.')
-             #ax3.loglog(pairs_p1_p3.SNR,pairs_p1_p3.LAM2,'.')
-             ax3.loglog(pairs_p2_p3.SNR,pairs_p2_p3.D_SI,'.')
-             # Fit a straight line to THIS (log-log) data
 
-             # Calculate line
-             #y_fit = m2*np.log(snr_mod) + c2
-             #print(max(SNR),min(SNR))
-             # ax3.plot(snr_mod,10**y_fit,'k--')
-             ax3.set_title(r'loglog plot of $\Delta SI$ for split pairs against SNR')
-             # Plot models on ax1
-             #print(m2,c2)
-             #ax3.text(5,0.1,r'$log(\Delta SI) = {:4.2f} * log(SNR) + {:4.2f}'.format(m2,c2),transform=ax3.transAxes)
-             ax3.set_ylabel(r'log($\Delta SI$)')
-             ax3.set_xlabel('SNR')
-
-             #y_mod_log = [(m2*i +  c2) for i in snr_mod]
-             # Set some limits
-
-             #f1, = ax1.plot(snr_mod,y_fit1,'--',label='Semilog fit')
-             #f2, = ax1.plot(snr_mod,y_mod,'--',label='Model')
-             #f3, = ax3.plot(np.log(snr_mod),y_mod_log, '--')
-
-             #ax1.plot([10,10],[0,L2.max()],'-k')
-             #ax1.set_ylim([-0.01,0.3])
-             ax1.set_xlim([0,50])
-             ax2.set_xlim([0,50])
-             #f4 = ax3.plot(snr_mod,y_mod,'k-')
-             #plt.savefig('LAM2_v_SNR_P1_P2_P3.eps',format='eps',dpi=400)
-             #plt.savefig('LAM2_v_SNR_matches.eps',format='eps',dpi=400)
-             plt.show()
 
 def synth_l2bar_v_l2(self):
     '''
