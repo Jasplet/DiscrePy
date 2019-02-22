@@ -30,6 +30,7 @@ class Builder:
         self.lam2_bar = [ ] # Variabel to hold lambda2 values returned from stacking routine
         self.lam2_sks = [ ] # Variable to hold list of lam2 values for SKS splititng
         self.lam2_skks = [ ] # Variable to holf lam2 values for SKKS
+        self.lam2_sum = [ ]
         self.snr = snr # Holds SNR cutoff (defaul is 5)
         self.syn=syn
         #if kwargs are none:\
@@ -159,7 +160,7 @@ class Builder:
                 self.lam2_bar.append(Stk.lam2_bar)
                 self.lam2_sks.append(Stk.lam2_sks)
                 self.lam2_skks.append(Stk.lam2_skks)
-
+                self.lam2_sum.append(Stk.lam2_sks + Stk.lam2_skks)
             else:
                 fstem2 = '{}_{}'.format(stat,date)
                 # print('fstem2')
@@ -182,10 +183,9 @@ class Builder:
         '''
 
         self.pair_stack()
-
-        l2df = {'LAM2_BAR' : self.lam2_bar, 'LAM2_SKS' : self.lam2_sks, 'LAM2_SKKS' : self.lam2_skks,}# 'LAM2_SUM' : l2sum}
+        l2df = {'LAM2_BAR' : self.lam2_bar,  'LAM2_SUM' : self.lam2_sum, 'LAM2_SKS' : self.lam2_sks, 'LAM2_SKKS' : self.lam2_skks}
         ldf = pd.DataFrame(l2df)
-        self.P[['LAM2_BAR','LAM2_SKS','LAM2_SKKS']] = ldf
+        self.P[['LAM2_BAR','LAM2_SUM','LAM2_SKS','LAM2_SKKS']] = ldf
 
     def add_pp(self):
         '''Adds piercepoints to .pairs file'''
@@ -270,7 +270,7 @@ class Builder:
         null_pairs  = P[((P.Q_SKS <= -0.7) & (P.Q_SKKS <= -0.7))] # Pairs where both phases are nulls (according to Q), auto classify as matching
         null_split_pair = P[(((P.Q_SKS <= -0.7) & (P.Q_SKKS >= 0.5)) | ((P.Q_SKS >= 0.5) & (P.Q_SKKS <= -0.7)))] # Test for pairs with 1 null 1 split, discrepant by definition
         splits = P[((P.Q_SKS > 0.5) & (P.Q_SKKS > 0.5 ))] # Test for pairs whjere both phases are split
-        t_l2 = 1.15*(splits.LAM2_SKS + splits.LAM2_SKKS)
+        t_l2 = 1.15*(splits.LAM2_SUM)
         t_dSI = 0.4 # Slightly reduced from the Threshold of 0.4 taken from Deng et al (2017)
         diff= splits[(splits.LAM2_BAR > t_l2) & (splits.D_SI > t_dSI)] #| (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
         match = splits[(splits.LAM2_BAR <= t_l2) | (splits.D_SI <= t_dSI)] # If the pair fails either lam2 or dSI test then we call it matching
@@ -988,7 +988,7 @@ class Pairs:
         # ax.plot([lag,lag],[fast-dfast,fast+dfast],'g-')
         ax.plot(lag,fast,'g.')
         # ax.clabel(C,C.levels,inline=True,fmt ='%4.3f')
-        l2sum = 0.01 + (self.sks_lam2.min() + self.skks_lam2.min())
+        l2sum = 1.15 * (self.sks_lam2.min() + self.skks_lam2.min())
         print('Lam2 BAR is ',stk.min())
         print('Lam2 Sum is ',l2sum)
         ax.contour(T,F,stk,[l2sum],colors='b')
@@ -1018,21 +1018,49 @@ class Pairs:
         # ax.scatter((d_splits.LAM2_SKS + d_splits.LAM2_SKKS),d_splits.LAM2_BAR,marker='.',label=r'$2 \sigma$ discrepant')
         # ax.scatter((self.df.LAM2_SKS + self.df.LAM2_SKKS),self.df.LAM2_BAR,marker='.',label='All pairs')
         # ax.scatter((splits.LAM2_SKS + splits.LAM2_SKKS),splits.LAM2_BAR,marker='.',label='Split Pairs')
-        ax.scatter((self.matches_l2.LAM2_SKS + self.matches_l2.LAM2_SKKS),self.matches_l2.LAM2_BAR,marker='.',label=r'$ \Delta SI & \bar{\lambda_2} $ Matching')
-        ax.scatter((self.diffs_l2.LAM2_SKS + self.diffs_l2.LAM2_SKKS),self.diffs_l2.LAM2_BAR,marker='.',label=r'$  \Delta SI & \bar{\lambda_2} $ Discrepant')
+        ax.scatter((self.matches_l2.LAM2_SUM),self.matches_l2.LAM2_BAR,marker='.',label=r'$\bar{\lambda_2} $ Matching')
+        ax.scatter((self.diffs_l2.LAM2_SUM),self.diffs_l2.LAM2_BAR,marker='.',label=r'$\bar{\lambda_2} $ Discrepant')
         #Plot null - split pairs
         # ax.scatter((self.null_split.LAM2_SKS + self.null_split.LAM2_SKKS),self.null_split.LAM2_BAR,marker='.',c='red',label='Null-Split Pairs')
         mod = np.linspace(0,0.2,10)
-        ax.plot(mod,mod,'k--',label=r'$\lambda_2^{P1} + \lambda_2^{P2} = \bar{\lambda_2}$')
-        ax.plot(mod,mod*1.15,'k-.',label=r'$\bar{\lambda_2} = 1.15*(\lambda_2^{P1} + \lambda_2^{P2}) $')
-        ax.set_xlabel(r'$\lambda_2^{P1} + \lambda_2^{P2}$')
+        ax.plot(mod,mod,'k--',label=r'$\lambda_2^{SKS} + \lambda_2^{SKKS} = \bar{\lambda_2}$')
+        ax.plot(mod,mod*1.15,'k-.',label=r'$\bar{\lambda_2} = 1.15*(\lambda_2^{SKS} + \lambda_2^{SKKS}) $')
+        ax.set_xlabel(r'$\lambda_2^{SKS} + \lambda_2^{SKKS}$')
         ax.set_ylabel(r'$\bar{\lambda_2}$')
         ax.set_xlim([0,0.2])
         ax.set_ylim([0,0.2])
         ax.legend(fontsize='medium')
         #plt.colorbar(C)\
         if save == True:
-            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Lam2bar_v_Lam2sum.png',format='png',transparent=True,dpi=400)
+            plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/Lam2bar_v_Lam2sum_l2_dsi.png',format='png',transparent=True,dpi=400) # /Users/ja17375/Shear_Wave_Splitting/Figures/
+            plt.show()
+        else:
+            plt.show()
+
+    def plot_l2sum_v_dsi(self,save=False):
+        '''
+        Function to plot lambda2 bar against the sum of lambda2 for each phase in the pair
+
+        We only plto null split and split pairs
+        '''
+        fig,ax = plt.subplots(1,1,figsize=(7,7))
+        splits = self.diffs_l2.append(self.matches_l2)
+        m_splits = self.matches[(self.matches.Q_SKS > 0.5) & (self.matches.Q_SKKS > 0.5)]
+        d_splits = self.diffs[(self.diffs.Q_SKS > 0.5) & (self.diffs.Q_SKKS > 0.5)]
+        ax.scatter((self.matches_l2.LAM2_SUM),self.matches_l2.D_SI,marker='.',label=r'$\bar{\lambda_2} $ Matching')
+        ax.scatter((self.diffs_l2.LAM2_SUM),self.diffs_l2.D_SI,marker='.',label=r'$\bar{\lambda_2} $ Discrepant')
+        #Plot null - split pairs
+        # ax.scatter((self.null_split.LAM2_SKS + self.null_split.LAM2_SKKS),self.null_split.LAM2_BAR,marker='.',c='red',label='Null-Split Pairs')
+
+        ax.plot([0, 0.2],[0.4,0.4],'k-.',label=r'$\Delta SI$ threshold from Deng et al., (2017)')
+        ax.set_xlabel(r'$\lambda_2^{SKS} + \lambda_2^{SKKS}$')
+        ax.set_ylabel(r'$\Delta SI$')
+        ax.set_xlim([0,0.2])
+        # ax.set_ylim([0,0.2])
+        ax.legend(fontsize='medium')
+        #plt.colorbar(C)\
+        if save == True:
+            # plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/Lam2bar_v_Lam2sum_l2_only.png',format='png',transparent=True,dpi=400) # /Users/ja17375/Shear_Wave_Splitting/Figures/
             plt.show()
         else:
             plt.show()
