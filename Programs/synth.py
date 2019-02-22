@@ -334,7 +334,7 @@ class Synth:
         ax.set_xlabel(r'$\lambda_2^{P1} + \lambda_2^{P2}$')
         ax.set_ylabel(r'$\bar{\lambda_2}$')
         ax.set_xlim([0,0.005])
-        ax.set_ylim([0,0.5])
+        ax.set_ylim([0,0.05])
         plt.show()
 
     def plot_snr(self):
@@ -350,6 +350,12 @@ class Synth:
 
 def synth_l2_v_snr():
 
+    pairs_p1_p1 = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P1_P1.pairs').pairs
+    pairs_p1_p2 = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P1_P2.pairs').pairs
+    pairs_p1_p3 = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P1_P3.pairs').pairs
+    pairs_p2_p2 = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P2_P2.pairs').pairs
+    pairs_p2_p3 = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P2_P3.pairs').pairs
+    pairs_p2_match = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P2_match.pairs').pairs
     fig,(ax1,ax3) = plt.subplots(1,2,figsize= (12,6))
     #for pairs in pairs_list:
 
@@ -372,7 +378,7 @@ def synth_l2_v_snr():
     #ax3.loglog(pairs_p1_p3.SNR,pairs_p1_p3.LAM2_BAR,'.',color='xkcd:pink',label=None)
     ax3.loglog(pairs_p2_p3.SNR,pairs_p2_p3.LAM2_BAR,'.',color='xkcd:red',label=None)
     # Fit a straight line to THIS (log-log) data
-    m2, c2 = np.polyfit(np.log(SNR),np.log(L2),1)
+    m2, c2 = np.polyfit(np.log(pairs_p1_p1.SNR),np.log(pairs_p1_p1.LAM2_BAR),1)
     # Calculate line
     y_fit = m2*np.log(snr_mod) + c2
     #print(max(SNR),min(SNR))
@@ -399,7 +405,7 @@ def synth_l2_v_snr():
     ax3.set_xlim([1,55])
     ax3.legend([f1,f2],['Model for Perfect Matches',r'$\bar{\lambda _2} = A. SNR^{-b} + \kappa_{\bar{\lambda_2}}$ Model'])
     #f4 = ax3.plot(snr_mod,y_mod,'k-')
-    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/LAM2_v_SNR_w_models.eps',format='eps',dpi=400)
+    #plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/LAM2_v_SNR_w_models.eps',format='eps',dpi=400)
     #plt.savefig('LAM2_v_SNR_matches.eps',format='eps',dpi=400)
     plt.show()
 
