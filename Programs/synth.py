@@ -22,7 +22,7 @@ import timeit
 import shlex
 import numpy as np
 import matplotlib.pyplot as plt
-
+import matplotlib.gridspec as gridspec
 from stack import Stacker
 ###############################
 
@@ -110,12 +110,42 @@ class Synth:
             # plt.close('a')
         plt.show()
 
+    def grid_sigma2(self,ax):
+        ''' Plots a grid of synthetic pairs coloured by whether they agree or disagree within 2-sigma'''
+        fast = self.F.ravel() # Array of fast directions
+        lag = self.T.ravel() # Array of lag times
+        sig = np.zeros([17,37])
 
-    def grid_lam2(self,save=False):
+        for l in range(0,17): # We know there are 17 different lag times in our grid (0 - 4.0 at 0.25 spacing)
+            #Define 2 sigma bound in fast direction for both phases
+            lbt_P1 = self.pairs.TLAG_SKS[l] - 2*self.pairs.DTLAG_SKS[l]
+            ubt_P1 = self.pairs.TLAG_SKS[l] + 2*self.pairs.DTLAG_SKS[l]
+            lbt_P2 = self.pairs.TLAG_SKKS[l] - 2*self.pairs.DTLAG_SKKS[l]
+            ubt_P2 = self.pairs.TLAG_SKKS[l] + 2*self.pairs.DTLAG_SKKS[l]
+
+            for f in range(0,37): # We know there are 37 fast directions (-90 - 90 at 10 degree spacing)
+                #Define 2 sigma bound in fast direction for both phases
+                lbf_P1 = self.pairs.FAST_SKS[f] - 2*self.pairs.DFAST_SKS[f]
+                ubf_P1 = self.pairs.FAST_SKS[f] + 2*self.pairs.DFAST_SKS[f]
+                lbf_P2 = self.pairs.FAST_SKKS[f] - 2*self.pairs.DFAST_SKKS[f]
+                ubf_P2 = self.pairs.FAST_SKKS[f] + 2*self.pairs.DFAST_SKKS[f]
+                # Now test to see if the phases match or not
+                if ((lbf_P2<= ubf_P1) & (lbf_P1 <= ubf_P2)) & ((lbt_P2 <= ubt_P1) & (lbt_P1 <= ubt_P2)):
+                    # If test is passed that they match and the grid position is assigned a 1
+                    sig[l,f] = 1
+        # Plot grid of 1s and 0s. Potentially ned to find something better than contourf as it interpolats (?) slightly
+        C = ax.contourf(self.T,self.F,sig)
+        # C = ax.imshow(np.transpose(sig))
+        ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
+        ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
+        ax.plot(lag[self.a_ind],fast[self.a_ind],'rx')
+        # cbar1 = fig.colorbar(C,use_gridspec=True)
+        return C
+
+    def grid_lam2(self,ax):
         ''' Plots lam2 values (colurised) over the grid of fast, dt'''
-        fig = plt.figure()#figsize=(10,10))
-        ax = fig.add_subplot(111)
-        # fig, (ax,ax2,ax3) = plt.subplots(nrows=,ncols=3)
+        # fig = plt.figure()#figsize=(10,10))
+        # ax = fig.add_subplot(111)
         f = self.F.ravel()
         l = self.T.ravel()
         lam2_bar = self.pairs.LAM2_BAR.values.reshape(17,37)
@@ -125,10 +155,7 @@ class Synth:
         C = ax.contourf(self.T,self.F,lam2_bar,18,cmap='magma_r',extend='max')
         ax.contour(self.T,self.F,lam2_bar,levels=[l2_sum])
         # C.cmap.set_under('white')
-        # ax.contour(self.T,self.F,lam2,levels=[0.03],colors=['black'],linestyles='solid')
-        #C = ax.scatter(l,f,self.LAM2,marker='.',label='d_SI grid')
         # Plot the singular A
-        # ax.plot(self.a_lag,self.a_fast,'rx')
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
         cbar1 = fig.colorbar(C,use_gridspec=True)
         cbar1.set_label(r'$\bar{\lambda_2} $',rotation=0)
@@ -136,20 +163,46 @@ class Synth:
         ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
         ax.set_title(r'{}: $\lambda_2$ for $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
         plt.tick_params(labelsize=14)
+        return C
+        # if save == True:
+        #     print('Lam2', self.spol,l[self.a_ind],f[self.a_ind])
+        #     if f[self.a_ind] < 0:
+        #         # print(abs(f[self.a_ind]))
+        #         plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
+        #         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
+        #     else:
+        #         plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
+        #         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
 
-        # ax2 = fig.add_subplot(132)
-        # C2 = ax2.contourf(self.T,self.F,lam2_p1,18,cmap='magma_r',extend='max')
-        # ax3 = fig.add_subplot(133)
-        # C3 = ax3.contourf(self.T,self.F,lam2_p2,18,cmap='magma_r',extend='max')
+        plt.show()
+
+    def plot_grids(self,save=False):
+        '''Make a 4 panel plot of sigma2, deltaSI, lambda2bar grids along with a plot on the synthetics results'''
+        # First, initialise fiugre instance and axes
+        fig = plt.figure(figsize=(12,12))
+        gs = gridspec.GridSpec(2,2) # Use gridspec to control axes allocation
+        ax1 = plt.subplot(gs[0,0]) # Top left, axes to plot synthetics results onto
+        ax2 = plt.subplot(gs[0,1]) # Top right, axes to plot 2sigma grid onto
+        ax3 = plt.subplot(gs[1,0]) # Bottom left, axes to plot Delta SI grid onto
+        ax4 = plt.subplot(gs[1,1]) # Bottom right, axes to plot lambda2 grid onto
+        # Plot Synthetics as measured by sheba
+        ax1.scatter(self.syn.TLAG,self.syn.FAST,marker='.',label='-0.7 < Q < 0.7')
+        ax1.scatter(self.nulls.TLAG,self.nulls.FAST,marker='.',c='darkorange',label='Q < -0.7')
+        ax1.set_xlim([0,4.0])
+        ax1.set_ylim([-90,90])
+        ax1.set_xlabel(r'$\delta t$ (s)',fontsize=16)
+        ax1.set_ylabel(r'$\Phi$ ( $\degree$)' ,fontsize=16)
+        ax1.set_title(r'Recovered $\Phi, \delta t$',fontsize=16)
+        # Plot 2 sigma grid
+        C_2sigma = self.grid_sigma2(ax2)
+        # Plot delta SI grid
+        C_dSI = self.grid_dSI(ax3)
+        #Plot lamdba 2
+        C_lam2 = self.grid_lam2(ax4)
+        ########
+        # Show plot
         if save == True:
-            print('Lam2', self.spol,l[self.a_ind],f[self.a_ind])
-            if f[self.a_ind] < 0:
-                # print(abs(f[self.a_ind]))
-                plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
-            else:
-                plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
+            print('Plot not saved, savefig needs to be implemented still ')
 
         plt.show()
 
