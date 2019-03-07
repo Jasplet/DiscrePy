@@ -74,10 +74,10 @@ def tidyup(path,phase,outfile,outdir):
 
              for line in input.readlines():
                 s = stats.readline().split() # Read the next line from the Stats file (should have the same number of lines as final_result)
+                r = line.split()
                 if i == 0:
                     #'For the first file print out r
                     print(r)
-                r = line.split()
                 r.remove('%')
                 s.remove('%')
                 del s[0:2] ,s[-1]
