@@ -110,8 +110,9 @@ class Builder:
         SKS_SKKS_pair = pd.merge(SKS,SKKS,on=['DATE','TIME','STAT','STLA','STLO','EVLA','EVLO','EVDP','DIST','AZI','BAZ'],how='inner')
         relabel = {'FAST_x':'FAST_SKS', 'DFAST_x': 'DFAST_SKS','TLAG_x':'TLAG_SKS','DTLAG_x':'DTLAG_SKS','SPOL_x':'SPOL_SKS','DSPOL_x':'DSPOL_SKS',
               'WBEG_x':'WBEG_SKS','WEND_x':'WEND_SKS','EIGORIG_x':'EIGORIG_SKS','EIGCORR_x':'EIGCORR_SKS','Q_x':'Q_SKS','SNR_x':'SNR_SKS','NDF_x':'NDF_SKS',
-              'FAST_y':'FAST_SKKS', 'DFAST_y': 'DFAST_SKKS','TLAG_y':'TLAG_SKKS','DTLAG_y':'DTLAG_SKKS','SPOL_y':'SPOL_SKKS','DSPOL_y':'DSPOL_SKKS',
-              'WBEG_y':'WBEG_SKKS','WEND_y':'WEND_SKKS','EIGORIG_y':'EIGORIG_SKKS','EIGCORR_y':'EIGCORR_SKKS','Q_y':'Q_SKKS','SNR_y':'SNR_SKKS','NDF_y':'NDF_SKKS'}
+              'SI(Pr)_x':'SI(Pr)_SKS', 'SI(Pa)_x':'SI(Pa)_SKS','FAST_y':'FAST_SKKS', 'DFAST_y': 'DFAST_SKKS','TLAG_y':'TLAG_SKKS','DTLAG_y':'DTLAG_SKKS',
+              'SPOL_y':'SPOL_SKKS','DSPOL_y':'DSPOL_SKKS','WBEG_y':'WBEG_SKKS','WEND_y':'WEND_SKKS','EIGORIG_y':'EIGORIG_SKKS','EIGCORR_y':'EIGCORR_SKKS',
+              'Q_y':'Q_SKKS','SNR_y':'SNR_SKKS','NDF_y':'NDF_SKKS','SI(Pr)_y':'SI(Pr)_SKKS', 'SI(Pa)_y':'SI(Pa)_SKKS'}
         # The dictionary relabels the other columns in the join so that we can more easily pick apart the SKS and SKKS results
         SKS_SKKS_pair.rename(relabel,axis='columns',inplace=True)
         # Sort the Pairs dataframe so the pairs are in chronological order (by origin time (DATE only))
@@ -123,13 +124,20 @@ class Builder:
 
     def add_DSI(self):
         '''Calculate the difference in Splitting Intensity for each pair and add it to dataframe'''
-        si_sks = self.P.INTENS_x
-        si_skks = self.P.INTENS_y
-        d_si = np.abs(si_sks-si_skks)
-        self.P['D_SI'] = d_si
+        si_pr_sks = self.P['SI(Pr)_SKS']
+        si_pr_skks = self.P['SI(Pr)_SKKS']
+        si_pa_sks = self.P['SI(Pa)_SKS']
+        si_pa_skks = self.P['SI(Pa)_SKKS']
+        d_si_pr = np.abs(si_pr_sks-si_pr_skks)
+        d_si_pa = np.abs(si_pa_sks-si_pa_skks)
+        # d = {'D_SI_Pr': d_si_pr,'D_SI_Pa':d_si_pa}
+        d = {'SI_Pr_sks': si_pr_sks, 'SI_Pr_skks': si_pr_skks,'SI_Pa_sks': si_pa_sks,'SI_Pr_skks': si_pr_skks,
+             'D_SI_Pr': d_si_pr,'D_SI_Pa':d_si_pa} # Special version which also adds raw splitting intensity
+        ddf = pd.DataFrame(d)
+        self.P[['SI_Pr_sks','SI_Pr_skks','SI_Pa_sks','SI_Pa_skks','D_SI_Pr','D_SI_Pa']] = ddf
         #Delete SI cols as we dont need them any more ?
-        del self.P['INTENS_x']
-        del self.P['INTENS_y']
+        # del self.P['INTENS_x']
+        # del self.P['INTENS_y']
 
     def pair_stack(self):
         ''' Runs Stacker for all the desired pairs (a .pairs file)'''
@@ -137,10 +145,10 @@ class Builder:
         ext ='lamR'
         print('Stacking')
         rd = self.path_stk.split('/')[-1]
-        out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Combined/{}/Stacks'.format(rd)
+        out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/Stacks'.format(rd) # For Filt 03/05 casesed need to hardcode in Combined/ directory
         if os.path.isdir(out) is False:
             print('{} does not exist, creating'.format(out))
-            os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Combined/{}/Stacks'.format(rd))
+            os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/Stacks'.format(rd))
 
         for i,f in enumerate(self.P.DATE.values):
             # print(len(self.P))
@@ -272,10 +280,10 @@ class Builder:
         splits = P[((P.Q_SKS > 0.5) & (P.Q_SKKS > 0.5 ))] # Test for pairs whjere both phases are split
         t_l2 = 1.15*(splits.LAM2_SUM)
         t_dSI = 0.4 # Slightly reduced from the Threshold of 0.4 taken from Deng et al (2017)
-        diff= splits[(splits.LAM2_BAR > t_l2) & (splits.D_SI > t_dSI)] #| (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
-        match = splits[(splits.LAM2_BAR <= t_l2) | (splits.D_SI <= t_dSI)] # If the pair fails either lam2 or dSI test then we call it matching
-        diff_dsi = splits[(splits.D_SI > 0.4)]
-        match_dsi = splits[(splits.D_SI <= 0.4)]
+        diff= splits[(splits.LAM2_BAR > t_l2) & (splits.D_SI_Pr > t_dSI)] #| (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
+        match = splits[(splits.LAM2_BAR <= t_l2) | (splits.D_SI_Pr <= t_dSI)] # If the pair fails either lam2 or dSI test then we call it matching
+        diff_dsi = splits[(splits.D_SI_Pr > 0.4)]
+        match_dsi = splits[(splits.D_SI_Pr <= 0.4)]
 
         print(len(self.P))
         print('There are {} split pairs. {} are matches and {} are discrepant!'.format(len(splits),len(match),len(diff)))
