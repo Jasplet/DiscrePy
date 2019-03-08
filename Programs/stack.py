@@ -46,8 +46,10 @@ class Stacker:
         # print('Starting Stacker')
 
         if os.path.isfile(lam2_sks) is False:
+            print(lam2_sks)
             raise NameError('Lambda 2 (for sks) provided does not exist')
         elif os.path.isfile(lam2_skks) is False:
+            print(lam2_skks)
             raise NameError('Lambda 2 (for skks) provided does not exist')
         # else:
             # print('Lambda 2 surfaces exist')
