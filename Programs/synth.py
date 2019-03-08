@@ -52,6 +52,9 @@ class Synth:
         self.lam2bar = [ ]
         self.lam2p1 = [ ]
         self.lam2p2 = [ ]
+        nse = file.split('_')[2] # Pick out noise level from filename
+        self.noise_lvl = ''.join(['Noise',nse])
+        print(self.noise_lvl)
 
     def syn_in_v_out(self,save=False):
         '''Plot 2 subplot figure showing input synthetics (top) and the measurements made by sheba (bottom) '''
@@ -76,10 +79,10 @@ class Synth:
         plt.tick_params(labelsize=14)
         plt.show()
 
-    def grid_dSI(self,save=False):
+    def grid_dSI(self,ax):
         ''' Plots dSI values (colurised) over the grid of fast, dt'''
-        fig = plt.figure() #figsize=(10,10))
-        ax = fig.add_subplot(111)
+        # fig = plt.figure() #figsize=(10,10))
+        # ax = fig.add_subplot(111)
         f = self.F.ravel()
         l = self.T.ravel()
         dsi = self.pairs.D_SI.values.reshape(17,37)
@@ -92,23 +95,24 @@ class Synth:
         # Plot the singular A
         # ax.plot(self.a_lag,self.a_fast,'rx')
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
-        cbar1 = fig.colorbar(C,use_gridspec=False)
-        cbar1.set_label(r'$\Delta SI $',rotation=0)
+        # cbar1 = ax.colorbar(C,use_gridspec=False)
+        # cbar1.set_label(r'$\Delta SI $',rotation=0)
         ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
         ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
         ax.set_title(r'${}: \Delta SI$ for  $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
         plt.tick_params(labelsize=14)
-        if save == True:
-            print('dSI',self.spol,l[self.a_ind],f[self.a_ind])
-            if f[self.a_ind] < 0:
-                # print(abs(f[self.a_ind]))
-                plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
-            else:
-                plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_dSI_grid.png'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
-            # plt.close('a')
-        plt.show()
+        return C
+        # if save == True:
+        #     print('dSI',self.spol,l[self.a_ind],f[self.a_ind])
+        #     if f[self.a_ind] < 0:
+        #         # print(abs(f[self.a_ind]))
+        #         plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
+        #         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
+        #     else:
+        #         plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_dSI_grid.png'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
+        #         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
+        #     # plt.close('a')
+        # plt.show()
 
     def grid_sigma2(self,ax):
         ''' Plots a grid of synthetic pairs coloured by whether they agree or disagree within 2-sigma'''
@@ -139,7 +143,8 @@ class Synth:
         ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
         ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
         ax.plot(lag[self.a_ind],fast[self.a_ind],'rx')
-        # cbar1 = fig.colorbar(C,use_gridspec=True)
+        ax.set_title(r'{}: $2 \sigma$ for $\delta t = {}, \phi = {}$ '.format(self.spol,lag[self.a_ind],fast[self.a_ind]))
+        # cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
         return C
 
     def grid_lam2(self,ax):
@@ -157,8 +162,8 @@ class Synth:
         # C.cmap.set_under('white')
         # Plot the singular A
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
-        cbar1 = fig.colorbar(C,use_gridspec=True)
-        cbar1.set_label(r'$\bar{\lambda_2} $',rotation=0)
+        # cbar1 = ax.colorbar(C,use_gridspec=True)
+        # cbar1.set_label(r'$\bar{\lambda_2} $',rotation=0)
         ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
         ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
         ax.set_title(r'{}: $\lambda_2$ for $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
@@ -173,7 +178,7 @@ class Synth:
         #     else:
         #         plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
         #         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
-
+        plt.close('all')
         plt.show()
 
     def plot_grids(self,save=False):
@@ -193,8 +198,12 @@ class Synth:
         ax1.set_xlabel(r'$\delta t$ (s)',fontsize=16)
         ax1.set_ylabel(r'$\Phi$ ( $\degree$)' ,fontsize=16)
         ax1.set_title(r'Recovered $\Phi, \delta t$',fontsize=16)
+        f = self.F.ravel()
+        l = self.T.ravel()
+        ax1.plot(l[self.a_ind],f[self.a_ind],'rx')
         # Plot 2 sigma grid
         C_2sigma = self.grid_sigma2(ax2)
+        # fig.colorbar(C_2sigma,cax=ax2)
         # Plot delta SI grid
         C_dSI = self.grid_dSI(ax3)
         #Plot lamdba 2
@@ -202,9 +211,16 @@ class Synth:
         ########
         # Show plot
         if save == True:
-            print('Plot not saved, savefig needs to be implemented still ')
+            if f[self.a_ind] < 0:
+                # print(abs(f[self.a_ind]))
+                # plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
+            else:
+                # plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
 
-        plt.show()
+        plt.close('all')
+        # plt.show()
 
     def plot_lamR(self,file,save=False):
         '''
@@ -268,17 +284,21 @@ class Synth:
 
     def add_DSI(self):
         '''Calculate the difference in Splitting Intensity for each pair and add it to dataframe'''
-        si_sks = self.pairs.INTENS_x
-        si_skks = self.pairs.INTENS_y
+        si_sks = self.pairs['SI(Pr)_x']
+        si_skks = self.pairs['SI(Pr)_y']
         d_si = np.abs(si_sks-si_skks)
         self.pairs['D_SI'] = d_si
         #Delete SI cols as we dont need them any more ?
-        del self.pairs['INTENS_x']
-        del self.pairs['INTENS_y']
+        # del self.pairs['INTENS_x']
+        # del self.pairs['INTENS_y']
 
 
     def synth_stack(self,a,b):
-        ''' Stack synthetics lamR surfaces for given a,b. '''
+        ''' Stack synthetics lamR surfaces for given a,b.
+        a - [int] indicies of events you want to be the "SKS" (called SKS for sake of comparison to real data)
+        b - [int] indicies of events you want to be the "SKKS" (called SKKS for sake of comparison to real data)
+        noise_lvl [str] the Noise Level directory that the syntetics are contained it. (This is taken from self.noise_lvl)
+        '''
     #Sanity Check
         if len(a) != len(b):
             Exception()
@@ -289,8 +309,8 @@ class Synth:
         self.lam2sum = [ ]
         for i,k in enumerate(b):
 
-            f1 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.spol,self.spol,(a[i]+1)) # Add 1 to indecides becuase python goes from 0 628
-            f2 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.spol,self.spol,(b[i]+1)) # Whilst in the naing from BASH it goes from 1 to 629
+            f1 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,self.spol,(a[i]+1)) # Add 1 to indecides becuase python goes from 0 628
+            f2 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,self.spol,(b[i]+1)) # Whilst in the naing from BASH it goes from 1 to 629
             print(f1)
             print(f2)
             out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Stacks'.format(self.spol)
@@ -299,18 +319,19 @@ class Synth:
             self.lam2bar.append(Stk.lam2_bar)
             self.lam2p1.append(Stk.lam2_sks)
             self.lam2p2.append(Stk.lam2_skks)
-            self.lam2sum = self.lam2p1 + self.lam2p2
+            # self.lam2sum = self.lam2p1 + self.lam2p2
         # Now we've done the stacks, add Lam2 to Synth pair_stack
-        print('{} {} {}'.format(len(self.lam2bar),len(self.lam2p1),len(self.lam2p2)))
+        print('{} {} {}'.format(len(self.lam2bar),len(self.lam2p1),len(self.lam2p2))) #,len(self.lam2sum)))
 
-        l2df = {'LAM2_BAR' : self.lam2bar, 'LAM2_P1' : self.lam2p1, 'LAM2_P2' : self.lam2p2,'LAM2_SUM' : self.lam2sum}
+        l2df = {'LAM2_BAR' : self.lam2bar, 'LAM2_P1' : self.lam2p1, 'LAM2_P2' : self.lam2p2} #,'LAM2_SUM' : self.lam2sum}
         ldf = pd.DataFrame(l2df)
-        self.pairs[['LAM2_BAR','LAM2_P1','LAM2_P2','LAM2_SUM']] = ldf
+        self.pairs[['LAM2_BAR','LAM2_P1','LAM2_P2',]] = ldf # 'LAM2_SUM' has been removed for now
 
-    def synth_pairs(self,a,b,one_a=True,save=False):
+    def synth_pairs(self,a,b,one_a=True,save=False,):
         '''makes synthetics pairs file sbased on user input (i,e you need to say which synthetics need pairing)
         a - [int] indicies of events you want to be the "SKS" (called SKS for sake of comparison to real data)
         b - [int] indicies of events you want to be the "SKKS" (called SKKS for sake of comparison to real data)
+        noise_lvl [str] the Noise Level directory that the syntetics are contained it. This is the easiest way to get this information to make the pairs
         '''
         self.pairs = []
         # First lets select the relevent rows
@@ -357,13 +378,13 @@ class Synth:
         if save is True:
             f = self.F.ravel()
             l = self.T.ravel()
-            self.grid_dSI(save=True)
-            self.grid_lam2(save=True)
+            # self.grid_dSI(save=True)
+            # self.grid_lam2(save=True)
             plt.close('all')
             if f[self.a_ind] < 0:
-                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.spol,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ')
+                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ')
             else:
-                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Noise025/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.spol,self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ')
+                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ')
         else:
             pass
             # self.grid_dSI()
@@ -511,9 +532,9 @@ def mk_syn_pairs(a,b):
                'WBEG_y':'WBEG_P2','WEND_y':'WEND_P2','EIGORIG_y':'EIGORIG_P2','EIGCORR_y':'EIGCORR_P2','Q_y':'Q_P2','SNR_y':'SNR_P2','NDF_y':'NDF_P2'}
      pairs.rename(relabel,axis='columns',inplace=True)
      pairs['SNR'] = pairs.SNR_P1 + pairs.SNR_P2
-     pairs['D_SI'] = np.abs(pairs.INTENS_x - pairs.INTENS_y)
-     del pairs['INTENS_x']
-     del pairs['INTENS_y']
+     pairs['D_SI'] = np.abs(pairs['SI(Pr)'] - pairs['SI(Pr)']) # Only use projection for now
+     # del pairs['INTENS_x']
+     # del pairs['INTENS_y']
      ldf = synth_stack(pairs.DATE.values)
      #print(ldf)
      pairs[['LAM2_BAR','LAM2_P1','LAM2_P2']] = ldf
