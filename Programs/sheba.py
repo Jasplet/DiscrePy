@@ -75,9 +75,9 @@ def tidyup(path,phase,outfile,outdir):
              for line in input.readlines():
                 s = stats.readline().split() # Read the next line from the Stats file (should have the same number of lines as final_result)
                 r = line.split()
-                if i == 0:
+                # if i == 0:
                     #'For the first file print out r
-                    print(r)
+                    # print(r)
                 r.remove('%')
                 s.remove('%')
                 del s[0:2] ,s[-1]
@@ -466,6 +466,7 @@ if __name__ == '__main__':
         # As all the synthetics files are in the same directory (They share a "station") we cannot run in parralel and use the sac macro. (Maybe switch to making my own infiles then?)
         # THis is because the workers trip over each other an corrupt the majority of infiles.
         print('Synthetics Run')
+        print('Runpath is :',runpath)
         # with contextlib.closing( Pool(processes = 8) ) as pool:
         #           Iterate over stations in the station list.
             # pool.map(runner,files)
@@ -478,8 +479,8 @@ if __name__ == '__main__':
         """ Loop over phases process and tidyup results """
         tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
         outfile = '{}_SYNTH_sheba_results.sdb'.format(out_pre)
-        outdir = rundir.split('/')[0]
-        tidyup(tidy_path,phase,outfile,outdir)
+        # outdir = rundir.split('/')[0]
+        tidyup(tidy_path,phase,outfile,rundir)
 
     # print('Sheba run complete, time to tidy up')
     ######################################################################################
