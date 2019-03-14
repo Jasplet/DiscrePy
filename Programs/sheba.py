@@ -53,7 +53,7 @@ def tidyup(path,phase,outfile,outdir):
     else:
         fnames = glob('{}/*/{}/*final_result'.format(path,phase))
     results = []
-    # print(fnames)
+    print(fnames)
     for i,file in enumerate(fnames):
         # print(file)
         f_stat = fnames[i].rstrip('final_result') + 'stats'
@@ -275,7 +275,7 @@ class Interface:
             print('Phase {} not SKS or SKKS'.format(phase_to_check))
             return False
 
-    def process(self,synth=False,c1=0.01,c2=0.3):
+    def process(self,synth=False,c1=0.01,c2=0.5):
         """
         Function to bandpass filter and trim the components
         Seismograms are trimmed so that they start 1 minute before the expected arrival and end 2 minutes after the arrival
@@ -439,7 +439,7 @@ if __name__ == '__main__':
 
         runner = partial(run_sheba,runpath)
         if run_mode == 'par':
-            with contextlib.closing( Pool(processes = 8) ) as pool:
+            with contextlib.closing( Pool(processes = 5) ) as pool:
             #           Iterate over stations in the station list.
                 pool.map(runner,files)
             #               pool.map(tidyup,stations) ??? Maybe this would work???
