@@ -95,8 +95,8 @@ class Synth:
         # Plot the singular A
         # ax.plot(self.a_lag,self.a_fast,'rx')
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
-        # cbar1 = ax.colorbar(C,use_gridspec=False)
-        # cbar1.set_label(r'$\Delta SI $',rotation=0)
+        cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
+        cbar1.set_label(r'$\Delta SI $',rotation=0)
         ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
         ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
         ax.set_title(r'${}: \Delta SI$ for  $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
@@ -122,17 +122,17 @@ class Synth:
 
         for l in range(0,17): # We know there are 17 different lag times in our grid (0 - 4.0 at 0.25 spacing)
             #Define 2 sigma bound in fast direction for both phases
-            lbt_P1 = self.pairs.TLAG_SKS[l] - 2*self.pairs.DTLAG_SKS[l]
-            ubt_P1 = self.pairs.TLAG_SKS[l] + 2*self.pairs.DTLAG_SKS[l]
-            lbt_P2 = self.pairs.TLAG_SKKS[l] - 2*self.pairs.DTLAG_SKKS[l]
-            ubt_P2 = self.pairs.TLAG_SKKS[l] + 2*self.pairs.DTLAG_SKKS[l]
+            lbt_P1 = self.pairs.TLAG_P1[l] - 2*self.pairs.DTLAG_P1[l]
+            ubt_P1 = self.pairs.TLAG_P1[l] + 2*self.pairs.DTLAG_P1[l]
+            lbt_P2 = self.pairs.TLAG_P2[l] - 2*self.pairs.DTLAG_P2[l]
+            ubt_P2 = self.pairs.TLAG_P2[l] + 2*self.pairs.DTLAG_P2[l]
 
             for f in range(0,37): # We know there are 37 fast directions (-90 - 90 at 10 degree spacing)
                 #Define 2 sigma bound in fast direction for both phases
-                lbf_P1 = self.pairs.FAST_SKS[f] - 2*self.pairs.DFAST_SKS[f]
-                ubf_P1 = self.pairs.FAST_SKS[f] + 2*self.pairs.DFAST_SKS[f]
-                lbf_P2 = self.pairs.FAST_SKKS[f] - 2*self.pairs.DFAST_SKKS[f]
-                ubf_P2 = self.pairs.FAST_SKKS[f] + 2*self.pairs.DFAST_SKKS[f]
+                lbf_P1 = self.pairs.FAST_P1[f] - 2*self.pairs.DFAST_P1[f]
+                ubf_P1 = self.pairs.FAST_P1[f] + 2*self.pairs.DFAST_P1[f]
+                lbf_P2 = self.pairs.FAST_P2[f] - 2*self.pairs.DFAST_P2[f]
+                ubf_P2 = self.pairs.FAST_P2[f] + 2*self.pairs.DFAST_P2[f]
                 # Now test to see if the phases match or not
                 if ((lbf_P2<= ubf_P1) & (lbf_P1 <= ubf_P2)) & ((lbt_P2 <= ubt_P1) & (lbt_P1 <= ubt_P2)):
                     # If test is passed that they match and the grid position is assigned a 1
@@ -144,7 +144,8 @@ class Synth:
         ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
         ax.plot(lag[self.a_ind],fast[self.a_ind],'rx')
         ax.set_title(r'{}: $2 \sigma$ for $\delta t = {}, \phi = {}$ '.format(self.spol,lag[self.a_ind],fast[self.a_ind]))
-        # cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
+        cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
+        cbar1.set_label(r'$2 \sigma$. Matching = 1',rotation=0)
         return C
 
     def grid_lam2(self,ax):
@@ -162,8 +163,8 @@ class Synth:
         # C.cmap.set_under('white')
         # Plot the singular A
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
-        # cbar1 = ax.colorbar(C,use_gridspec=True)
-        # cbar1.set_label(r'$\bar{\lambda_2} $',rotation=0)
+        cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
+        cbar1.set_label(r'$\bar{\lambda_2} $',rotation=0)
         ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
         ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
         ax.set_title(r'{}: $\lambda_2$ for $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
@@ -214,13 +215,30 @@ class Synth:
             if f[self.a_ind] < 0:
                 # print(abs(f[self.a_ind]))
                 # plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
             else:
                 # plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
 
         plt.close('all')
         # plt.show()
+
+    def plot_si_Pr_v_Ap(self,save=False):
+        '''
+        Plot SI(Projection) against SI(Approximation) for a set of synthetic pairs
+        '''
+        fig2,ax = plt.subplots(1,1,figsize=(8,8))
+        s = self.syn[self.syn['Q'] > 0.7]
+        n = self.syn[self.syn['Q'] < -0.7]
+        rem = self.syn[(self.syn['Q'] >= -0.7) & (self.syn['Q'] <= 0.7)]
+        ax.plot(rem['SI(Pa)'],rem['SI(Pr)'],'k.',label='uID') # Plot SI methods for unclear events
+        ax.plot(n['SI(Pa)'],n['SI(Pr)'],'b.',label='Null') # Plot SI methods for clear nulls
+        ax.plot(s['SI(Pa)'],s['SI(Pr)'],'r.',label='Split') # Plot SI methods for clear splits
+        ax.set_ylabel('Splitting Intensity (Projection)')
+        ax.set_xlabel('Splitting Intensity (Approximation)')
+        ax.set_title('Comparison of SI method for Synthetics. SPOL {} Noise level {}'.format(self.spol[2:],self.noise_lvl[5:]))
+        ax.legend()
+        plt.show()
 
     def plot_lamR(self,file,save=False):
         '''
@@ -284,8 +302,8 @@ class Synth:
 
     def add_DSI(self):
         '''Calculate the difference in Splitting Intensity for each pair and add it to dataframe'''
-        si_sks = self.pairs['SI(Pr)_x']
-        si_skks = self.pairs['SI(Pr)_y']
+        si_sks = self.pairs['SI(Pr)_P1']
+        si_skks = self.pairs['SI(Pr)_P2']
         d_si = np.abs(si_sks-si_skks)
         self.pairs['D_SI'] = d_si
         #Delete SI cols as we dont need them any more ?
@@ -354,14 +372,16 @@ class Synth:
         # Perform the merge
         self.pairs = pd.merge(A,B,on=['key','TIME','STAT','STLA','STLO','EVLA','EVLO','EVDP','DIST','AZI','BAZ'],how='inner')
         #Relabel dulplicate columns to something meaningful
-        relabel = {'FAST_x':'FAST_SKS', 'DFAST_x': 'DFAST_SKS','TLAG_x':'TLAG_SKS','DTLAG_x':'DTLAG_SKS','SPOL_x':'SPOL_SKS','DSPOL_x':'DSPOL_SKS',
-              'WBEG_x':'WBEG_SKS','WEND_x':'WEND_SKS','EIGORIG_x':'EIGORIG_SKS','EIGCORR_x':'EIGCORR_SKS','Q_x':'Q_SKS','SNR_x':'SNR_SKS','NDF_x':'NDF_SKS',
-              'FAST_y':'FAST_SKKS', 'DFAST_y': 'DFAST_SKKS','TLAG_y':'TLAG_SKKS','DTLAG_y':'DTLAG_SKKS','SPOL_y':'SPOL_SKKS','DSPOL_y':'DSPOL_SKKS',
-              'WBEG_y':'WBEG_SKKS','WEND_y':'WEND_SKKS','EIGORIG_y':'EIGORIG_SKKS','EIGCORR_y':'EIGCORR_SKKS','Q_y':'Q_SKKS','SNR_y':'SNR_SKKS','NDF_y':'NDF_SKKS'}
+        relabel = {'FAST_x':'FAST_P1', 'DFAST_x': 'DFAST_P1','TLAG_x':'TLAG_P1','DTLAG_x':'DTLAG_P1','SPOL_x':'SPOL_P1','DSPOL_x':'DSPOL_P1',
+              'WBEG_x':'WBEG_P1','WEND_x':'WEND_P1','EIGORIG_x':'EIGORIG_P1','EIGCORR_x':'EIGCORR_P1','Q_x':'Q_P1','SNR_x':'SNR_P1','NDF_x':'NDF_P1',
+              'SI(Pr)_x':'SI(Pr)_P1','SI(Pa)_x':'SI(Pa)_P1','FAST_y':'FAST_P2', 'DFAST_y': 'DFAST_P2','TLAG_y':'TLAG_P2','DTLAG_y':'DTLAG_P2',
+              'SPOL_y':'SPOL_P2','DSPOL_y':'DSPOL_P2','WBEG_y':'WBEG_P2','WEND_y':'WEND_P2','EIGORIG_y':'EIGORIG_P2','EIGCORR_y':'EIGCORR_P2',
+              'Q_y':'Q_P2','SNR_y':'SNR_P2','NDF_y':'NDF_P2','SI(Pr)_y':'SI(Pr)_P2','SI(Pa)_y':'SI(Pa)_P2'}
         self.pairs.rename(relabel,axis='columns',inplace=True)
         # Create new DATE array. DATE for SYnthetics is of the form 3xxxyyy (mod of the yyyyjjj format where the leading 3 makes it obvious these arent real years)
         # xxx - index of the SKS synthetic
         # yyy - index of the SKKS synthetic
+        print(len(A))
         D = ['3{:03d}{:03d}'.format(a[i],b[i]) for i in range(0,len(A))]
         # Add new DATEs
         self.pairs['DATE'] = pd.Series(D)
