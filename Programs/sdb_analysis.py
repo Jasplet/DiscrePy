@@ -131,7 +131,7 @@ class Builder:
         d_si_pr = np.abs(si_pr_sks-si_pr_skks)
         d_si_pa = np.abs(si_pa_sks-si_pa_skks)
         # d = {'D_SI_Pr': d_si_pr,'D_SI_Pa':d_si_pa}
-        d = {'SI_Pr_sks': si_pr_sks, 'SI_Pr_skks': si_pr_skks,'SI_Pa_sks': si_pa_sks,'SI_Pr_skks': si_pr_skks,
+        d = {'SI_Pr_sks': si_pr_sks, 'SI_Pr_skks': si_pr_skks,'SI_Pa_sks': si_pa_sks,'SI_Pa_skks': si_pr_skks,
              'D_SI_Pr': d_si_pr,'D_SI_Pa':d_si_pa} # Special version which also adds raw splitting intensity
         ddf = pd.DataFrame(d)
         self.P[['SI_Pr_sks','SI_Pr_skks','SI_Pa_sks','SI_Pa_skks','D_SI_Pr','D_SI_Pa']] = ddf
@@ -159,10 +159,12 @@ class Builder:
 
             lam2_stem = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))
             # print(lam2_stem)
-            # print('{}/{}/SKS/{}??_SKS.lam2'.format(self.path_stk,stat,fstem))
+            print('{}/{}/SKS/{}??_SKS.lamR'.format(self.path_stk,stat,fstem))
+            print('{}/{}/SKKS/{}??_SKKS.{}'.format(self.path_stk,stat,fstem,ext))
             if len(lam2_stem) is not 0:
                 # I.e if glob has managed to find the sks lam2 surface file
                 sks_lam2 = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
+
                 skks_lam2 = glob('{}/{}/SKKS/{}??_SKKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
                 Stk = Stacker(sks_lam2,skks_lam2,out)
                 self.lam2_bar.append(Stk.lam2_bar)
