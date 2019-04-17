@@ -27,8 +27,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 #######################################
 
-sks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_test/SI_by_proj_SKS_sheba_results.sdb',delim_whitespace=True)
-skks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_test/SI_by_proj_SKKS_sheba_results.sdb',delim_whitespace=True)
+sks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_SKS_sheba_results.sdb',delim_whitespace=True)
+skks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_SKKS_sheba_results.sdb',delim_whitespace=True)
 
 
 
@@ -36,7 +36,7 @@ skks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_test/SI
 # '''Plot Splitting intensity calculated by approximatation against SI calculated by following the full projection method of Chevrot(20
 # 00) '''
 # Assume that sks  and skks file have been read in as pandas
-fig1 = plt.figure(figsize=(10,10))
+fig1 = plt.figure(figsize=(10,14))
 gs = gridspec.GridSpec(3,2)
 ax1 = plt.subplot(gs[0,0])
 ax2 = plt.subplot(gs[0,1])
@@ -53,7 +53,7 @@ ax1.plot([-4, 4],[-4, 4],'k--',label='SI(Pr) = SI(Pa)')
 ax1.set_ylim([-4,4])
 ax1.set_xlim([-4,4])
 ax1.set_title('Split Phases (Q > 0.7)')
-ax1.set_xlabel(r'$SI$ by Approimxation')
+ax1.set_xlabel(r'$SI$ by Approximation')
 ax1.set_ylabel(r'$SI$ by Projection')
 ax1.legend()
 ## Beneath plot SI v Snr for both methods
@@ -67,6 +67,8 @@ ax5.plot(skks['Q'],skks['SI(Pr)'],'r.')
 ax5.set_title('SI(Pr) v Q for SKKS')
 ax5.set_ylabel(r'$\Delta SI$ by Projection')
 ax5.set_xlim([-1 ,1])
+ax5.set_xlabel(r'Q')
+ax6.set_xlabel(r'Q')
 #Plot SI for NULL data (Q < -0.7)
 sks_null = sks[sks.Q < -0.7]
 skks_null = skks[skks.Q < -0.7]
@@ -75,19 +77,19 @@ ax2.plot(skks_null['SI(Pa)'],skks_null['SI(Pr)'],'r.',label='skks')
 ax2.plot([-4, 4],[-4, 4],'k--',label='SI(Pr) = SI(Pa)')
 ax2.set_ylim([-2,2])
 ax2.set_xlim([-4,4])
-ax2.set_xlabel(r'$\Delta SI$ by Approimxation')
+ax2.set_xlabel(r'$\Delta SI$ by Approximation')
 ax2.set_ylabel(r'$\Delta SI$ by Projection')
 ax2.set_title('Null Phases (Q < -0.7)')
 ax2.legend()
 ## Beneath plot SI v Snr for both methods
 ax4.plot(sks['Q'],sks['SI(Pa)'],'k.')
 ax4.set_title('SI(Pa) v Q for SKS')
-ax4.set_ylabel(r'$\Delta SI$ by Approimxation')
+ax4.set_ylabel(r'$\Delta SI$ by Approximation')
 ax4.set_xlim([-1 ,1])
 # Not for SI by proejction
 ax6.plot(skks['Q'],skks['SI(Pa)'],'r.')
 ax6.set_title('SI(Pa) v Q for SKKS')
-ax6.set_ylabel(r'$\Delta SI$ by Approimxation')
+ax6.set_ylabel(r'$\Delta SI$ by Approximation')
 ax6.set_xlim([-1 ,1])
 
 # Adjust space between figures so there is enough room
@@ -102,20 +104,20 @@ fig2,ax = plt.subplots(1,1,figsize=(8,8))
 ax.plot(sks['SI(Pa)'],sks['SI(Pr)'],'k.', label='sks')
 ax.plot(skks['SI(Pa)'],skks['SI(Pr)'],'r.',label='skks')
 ax.plot([-5, 5],[-5, 5],'k--',label='SI(Pr) = SI(Pa)')
-ax.set_xlabel(r'$\Delta SI$ by Approimxation')
+ax.set_xlabel(r'$\Delta SI$ by Approximation')
 ax.set_ylabel(r'$\Delta SI$ by Projection')
 ax.legend()
 ax.set_ylim([-4,4])
 ax.set_xlim([-4,4])
 # Save figure
-fig1.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SI_Pr_v_Pa.png',dpi = 400, format = 'png')
+fig2.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SI_Pr_v_Pa.png',dpi = 400, format = 'png')
 ######## END FIG 2   ##########
 
 ######## Start Fig 3 ##########
-pairs = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_test/SI_by_proj_05.pairs',delim_whitespace=True)
-diff = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_test/SI_by_proj_05_diffs_l2.pairs',delim_whitespace=True)
-match = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_test/SI_by_proj_05_matches_l2.pairs',delim_whitespace=True)
-nulls = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_test/SI_by_proj_05_nulls.pairs',delim_whitespace=True)
+pairs = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_05.pairs',delim_whitespace=True)
+diff = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_05_diffs_l2.pairs',delim_whitespace=True)
+match = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_05_matches_l2.pairs',delim_whitespace=True)
+nulls = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_05_nulls.pairs',delim_whitespace=True)
 ## Plot sks, skks Lambda 2 values and Delta SI values
 fig3 = plt.figure(figsize=(8,16))
 gs = gridspec.GridSpec(3,2)

@@ -131,7 +131,7 @@ class Builder:
         d_si_pr = np.abs(si_pr_sks-si_pr_skks)
         d_si_pa = np.abs(si_pa_sks-si_pa_skks)
         # d = {'D_SI_Pr': d_si_pr,'D_SI_Pa':d_si_pa}
-        d = {'SI_Pr_sks': si_pr_sks, 'SI_Pr_skks': si_pr_skks,'SI_Pa_sks': si_pa_sks,'SI_Pa_skks': si_pr_skks,
+        d = {'SI_Pr_sks': si_pr_sks, 'SI_Pr_skks': si_pr_skks,'SI_Pa_sks': si_pa_sks,'SI_Pa_skks': si_pa_skks,
              'D_SI_Pr': d_si_pr,'D_SI_Pa':d_si_pa} # Special version which also adds raw splitting intensity
         ddf = pd.DataFrame(d)
         self.P[['SI_Pr_sks','SI_Pr_skks','SI_Pa_sks','SI_Pa_skks','D_SI_Pr','D_SI_Pa']] = ddf
@@ -280,20 +280,26 @@ class Builder:
         null_pairs  = P[((P.Q_SKS <= -0.7) & (P.Q_SKKS <= -0.7))] # Pairs where both phases are nulls (according to Q), auto classify as matching
         null_split_pair = P[(((P.Q_SKS <= -0.7) & (P.Q_SKKS >= 0.5)) | ((P.Q_SKS >= 0.5) & (P.Q_SKKS <= -0.7)))] # Test for pairs with 1 null 1 split, discrepant by definition
         splits = P[((P.Q_SKS > 0.5) & (P.Q_SKKS > 0.5 ))] # Test for pairs whjere both phases are split
-        t_l2 = 1.15*(splits.LAM2_SUM)
+        t_l2_splits = 1.15*(splits.LAM2_SUM)
+        t_l2_ns = 1.15*(null_split_pair.LAM2_SUM )
         t_dSI = 0.4 # Slightly reduced from the Threshold of 0.4 taken from Deng et al (2017)
-        diff= splits[(splits.LAM2_BAR > t_l2) & (splits.D_SI_Pr > t_dSI)] #| (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
-        match = splits[(splits.LAM2_BAR <= t_l2) | (splits.D_SI_Pr <= t_dSI)] # If the pair fails either lam2 or dSI test then we call it matching
+        diff= splits[(splits.LAM2_BAR > t_l2_splits) & (splits.D_SI_Pr > t_dSI)] #| (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
+        match = splits[(splits.LAM2_BAR <= t_l2_splits) | (splits.D_SI_Pr <= t_dSI)] # If the pair fails either lam2 or dSI test then we call it matching
         diff_dsi = splits[(splits.D_SI_Pr > 0.4)]
         match_dsi = splits[(splits.D_SI_Pr <= 0.4)]
+        ns_diff = null_split_pair[(null_split_pair.LAM2_BAR > t_l2_ns) & (null_split_pair.D_SI_Pr > t_dSI)]
+        ns_match = null_split_pair[(null_split_pair.LAM2_BAR <= t_l2_ns) | (null_split_pair.D_SI_Pr <= t_dSI)]
 
         print(len(self.P))
         print('There are {} split pairs. {} are matches and {} are discrepant!'.format(len(splits),len(match),len(diff)))
+        print('There are {} null-split pairs. {} are matches and {} are discrepant!'.format(len(null_split_pair),len(ns_match),len(ns_diff)))
+
         test = len(uID) + len(null_pairs) + len(null_split_pair) + len(diff) + len(match)
         print(test)
         # Now combined matching and discrepant pairs together
         null_pairs.to_csv('{}/{}_{:02d}_nulls.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
-        null_split_pair.to_csv('{}/{}_{:02d}_null_split.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        ns_match.to_csv('{}/{}_{:02d}_matches_null_split.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        ns_diff.to_csv('{}/{}_{:02d}_diffs_null_split.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         match.to_csv('{}/{}_{:02d}_matches_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         diff.to_csv('{}/{}_{:02d}_diffs_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         match_dsi.to_csv('{}/{}_{:02d}_matches_dsi.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
@@ -307,7 +313,9 @@ class Builder:
         # mspp_diff_dsi = open('{}/{}_{:02d}_diffs_dsi.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
         mspp_uID = open('{}/{}_{:02d}_uID_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
         mspp_null_pairs = open('{}/{}_{:02d}_nulls.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
-        mspp_null_split = open('{}/{}_{:02d}_null_split.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+        mspp_null_split_match = open('{}/{}_{:02d}_matches_null_split.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+        mspp_null_split_diff = open('{}/{}_{:02d}_diffs_null_split.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+
 
         for i,index in enumerate(diff.index):
             SKS_pp_lat = self.pp.lat_SKS.values[index]
@@ -325,13 +333,21 @@ class Builder:
             #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
             mspp_null_pairs.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
 
-        for i,index in enumerate( null_split_pair.index):
+        for i,index in enumerate( ns_match.index):
             SKS_pp_lat = self.pp.lat_SKS.values[index]
             SKS_pp_lon = self.pp.lon_SKS.values[index]
             SKKS_pp_lat = self.pp.lat_SKKS.values[index]
             SKKS_pp_lon = self.pp.lon_SKKS.values[index]
             #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
-            mspp_null_split.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
+            mspp_null_split_match.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
+
+        for i,index in enumerate( ns_diff.index):
+            SKS_pp_lat = self.pp.lat_SKS.values[index]
+            SKS_pp_lon = self.pp.lon_SKS.values[index]
+            SKKS_pp_lat = self.pp.lat_SKKS.values[index]
+            SKKS_pp_lon = self.pp.lon_SKKS.values[index]
+            #print(i,date,stat,evla,evlo,stla,stlo,SKS_pp_lat,SKS_pp_lon)
+            mspp_null_split_diff.write('> \n {} {} \n {} {} \n'.format(SKS_pp_lon,SKS_pp_lat,SKKS_pp_lon,SKKS_pp_lat))
 
         for i,index in enumerate(match.index):
             SKS_pp_lat = self.pp.lat_SKS.values[index]
@@ -353,7 +369,8 @@ class Builder:
         mspp_diff.close()
         mspp_match.close()
         mspp_null_pairs.close()
-        mspp_null_split.close()
+        mspp_null_split_match.close()
+        mspp_null_split_diff.close()
 
     def QA_tests(self):
         ''' Run some basic QA tests on SNR and SPOL/BAZ. We test to see if signal to noise is greater than 5 (which our synthetics work has shown to be the point where one can
@@ -794,14 +811,14 @@ class Pairs:
         #Set some plotting params
         params = {
             'savefig.dpi': 150,  # to adjust notebook inline plot size
-            'axes.labelsize': 12, # fontsize for x and y labels (was 10)
+            'axes.labelsize': 14, # fontsize for x and y labels (was 10)
             'axes.titlesize': 14,
             'font.size': 12, # was 10
             'legend.fontsize': 8, # was 10
-            'xtick.labelsize': 12,
-            'ytick.labelsize': 12,
+           'xtick.labelsize': 14,
+           'ytick.labelsize': 14,
+           }
 
-        }
         matplotlib.rcParams.update(params)
 
         self.spath = surf_path
@@ -814,7 +831,7 @@ class Pairs:
         else:
             self.surfs = list(set([i if i < len(self.p_sorted) else (len(self.p_sorted)-1) for i in surfs_to_plot])) # This makes sure that indicies are always within the range of available surfaces (stops errors for occuring)
             #self.surfs = self.surfs.sort() # Sorts list in ascending order, has to be done speratly as sort acts of list and returns nothing
-        print(self.surfs)
+        # print(self.surfs)
         if save is True:
             dir = input('Enter Directory you want to save stacked surfaces to > ')
 
@@ -869,8 +886,8 @@ class Pairs:
             print('Lag sks {}. Fast SKS {}.'.format(lag_sks,fast_sks))
             ax0.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
             ax0.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
-            ax0.set_ylabel(r'Fast,$\phi$, ($\degree$)')
-            ax0.set_xlabel(r'Lag ,$\delta$t, (s)')
+            ax0.set_ylabel(r'Fast direction, $\phi$, ($\degree$)')
+            ax0.set_xlabel(r'Lag time, $\delta t$ (s)')
             #Plot SKKS Solution
             ax0.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
             ax0.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
@@ -892,7 +909,7 @@ class Pairs:
             ax1.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
             ax1.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
             ax1.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
-            ax1.set_xlabel(r'Lag ,$\delta$t, (s)')
+            ax1.set_xlabel(r'Lag time, $\delta t$ (s)')
             ax1.set_ylim([-90,90])
             ax1.set_xlim([0,4])
             ax1.set_yticks([-90,-60,-30,0,30,60,90])
@@ -993,7 +1010,7 @@ class Pairs:
         C = ax.contourf(T,F,stk/2,20,cmap='inferno_r',vmin=0,extend='max')
         C2 = ax.contour(C,colors='k')
         # ax.set_ylabel(r'Fast,$\phi$, (deg)')
-        ax.set_xlabel(r'Lag ,$\delta$t, (s)')
+        ax.set_xlabel(r'Lag time, $\delta t$ (s)')
         # ax.plot([lag-dlag,lag+dlag],[fast,fast],'g-')
         # ax.plot([lag,lag],[fast-dfast,fast+dfast],'g-')
         ax.plot(lag,fast,'g.')
@@ -1047,24 +1064,26 @@ class Pairs:
         else:
             plt.show()
 
-    def plot_l2sum_v_dsi(self,save=False):
+    def plot_l2_v_dsi(self,save=False):
         '''
-        Function to plot lambda2 bar against the sum of lambda2 for each phase in the pair
+        Function to plot lambda2 bar against dsi for pair in the E pacific
 
         We only plto null split and split pairs
         '''
+        # Find pairs in the region of interest (Longitdinally anyway)
+        d = self.diffs_l2[(self.diffs_l2.SKS_PP_LON > -170) & (self.diffs_l2.SKS_PP_LON < -80) & (self.diffs_l2.SKKS_PP_LON > -170) & (self.diffs_l2.SKS_PP_LON < -80)]
+        m = self.matches_l2[(self.matches_l2.SKS_PP_LON > -170) & (self.matches_l2.SKS_PP_LON < -80) & (self.matches_l2.SKKS_PP_LON > -170) & (self.matches_l2.SKS_PP_LON < -80)]
+
         fig,ax = plt.subplots(1,1,figsize=(7,7))
-        splits = self.diffs_l2.append(self.matches_l2)
-        m_splits = self.matches[(self.matches.Q_SKS > 0.5) & (self.matches.Q_SKKS > 0.5)]
-        d_splits = self.diffs[(self.diffs.Q_SKS > 0.5) & (self.diffs.Q_SKKS > 0.5)]
-        ax.scatter((self.matches_l2.LAM2_SUM),self.matches_l2.D_SI,marker='.',label=r'$\bar{\lambda_2} $ Matching')
-        ax.scatter((self.diffs_l2.LAM2_SUM),self.diffs_l2.D_SI,marker='.',label=r'$\bar{\lambda_2} $ Discrepant')
+        ax.scatter(m.LAM2_BAR,m.D_SI_Pr,marker='.',label=r'$\bar{\lambda_2} $ Matching')
+        ax.scatter(d.LAM2_BAR,d.D_SI_Pr,marker='x',label=r'$\bar{\lambda_2} $ Discrepant')
         #Plot null - split pairs
         # ax.scatter((self.null_split.LAM2_SKS + self.null_split.LAM2_SKKS),self.null_split.LAM2_BAR,marker='.',c='red',label='Null-Split Pairs')
 
         ax.plot([0, 0.2],[0.4,0.4],'k-.',label=r'$\Delta SI$ threshold from Deng et al., (2017)')
-        ax.set_xlabel(r'$\lambda_2^{SKS} + \lambda_2^{SKKS}$')
+        ax.set_xlabel(r'$\bar{\lambda_2}$')
         ax.set_ylabel(r'$\Delta SI$')
+        ax.set_title('For the Eastern Pacific Region')
         ax.set_xlim([0,0.2])
         # ax.set_ylim([0,0.2])
         ax.legend(fontsize='medium')
@@ -1078,23 +1097,57 @@ class Pairs:
     def l2_v_dSI(self):
         '''Plot lambda2 (bar) agaisnt splitting intensity'''
         fig,(ax1,ax2) = plt.subplots(1,2,figsize=(12,6))
-        ax1.plot(self.diffs_dsi.LAM2_BAR,self.diffs_dsi.D_SI,'k.',label='Discrepant')
-        ax1.plot(self.matches_dsi.LAM2_BAR,self.matches_dsi.D_SI,'kx',label='Matching')
-        ax2.plot(self.diffs_l2.LAM2_BAR,self.diffs_l2.D_SI,'k.',label='Discrepant')
-        ax2.plot(self.matches_l2.LAM2_BAR,self.matches_l2.D_SI,'kx',label='Matching')
+        ax1.plot(self.diffs_dsi.LAM2_BAR,self.diffs_dsi.D_SI_Pr,'k.',label='Discrepant')
+        ax1.plot(self.matches_dsi.LAM2_BAR,self.matches_dsi.D_SI_Pr,'kx',label='Matching')
+        ax2.plot(self.diffs_l2.LAM2_BAR,self.diffs_l2.D_SI_Pr,'k.',label='Discrepant')
+        ax2.plot(self.matches_l2.LAM2_BAR,self.matches_l2.D_SI_Pr,'kx',label='Matching')
         ax1.set_xlabel(r'$\bar{\lambda_2} $ value', fontsize=14)
         ax1.set_ylabel(r'$\Delta SI$ value',fontsize=14)
         ax2.set_xlabel(r'$\bar{\lambda_2} $ value', fontsize=14)
         ax2.set_ylabel(r'$\Delta SI$ value',fontsize=14)
-        ax1.set_ylim([0,1.5])
+        ax1.set_ylim([0,1])
         ax1.set_xlim([0,0.2])
-        ax2.set_ylim([0,1.5])
+        ax2.set_ylim([0,1])
         ax2.set_xlim([0,0.2])
         ax1.legend(fontsize='medium',loc='best')
         ax2.legend(fontsize='medium',loc='best')
         ax1.set_title('Classified using Deng et al., (2017). [$\Delta SI > 0.4$]')
         ax2.set_title(r'Classified using $\bar{\lambda_2}$ & $\Delta SI > 0.3 $')
         plt.show()
+
+    def phi_dt_diff_latlon(self):
+        '''
+        Plot the difference between phi and delta t for SKS-SKKS pairs, plotted against the pair midpoint postion (defined by sqrt(LAT^2 + LONG^2))
+        '''
+        fig,(ax1,ax2) = plt.subplots(2,1,sharex=True,figsize=(8,12))
+        # Set up Regional Section of pairs
+        d = self.diffs_l2[(self.diffs_l2.SKS_PP_LON > -160) & (self.diffs_l2.SKS_PP_LON < -80)]
+        ns = self.null_split[(self.null_split.SKS_PP_LON > -160) & (self.null_split.SKS_PP_LON < -80)]
+        m = self.matches_l2[(self.matches_l2.SKS_PP_LON > -160) & (self.matches_l2.SKS_PP_LON < -80)]
+
+        latlon_diff = np.sqrt(((d.SKS_PP_LON.values+d.SKKS_PP_LON.values)/2)**2 + ((d.SKS_PP_LAT.values+d.SKKS_PP_LAT.values)/2)**2)
+        latlon_match = np.sqrt(((m.SKS_PP_LON.values+m.SKKS_PP_LON.values)/2)**2 + ((m.SKS_PP_LAT.values+m.SKKS_PP_LAT.values)/2)**2)
+
+        ax1.plot(latlon_diff,abs(abs(d.FAST_SKS)-abs(d.FAST_SKKS)),'k.',label='Discrepant')
+        ax2.plot(latlon_diff,abs(d.TLAG_SKS-d.TLAG_SKKS) ,'k.')
+
+        ax1.plot(latlon_match,abs(abs(m.FAST_SKS)-abs(m.FAST_SKKS)),'b.',label='Matching')
+        ax2.plot(latlon_match,abs(m.TLAG_SKS-m.TLAG_SKKS) ,'b.')
+        #Add legend
+        ax1.legend()
+        # Add x,y labels
+        ax2.set_xlabel(r'(Lat + Long)$^{\frac{1}{2}}$ ')
+        ax1.set_ylabel(r'$|\phi_{SKS} - \phi_{SKKS}|$ ($\degree$)')
+        ax2.set_ylabel('$| \delta t_{SKS} - \delta t_{SKKS}|$ (s)')
+        #set limits
+        ax1.set_xlim([80, 170])
+        ax1.set_ylim([0, 35])
+        ax2.set_ylim([0, 1.6])
+        ax1.set_title('Fast Direction and Lag time for Pairs in E. Pac.')
+        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Phi_dt_v_Long_Lat_sq.png',dpi=400)
+        plt.show()
+
+
 
 #####################################################################################################
 # Top level where script is invoked from command line

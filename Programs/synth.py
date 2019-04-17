@@ -24,6 +24,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from stack import Stacker
+import matplotlib
 ###############################
 
 class Synth:
@@ -71,8 +72,8 @@ class Synth:
         ax2.scatter(self.nulls.TLAG,self.nulls.FAST,marker='.',c='darkorange',label='Q < -0.7')
         ax2.set_xlim([0,4.0])
         ax2.set_ylim([-90,90])
-        ax2.set_xlabel(r'$\delta t$ (s)',fontsize=16)
-        ax2.set_ylabel(r'$\Phi$ ( $\degree$)' ,fontsize=16)
+        ax2.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=16)
+        ax2.set_ylabel(r'$Fast direction \phi$ ( $\degree$)' ,fontsize=16)
         ax2.set_title(r'Recovered $\Phi, \delta t$',fontsize=16)
         if save is True:
             plt.savefig('/Users/ja17375/Presentations/SYNTH_in_v_out.eps',format='eps',dpi=400)
@@ -95,10 +96,10 @@ class Synth:
         # Plot the singular A
         # ax.plot(self.a_lag,self.a_fast,'rx')
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
-        cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
-        cbar1.set_label(r'$\Delta SI $',rotation=0)
-        ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
-        ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
+        # cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
+        # cbar1.set_label(r'$\Delta SI $',rotation=0)
+        ax.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
+        ax.set_ylabel(r'Fast direction, $\phi (\degree)$',fontsize=14)
         ax.set_title(r'${}: \Delta SI$ for  $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
         plt.tick_params(labelsize=14)
         return C
@@ -140,12 +141,12 @@ class Synth:
         # Plot grid of 1s and 0s. Potentially ned to find something better than contourf as it interpolats (?) slightly
         C = ax.contourf(self.T,self.F,sig)
         # C = ax.imshow(np.transpose(sig))
-        ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
-        ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
+        # ax.set_ylabel(r'Fast direction $\phi$ ($\degree$)',fontsize=14)
+        # ax.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
         ax.plot(lag[self.a_ind],fast[self.a_ind],'rx')
         ax.set_title(r'{}: $2 \sigma$ for $\delta t = {}, \phi = {}$ '.format(self.spol,lag[self.a_ind],fast[self.a_ind]))
-        cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
-        cbar1.set_label(r'$2 \sigma$. Matching = 1',rotation=0)
+        # cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
+        # cbar1.set_label(r'$2 \sigma$. Matching = 1',rotation=0)
         return C
 
     def grid_lam2(self,ax):
@@ -163,10 +164,10 @@ class Synth:
         # C.cmap.set_under('white')
         # Plot the singular A
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
-        cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
-        cbar1.set_label(r'$\bar{\lambda_2} $',rotation=0)
-        ax.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
-        ax.set_xlabel(r' $\delta t$ (s)',fontsize=14)
+        # cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
+        # cbar1.set_label(r'$\bar{\lambda_2} $',rotation=0)
+        # ax.set_ylabel(r'Fast direction $\phi (\degree)$',fontsize=14)
+        ax.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
         ax.set_title(r'{}: $\lambda_2$ for $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
         plt.tick_params(labelsize=14)
         return C
@@ -187,28 +188,46 @@ class Synth:
         # First, initialise fiugre instance and axes
         fig = plt.figure(figsize=(12,12))
         gs = gridspec.GridSpec(2,2) # Use gridspec to control axes allocation
-        ax1 = plt.subplot(gs[0,0]) # Top left, axes to plot synthetics results onto
-        ax2 = plt.subplot(gs[0,1]) # Top right, axes to plot 2sigma grid onto
-        ax3 = plt.subplot(gs[1,0]) # Bottom left, axes to plot Delta SI grid onto
-        ax4 = plt.subplot(gs[1,1]) # Bottom right, axes to plot lambda2 grid onto
+        ax1 = fig.add_subplot(gs[1,0]) # Bottom left, axes to plot Delta SI grid onto
+        ax2 = fig.add_subplot(gs[0,0],sharex=ax1) #  Top left, axes to plot synthetics results onto
+        ax3 = plt.subplot(gs[1,1],sharey=ax1) # Bottom right, axes to plot lambda2 grid onto
+        ax4 = plt.subplot(gs[0,1],sharex=ax3,sharey=ax2) # Top right, axes to plot 2sigma grid onto
+        # Make the share x,y tick label invisible
+        plt.setp(ax2.get_xticklabels(), visible=False)
+        plt.setp(ax3.get_yticklabels(), visible=False)
+        plt.setp(ax4.get_xticklabels(), visible=False)
+        plt.setp(ax4.get_yticklabels(), visible=False)
+        #Set some plotting params
+        params = {
+            'savefig.dpi': 150,  # to adjust notebook inline plot size
+            'axes.labelsize': 12, # fontsize for x and y labels (was 10)
+            'axes.titlesize': 14,
+            'font.size': 12, # was 10
+            'legend.fontsize': 8, # was 10
+            'xtick.labelsize': 14,
+            'ytick.labelsize': 14,
+
+        }
+        matplotlib.rcParams.update(params)
+
         # Plot Synthetics as measured by sheba
-        ax1.scatter(self.syn.TLAG,self.syn.FAST,marker='.',label='-0.7 < Q < 0.7')
-        ax1.scatter(self.nulls.TLAG,self.nulls.FAST,marker='.',c='darkorange',label='Q < -0.7')
-        ax1.set_xlim([0,4.0])
-        ax1.set_ylim([-90,90])
-        ax1.set_xlabel(r'$\delta t$ (s)',fontsize=16)
-        ax1.set_ylabel(r'$\Phi$ ( $\degree$)' ,fontsize=16)
-        ax1.set_title(r'Recovered $\Phi, \delta t$',fontsize=16)
+        ax2.scatter(self.syn.TLAG,self.syn.FAST,marker='.',label='-0.7 < Q < 0.7')
+        ax2.scatter(self.nulls.TLAG,self.nulls.FAST,marker='.',c='darkorange',label='Q < -0.7')
+        ax2.set_xlim([0,4.0])
+        ax2.set_ylim([-90,90])
+        # ax2.set_xlabel(r'$\delta t$ (s)',fontsize=16)
+        ax2.set_ylabel(r'Fast direction $\phi$ ( $\degree$)' ,fontsize=16)
+        ax2.set_title(r'Recovered $\Phi, \delta t$',fontsize=16)
         f = self.F.ravel()
         l = self.T.ravel()
-        ax1.plot(l[self.a_ind],f[self.a_ind],'rx')
+        ax2.plot(l[self.a_ind],f[self.a_ind],'rx')
         # Plot 2 sigma grid
-        C_2sigma = self.grid_sigma2(ax2)
+        C_2sigma = self.grid_sigma2(ax4)
         # fig.colorbar(C_2sigma,cax=ax2)
         # Plot delta SI grid
-        C_dSI = self.grid_dSI(ax3)
+        C_dSI = self.grid_dSI(ax1)
         #Plot lamdba 2
-        C_lam2 = self.grid_lam2(ax4)
+        C_lam2 = self.grid_lam2(ax3)
         ########
         # Show plot
         if save == True:
@@ -299,6 +318,33 @@ class Synth:
 
         plt.show()
 
+    def SI_comp(self):
+        ''' Plot contour plots of both SI results'''
+        fig, (ax1,ax2) = plt.subplots(1,2,figsize=(12,8))
+        fig2, ax3 = plt.subplots(1,1,figsize=(8,8))
+        pa = self.syn['SI(Pa)'].values.reshape(17,37)
+        pr = self.syn['SI(Pr)'].values.reshape(17,37)
+
+        params = {'xtick.labelsize': 14,'ytick.labelsize': 14}
+        matplotlib.rcParams.update(params)
+
+        ax1.contourf(self.T,self.F,pa)
+        ax1.set_title('SI by approximation')
+
+        ax2.contourf(self.T,self.F,pr)
+        ax2.set_title('SI by projection',fontsize=16)
+        ax1.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
+        ax1.set_xlabel(r'$\delta t$ (s)',fontsize=14)
+        ax2.set_xlabel(r'$\delta t$ (s)',fontsize=14)
+        # Plot difference in meausres
+        fig2, ax3 = plt.subplots(1,1,figsize=(8,8))
+        pr_pa_diff = pr - pa
+        s = ax3.contourf(self.T,self.F,pr_pa_diff)
+        ax3.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
+        ax3.set_xlabel(r'$\delta t$ (s)',fontsize=14)
+        plt.colorbar(s)
+        fig.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Synth_SI_comp.png',dpi=400)
+        plt.show()
 
     def add_DSI(self):
         '''Calculate the difference in Splitting Intensity for each pair and add it to dataframe'''
@@ -402,9 +448,9 @@ class Synth:
             # self.grid_lam2(save=True)
             plt.close('all')
             if f[self.a_ind] < 0:
-                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ')
+                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
             else:
-                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ')
+                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ',index=False)
         else:
             pass
             # self.grid_dSI()
