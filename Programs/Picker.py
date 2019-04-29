@@ -7,20 +7,20 @@ class WindowPicker:
     Pick a Window
     """
 
-    def __init__(self,st,wbeg1,wbeg2,wend1,wend2,tt=0,**kwargs):
+    def __init__(self,st,wbeg1,wbeg2,wend1,wend2,t0,**kwargs):
 
-
+        #t0 = 60 seconds before traveltime (aka the start of the trimming seismogram)
         self.st = st # Obspy stream containing BHN and BHE
-        self.tt = tt # traveltime (predicted)
+        self.tt = t0 + 60  # traveltime (predicted)
         self.delta = st[0].stats.delta
-        self.t = [self.delta*i for i,v in enumerate(self.st[0].data)]
+        self.t = [t0 + self.delta*i for i,v in enumerate(self.st[0].data)]
         # make initial window rnages attributes
         self.wbeg1 = wbeg1
         self.wbeg2 = wbeg2
         self.wend1 = wend1
         self.wend2 = wend2
         # Base plot (before interactive stuff)
-        fig,self.ax = plt.subplots()
+        fig,self.ax = plt.subplots(figsize = (12,8))
         self.canvas = fig.canvas
         # Add seismograms
         self.ax.plot(self.t,self.st[0].data,label='BHN')
@@ -30,6 +30,7 @@ class WindowPicker:
         self.wbeg2line = self.ax.axvline(self.wbeg2,linewidth=1,color='r',visible=True)
         self.wend1line = self.ax.axvline(self.wend1,linewidth=1,color='r',visible=True)
         self.wend2line = self.ax.axvline(self.wend2,linewidth=1,color='r',visible=True)
+        self.cursorline= self.ax.axvline(100,linewidth=1,color='0.5',visible=False)
         self.pred_tt= self.ax.axvline(self.tt,linewidth=1,color='k',visible=True)
         _,self.ydat = self.wbeg1line.get_data()
         # set limits
@@ -37,7 +38,7 @@ class WindowPicker:
         lim_min = min([self.st[0].data.min(),self.st[1].data.min()])* 1.1
         # self.ax.set_aspect('equal')
         self.ax.set_ylim([lim_min,lim_max])
-        self.ax.set_xlim(0,max(self.t)) # Set ylim in relative time (from stsrt of stream )
+        self.ax.set_xlim(t0,max(self.t)) # Set ylim in relative time (from stsrt of stream )
 
         self.connect() # Dev only
         plt.show()
@@ -77,19 +78,19 @@ class WindowPicker:
         if event.key == "d":
             print('WBEG End')
             self.x2 = event.xdata
-            self.wbeg2line.set_data(self.x1,self.ydat)
+            self.wbeg2line.set_data(self.x2,self.ydat)
             self.canvas.draw()
             print(self.x2)
         if event.key == "z":
             print('WEND Start')
             self.x3 = event.xdata
-            self.wend1line.set_data(self.x1,self.ydat)
+            self.wend1line.set_data(self.x3,self.ydat)
             self.canvas.draw()
             print(self.x3)
         if event.key == "c":
             print('WEND End')
             self.x4 = event.xdata
-            self.wend2line.set_data(self.x1,self.ydat)
+            self.wend2line.set_data(self.x4,self.ydat)
             self.canvas.draw()
             print(self.x4)
         if event.key == "q":
@@ -116,9 +117,9 @@ class WindowPicker:
 
     def disconnect(self):
         'disconnect all the stored connection ids'
-        self.canvas.mpl_disconnect(self.cidclick)
+        # self.canvas.mpl_disconnect(self.cidclick)
         self.canvas.mpl_disconnect(self.cidmotion)
         self.canvas.mpl_disconnect(self.cidenter)
         self.canvas.mpl_disconnect(self.cidleave)
-        plt.close()
         self.wbeg1, self.wbeg2, self.wend1,self.wend2 = sorted((self.x1, self.x2,self.x3,self.x4))
+        plt.close()
