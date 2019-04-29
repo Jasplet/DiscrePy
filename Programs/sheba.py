@@ -185,7 +185,7 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
                                 # print('Label is {}. Path is {}'.format(label,path))
                                 Event.write_out(phase,label,path=outdir)
                             print('RUn sheba, stat {}, phase {}, label {}, out {}'.format(station,phase,label,outdir))
-                            Event.sheba(station,phase,label,path=outdir,nwind=False)
+                            Event.sheba(station,phase,label,path=outdir,nwind=True)
                             #tidyup_by_stat(path,station,phase,label,outfile)
                     else:
                         # print('Fail, Distance ')
@@ -321,9 +321,10 @@ class Interface:
                 # Windowing code
                 # Combine BHN and BHE to make a stream
                 st = self.BHN + self.BHE
-                Windower = Picker.WindowPicker(st,user0,user1,user2,user3,self.tt)
+                print(user0,user1,user2,user3)
+                Windower = Picker.WindowPicker(st,user0,user1,user2,user3,t1)
                 print("Windower Closed, adjusting window ranges")
-                (user0,user1,user2,user3) = Picker.wbeg1, Picker.wbeg2, Picker.wend1, Picker.wend2
+                (user0,user1,user2,user3) = Windower.wbeg1, Windower.wbeg2, Windower.wend1, Windower.wend2
 
             # Set window ranges in SAC headers
             self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (user0,user1,user2,user3)
