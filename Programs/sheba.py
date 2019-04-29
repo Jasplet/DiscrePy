@@ -36,6 +36,7 @@ from multiprocessing import Pool, current_process
 from functools import partial
 import contextlib
 from glob import glob
+import Picker
 ############################################################################################
 # Define Functions and Classes
 ############################################################################################
@@ -173,7 +174,7 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
                             print('NO Traveltimes, bad data file {}'.format(st_id))
                             pass
                         else:
-                            Event.process(synth=False)
+                            Event.process(synth=False,window=True) # If windowing is set to true then SHEBA must be called in serial mode
                             # print('Function', Event.process(phase,synth=False))
                             outdir = '{}/{}/{}'.format(runpath,station,phase)
                             try:
@@ -184,7 +185,7 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
                                 # print('Label is {}. Path is {}'.format(label,path))
                                 Event.write_out(phase,label,path=outdir)
                             print('RUn sheba, stat {}, phase {}, label {}, out {}'.format(station,phase,label,outdir))
-                            Event.sheba(station,phase,label,path=outdir)
+                            Event.sheba(station,phase,label,path=outdir,nwind=False)
                             #tidyup_by_stat(path,station,phase,label,outfile)
                     else:
                         # print('Fail, Distance ')
@@ -230,6 +231,8 @@ class Interface:
 #       Also lets load the gcarc from each stream, so we can test for whether SKKS should be measuable
         self.gcarc = (st[0].stats.sac.gcarc)
         self.station = st[0].stats.station
+        self.delta = st[0].stats.delta
+
 #       As this gcarc is calculated in split_read.py I know that it should be the same for all three traces
 #       So for ease we will always read it from st[0]
 
@@ -275,7 +278,7 @@ class Interface:
             print('Phase {} not SKS or SKKS'.format(phase_to_check))
             return False
 
-    def process(self,synth=False,c1=0.01,c2=0.5):
+    def process(self,synth=False,c1=0.01,c2=0.5,window=False):
         """
         Function to bandpass filter and trim the components
         Seismograms are trimmed so that they start 1 minute before the expected arrival and end 2 minutes after the arrival
@@ -300,7 +303,7 @@ class Interface:
 #       Now trim each component to the input length
         if synth == False: # We only need to trim and set the window length for real data, not synthetics made with sacsplitwave
 #       Now set the trim
-            # print('Set Windows')
+            # print('Trim Traces')
             t1 = (self.tt - 60) #I.e A minute before the arrival
             t2 = (self.tt + 120) #I.e Two minutes after the arrival
             self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
@@ -313,7 +316,16 @@ class Interface:
     #       Set the raqnge of window endtime (user2/user3)
             user2 = self.tt + 15 # 15 seconds after, gives a min window size of 20 seconds
             user3 = self.tt + 30 # 30 seconds after, gives a max window size of 45 seconds
-    #
+#
+            if window == True:
+                # Windowing code
+                # Combine BHN and BHE to make a stream
+                st = self.BHN + self.BHE
+                Windower = Picker.WindowPicker(st,user0,user1,user2,user3,self.tt)
+                print("Windower Closed, adjusting window ranges")
+                (user0,user1,user2,user3) = Picker.wbeg1, Picker.wbeg2, Picker.wend1, Picker.wend2
+
+            # Set window ranges in SAC headers
             self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (user0,user1,user2,user3)
             self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
             self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
@@ -378,8 +390,8 @@ class Interface:
             s = '''
             echo on\n
             SETMACRO /Users/ja17375/Ext_programs/macros
-            m sheba file {}{} plot yes pick no batch yes
-            '''.format(label,phase)
+            m sheba file {}{} plot yes pick yes
+            '''.format(label,phase,label,phase)
         try:
             out = p.communicate(s)
             # print(out[0])
