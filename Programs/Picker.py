@@ -98,7 +98,7 @@ class WindowPicker:
             print('WEND Start')
             self.x3 = event.xdata
             self.wend1line.set_data(self.x3,self.ydat)
-            self.wend1label = self.ax.text((self.x3 - 3, self.lim_min*0.85))
+            self.wend1label.set_position(self.x3 - 3, self.lim_min*0.85))
             self.canvas.draw()
             print(self.x3)
         if event.key == "c":
