@@ -23,23 +23,31 @@ class WindowPicker:
         fig,self.ax = plt.subplots(figsize = (12,8))
         self.canvas = fig.canvas
         # Add seismograms
-        self.ax.plot(self.t,self.st[0].data,label='BHN')
-        self.ax.plot(self.t,self.st[1].data,label='BHE')
+        self.ax.plot(self.t,self.st[0].data,label='BHN',color='darkorange')
+        self.ax.plot(self.t,self.st[1].data,label='BHE',color='dodgerblue')
+        # Add legend
+        self.ax.legend()
         # window limit lines
-        self.wbeg1line = self.ax.axvline(self.wbeg1,linewidth=1,color='r',visible=True)
-        self.wbeg2line = self.ax.axvline(self.wbeg2,linewidth=1,color='r',visible=True)
-        self.wend1line = self.ax.axvline(self.wend1,linewidth=1,color='r',visible=True)
-        self.wend2line = self.ax.axvline(self.wend2,linewidth=1,color='r',visible=True)
+        self.wbeg1line = self.ax.axvline(self.wbeg1,linewidth=2,color='r',visible=True)
+        self.wbeg2line = self.ax.axvline(self.wbeg2,linewidth=2,color='r',visible=True)
+        self.wend1line = self.ax.axvline(self.wend1,linewidth=2,color='g',visible=True)
+        self.wend2line = self.ax.axvline(self.wend2,linewidth=2,color='g',visible=True)
         self.cursorline= self.ax.axvline(100,linewidth=1,color='0.5',visible=False)
         self.pred_tt= self.ax.axvline(self.tt,linewidth=1,color='k',visible=True)
         _,self.ydat = self.wbeg1line.get_data()
-        # set limits
-        lim_max = max([self.st[0].data.max(),self.st[1].data.max()]) * 1.1
-        lim_min = min([self.st[0].data.min(),self.st[1].data.min()])* 1.1
-        # self.ax.set_aspect('equal')
-        self.ax.set_ylim([lim_min,lim_max])
-        self.ax.set_xlim(t0,max(self.t)) # Set ylim in relative time (from stsrt of stream )
 
+        # set limits
+        self.lim_max = max([self.st[0].data.max(),self.st[1].data.max()]) * 1.1
+        self.lim_min = min([self.st[0].data.min(),self.st[1].data.min()])* 1.1
+        # self.ax.set_aspect('equal')
+        self.ax.set_ylim([self.lim_min,self.lim_max])
+        self.ax.set_xlim(t0,max(self.t)) # Set ylim in relative time (from stsrt of stream )
+        # Add some labels
+        self.phaselabel = self.ax.text(self.tt + 1,self.lim_max*0.85,'IASP91 Predication')
+        self.wbeg1label = self.ax.text(self.wbeg1 - 2, self.lim_min*0.85,'S',color='r')
+        self.wbeg2label = self.ax.text(self.wbeg2 - 2, self.lim_min*0.85,'F',color='r')
+        self.wend1label = self.ax.text(self.wend1 - 2, self.lim_min*0.85,'S',color='g')
+        self.wend2label = self.ax.text(self.wend2 - 2, self.lim_min*0.85,'F',color='g')
         self.connect() # Dev only
         plt.show()
 
@@ -68,29 +76,36 @@ class WindowPicker:
         'a' & 'd' set the window beginnning range
         'z' & 'c' set the window end range
         'q' exit the plot and returns the current WBEG, WEND
+        The vertical line markers and annotations are redrawn after each Key Press
         '''
+        print("'a' & 'd' set the window beginnning range")
+        print("'z' & 'c' set the window end range")
         if event.key == "a":
             print('WBEG Start')
             self.x1 = event.xdata
             self.wbeg1line.set_data(self.x1,self.ydat)
+            self.wbeg1label.set_position((self.x1 - 3, self.lim_min*0.85))
             self.canvas.draw()
             print(self.x1)
         if event.key == "d":
             print('WBEG End')
             self.x2 = event.xdata
             self.wbeg2line.set_data(self.x2,self.ydat)
+            self.wbeg2label.set_position((self.x2 - 3, self.lim_min*0.85))
             self.canvas.draw()
             print(self.x2)
         if event.key == "z":
             print('WEND Start')
             self.x3 = event.xdata
             self.wend1line.set_data(self.x3,self.ydat)
+            self.wend1label = self.ax.text((self.x3 - 3, self.lim_min*0.85))
             self.canvas.draw()
             print(self.x3)
         if event.key == "c":
             print('WEND End')
             self.x4 = event.xdata
             self.wend2line.set_data(self.x4,self.ydat)
+            self.wend2label.set_position((self.x4 - 3, self.lim_min*0.85))
             self.canvas.draw()
             print(self.x4)
         if event.key == "q":
