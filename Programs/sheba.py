@@ -174,19 +174,25 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
                             print('NO Traveltimes, bad data file {}'.format(st_id))
                             pass
                         else:
-                            Event.process(synth=False,window=True) # If windowing is set to true then SHEBA must be called in serial mode
-                            # print('Function', Event.process(phase,synth=False))
-                            outdir = '{}/{}/{}'.format(runpath,station,phase)
-                            try:
-                                Event.write_out(phase,label,path=outdir)
-                            except OSError:
-                                print('Directory {} writing outputs do not all exist. Initialising'.format(outdir))
-                                os.makedirs(outdir)
-                                # print('Label is {}. Path is {}'.format(label,path))
-                                Event.write_out(phase,label,path=outdir)
-                            print('RUn sheba, stat {}, phase {}, label {}, out {}'.format(station,phase,label,outdir))
-                            Event.sheba(station,phase,label,path=outdir,nwind=True)
-                            #tidyup_by_stat(path,station,phase,label,outfile)
+                            print('Process waveform, stat {}, phase {}, label {}'.format(station,phase,label))
+                            Event.process(synth=False,window=False) # If windowing is set to true then SHEBA must be called in serial mode
+                            if Event.bad is True:
+                                # A bad waveform that we dont want anyhting to do with, so skip it
+                                pass
+
+                            else:
+                                # print('Function', Event.process(phase,synth=False))
+                                outdir = '{}/{}/{}'.format(runpath,station,phase)
+                                try:
+                                    Event.write_out(phase,label,path=outdir)
+                                except OSError:
+                                    print('Directory {} writing outputs do not all exist. Initialising'.format(outdir))
+                                    os.makedirs(outdir)
+                                    # print('Label is {}. Path is {}'.format(label,path))
+                                    Event.write_out(phase,label,path=outdir)
+                                # print('RUn sheba, stat {}, phase {}, label {}, out {}'.format(station,phase,label,outdir))
+                                Event.sheba(station,phase,label,path=outdir,nwind=True)
+                                #tidyup_by_stat(path,station,phase,label,outfile)
                     else:
                         # print('Fail, Distance ')
                         pass
@@ -232,7 +238,7 @@ class Interface:
         self.gcarc = (st[0].stats.sac.gcarc)
         self.station = st[0].stats.station
         self.delta = st[0].stats.delta
-
+        self.bad = False
 #       As this gcarc is calculated in split_read.py I know that it should be the same for all three traces
 #       So for ease we will always read it from st[0]
 
@@ -243,10 +249,12 @@ class Interface:
         tr - trace object for which SKS arrival time will be predicted
         """
         model = ob.taup.tau.TauPyModel(model="iasp91")
+
         # Add in a test for the case where depth has been gien in meters (as OBSPY IS DUMB AS HELL AND RETURNS DEPTH IN [m] FFS)
         if self.BHN[0].stats.sac.evdp >= 1000:
             #This might be a bit generous but my events shouldnt be shallower the ~ 1 km or deeper than 1000km anyway (and if this is the case than there is something SERIOUSLY wrong with our earth models)
             traveltime = model.get_travel_times((self.BHN[0].stats.sac.evdp/1000),self.BHN[0].stats.sac.gcarc,[phase])[0].time
+            print(traveltime)
         elif self.BHN[0].stats.sac.evdp == 0: # Theres an event where the event data couldnt be found so evdp was set to be 0
             # Having a depth of zero will give us problems so NOW change it to 10.0km exactly (these traveltimes could be very dodgy)
             err_out = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Events_with_evdp_of_0.txt','w+')
@@ -254,10 +262,12 @@ class Interface:
             traveltime = model.get_travel_times(10,self.BHN[0].stats.sac.gcarc,[phase])[0].time
         else:
             tt = model.get_travel_times((self.BHN[0].stats.sac.evdp),self.BHN[0].stats.sac.gcarc,[phase])
-            # print(self.BHN)
+            # print(self.BHN[0].stats.sac)
+            # print(tt)
             try:
                 traveltime = tt[0].time
             except IndexError:
+                print('index Error')
                 traveltime =None
 
         return traveltime
@@ -267,7 +277,12 @@ class Interface:
         Function to test if the given phase is actually measureable!
         """
         if phase_to_check == 'SKS':
-            return True
+            if self.gcarc < 145.0:
+                return True
+            else:
+                print('Event-Station distance further than 145 deg, too far for SKS')
+                return False
+
         elif phase_to_check == 'SKKS':
             if self.gcarc >= 105.0:
                 return True
@@ -321,10 +336,16 @@ class Interface:
                 # Windowing code
                 # Combine BHN and BHE to make a stream
                 st = self.BHN + self.BHE
-                print(user0,user1,user2,user3)
+                # print(user0,user1,user2,user3)
                 Windower = Picker.WindowPicker(st,user0,user1,user2,user3,t1)
-                print("Windower Closed, adjusting window ranges")
-                (user0,user1,user2,user3) = Windower.wbeg1, Windower.wbeg2, Windower.wend1, Windower.wend2
+                # Windower.pick()
+                if Windower.wbeg1 is None:
+                    print("Skipping")
+                    self.bad = True # Switch to tell sheba.py if we actually want to meausre this event
+                else:
+                    print("Windower Closed, adjusting window ranges")
+                    (user0,user1,user2,user3) = Windower.wbeg1, Windower.wbeg2, Windower.wend1, Windower.wend2
+                    self.bad = False
 
             # Set window ranges in SAC headers
             self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (user0,user1,user2,user3)
