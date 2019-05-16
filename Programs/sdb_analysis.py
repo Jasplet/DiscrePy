@@ -440,10 +440,12 @@ class Pairs:
                 pdiff_dsi = '{}_diffs_dsi.pairs'.format(fname.split('.')[0])
                 self.matches_l2 = pd.read_csv(pmatch_l2,delim_whitespace=True,converters=date_time_convert)
                 self.diffs_l2 = pd.read_csv(pdiff_l2,delim_whitespace=True,converters=date_time_convert)
-                self.matches_dsi = pd.read_csv(pmatch_dsi,delim_whitespace=True,converters=date_time_convert)
-                self.diffs_dsi = pd.read_csv(pdiff_dsi,delim_whitespace=True,converters=date_time_convert)
+                # self.matches_dsi = pd.read_csv(pmatch_dsi,delim_whitespace=True,converters=date_time_convert)
+                # self.diffs_dsi = pd.read_csv(pdiff_dsi,delim_whitespace=True,converters=date_time_convert)
                 self.uID = pd.read_csv('{}_uID_l2.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
                 self.null_split = pd.read_csv('{}_null_split.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
+                self.null_split_diffs = pd.read_csv('{}_diffs_null_split.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
+                self.null_split_matches = pd.read_csv('{}_matches_null_split.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
                 self.nulls = pd.read_csv('{}_nulls.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
             except FileNotFoundError:
                 print('Match or Diff file not found. Are you using synhetics maybe??')
@@ -1046,7 +1048,9 @@ class Pairs:
         # ax.scatter((self.df.LAM2_SKS + self.df.LAM2_SKKS),self.df.LAM2_BAR,marker='.',label='All pairs')
         # ax.scatter((splits.LAM2_SKS + splits.LAM2_SKKS),splits.LAM2_BAR,marker='.',label='Split Pairs')
         ax.scatter((self.matches_l2.LAM2_SUM),self.matches_l2.LAM2_BAR,marker='.',label=r'$\bar{\lambda_2} $ Matching')
-        ax.scatter((self.diffs_l2.LAM2_SUM),self.diffs_l2.LAM2_BAR,marker='.',label=r'$\bar{\lambda_2} $ Discrepant')
+        ax.scatter((self.diffs_l2.LAM2_SUM),self.diffs_l2.LAM2_BAR,marker='x',label=r'$\bar{\lambda_2} $ Discrepant')
+        ax.scatter((self.null_split_matches.LAM2_SUM),self.null_split_matches.LAM2_BAR,marker='.',label=r'$\bar{\lambda_2} $ Matching Null-Split')
+        ax.scatter((self.null_split_diffs.LAM2_SUM),self.null_split_diffs.LAM2_BAR,marker='x',label=r'$\bar{\lambda_2} $ Discrepant Null-Split')
         #Plot null - split pairs
         # ax.scatter((self.null_split.LAM2_SKS + self.null_split.LAM2_SKKS),self.null_split.LAM2_BAR,marker='.',c='red',label='Null-Split Pairs')
         mod = np.linspace(0,0.2,10)
@@ -1054,8 +1058,8 @@ class Pairs:
         ax.plot(mod,mod*1.15,'k-.',label=r'$\bar{\lambda_2} = 1.15*(\lambda_2^{SKS} + \lambda_2^{SKKS}) $')
         ax.set_xlabel(r'$\lambda_2^{SKS} + \lambda_2^{SKKS}$')
         ax.set_ylabel(r'$\bar{\lambda_2}$')
-        ax.set_xlim([0,0.2])
-        ax.set_ylim([0,0.2])
+        ax.set_xlim([0,0.07])
+        ax.set_ylim([0,0.1])
         ax.legend(fontsize='medium')
         #plt.colorbar(C)\
         if save == True:
@@ -1147,7 +1151,120 @@ class Pairs:
         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Phi_dt_v_Long_Lat_sq.png',dpi=400)
         plt.show()
 
+    def phi_dt_diff_lat(self):
+        '''
+        Plot the difference between phi and delta t for SKS-SKKS pairs, plotted against the pair midpoint postion (defined by sqrt(LAT^2 + LONG^2))
+        '''
+        fig,((ax1,ax3),(ax2,ax4)) = plt.subplots(2,2,sharey=True,figsize=(8,12))
+        # Set up Regional Section of pairs
+        d = self.diffs_l2[(self.diffs_l2.SKS_PP_LON < -130)]
+        ns_sks = self.null_split[(self.null_split.SKS_PP_LON < -130)  & (self.null_split.Q_SKS > 0.5)]
+        ns_skks = self.null_split[(self.null_split.SKS_PP_LON < -130)  & (self.null_split.Q_SKKS > 0.5)]
+        m = self.matches_l2[(self.matches_l2.SKS_PP_LON < -130) ]
 
+        lat_diff = (d.SKS_PP_LAT + d.SKKS_PP_LAT)/2
+        lat_match = (m.SKS_PP_LAT + m.SKKS_PP_LAT)/2
+        lat_ns = (ns_skks.SKS_PP_LAT + ns_skks.SKKS_PP_LAT)/2
+
+        ax1.plot(abs(abs(d.FAST_SKS)-abs(d.FAST_SKKS)),lat_diff,'k.',label='Discrepant')
+        ax2.plot(abs(d.TLAG_SKS-d.TLAG_SKKS),lat_diff,'k.')
+        ax3.plot(d.FAST_SKS,lat_diff,'g.',label='SKS')
+        ax3.plot(d.FAST_SKKS,lat_diff,'gd',label='SKKS')
+        ax4.plot(d.TLAG_SKS,lat_diff,'g.',label='SKS')
+        ax4.plot(d.TLAG_SKKS,lat_diff,'gd',label='SKKS')
+
+        ax1.plot(abs(abs(m.FAST_SKS)-abs(m.FAST_SKKS)),lat_match,'b.',label='Matching')
+        ax2.plot(abs(m.TLAG_SKS-m.TLAG_SKKS),lat_match,'b.')
+        ax3.plot(m.FAST_SKS,lat_match,'b.',label='SKS')
+        ax3.plot(m.FAST_SKKS,lat_match,'bd',label='SKKS')
+        ax4.plot(m.TLAG_SKS,lat_match,'b.',label='SKS')
+        ax4.plot(m.TLAG_SKKS,lat_match,'bd',label='SKKS')
+
+        ax1.plot(abs(abs(ns_skks.FAST_SKS)-abs(ns_skks.FAST_SKKS)),lat_ns,'r.',label='Null-Split')
+        ax2.plot(abs(ns_skks.TLAG_SKS-ns_skks.TLAG_SKKS),lat_ns,'r.')
+        # ax3.plot(lat_ns,ns_skks.FAST_SKS,'r.',label='SKS')
+        ax3.plot(ns_skks.FAST_SKKS,lat_ns,'rd',label='SKKS')
+        # ax4.plot(lat_ns,ns_skks.TLAG_SKS,'r.',label='SKS')
+        ax4.plot(ns_skks.TLAG_SKKS,lat_ns,'rd',label='SKKS')
+        #Add legend
+        ax1.legend()
+        # Add x,y labels
+        ax1.set_ylabel(r'Latitude ($\degree$)')
+        ax2.set_ylabel(r'Latitude ($\degree$)')
+        ax1.set_xlabel(r'$|\phi_{SKS} - \phi_{SKKS}|$ ($\degree$)')
+        ax2.set_xlabel('$| \delta t_{SKS} - \delta t_{SKKS}|$ (s)')
+        #set limits
+        # ax1.set_xlim([80, 170])
+        # ax1.set_ylim([0, 35])
+        # ax2.set_ylim([0, 1.6])
+        ax3.set_xlim([-90,90])
+        ax4.set_xlim([0,4.0])
+        ax1.set_title('Fast Direction and Lag time for Pairs in E. Pac.')
+        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Phi_dt_v_Lat.png',dpi=400)
+        plt.show()
+
+    def DSI_LAM2_lat(self):
+        '''
+        Plot the difference between phi and delta t for SKS-SKKS pairs, plotted against the pair midpoint postion (defined by sqrt(LAT^2 + LONG^2))
+        '''
+        fig,(ax1,ax2) = plt.subplots(2,1,sharey=True,figsize=(8,12))
+        params = {
+            'savefig.dpi': 400,  # to adjust notebook inline plot size
+            'axes.labelsize': 26, # fontsize for x and y labels (was 10)
+            'axes.titlesize': 14,
+            'font.size': 20, # was 10
+            'legend.fontsize': 18, # was 10
+           'xtick.labelsize': 20,
+           'ytick.labelsize': 20,
+           }
+
+        matplotlib.rcParams.update(params)
+
+        # Set up Regional Section of pairs
+        d1 = self.diffs_l2[(self.diffs_l2.SKS_PP_LON < -125) & (self.diffs_l2.SKS_PP_LON >= -140) ]
+        ns1 = self.null_split[(self.null_split.SKS_PP_LON < -125) &  (self.null_split.SKS_PP_LON >= -140)]
+
+        m1 = self.matches_l2[(self.matches_l2.SKS_PP_LON < -125) & (self.matches_l2.SKS_PP_LON >= -140)]
+
+        d2 = self.diffs_l2[(self.diffs_l2.SKS_PP_LON >= -125)]
+        ns2 = self.null_split[(self.null_split.SKS_PP_LON >= -125)]
+        m2 = self.matches_l2[(self.matches_l2.SKS_PP_LON >= -125) ]
+
+        lat_diff1 = (d1.SKS_PP_LAT + d1.SKKS_PP_LAT)/2
+        lat_match1 = (m1.SKS_PP_LAT + m1.SKKS_PP_LAT)/2
+        lat_ns1 = (ns1.SKS_PP_LAT + ns1.SKKS_PP_LAT)/2
+
+        lat_diff2 = (d2.SKS_PP_LAT + d2.SKKS_PP_LAT)/2
+        lat_match2 = (m2.SKS_PP_LAT + m2.SKKS_PP_LAT)/2
+        lat_ns2 = (ns2.SKS_PP_LAT + ns2.SKKS_PP_LAT)/2
+        # Plot lat v lam2bar
+        #For West half
+        ax1.plot(d1.LAM2_BAR,lat_diff1,'k.',label= 'Discrepant')
+        ax1.plot(ns1.LAM2_BAR,lat_ns1,'k.')
+        ax1.plot(m1.LAM2_BAR,lat_match1,'kx',label='Matching')
+        # For eastern half
+        # ax3.plot(d2.LAM2_BAR,lat_diff2,'g.',label= 'Discrepant')
+        # ax3.plot(ns2.LAM2_BAR,lat_ns2,'g.')
+        # ax3.plot(m2.LAM2_BAR,lat_match2,'b.',label='Matching')
+        #Plto lat v dSI
+        ax2.plot(d1.D_SI_Pr,lat_diff1,'k.',label= 'Discrepant')
+        ax2.plot(ns1.D_SI_Pr,lat_ns1,'k.',label='Discrepant')
+        ax2.plot(m1.D_SI_Pr,lat_match1,'kx',label='Matching')
+        # For Eastern half
+        # ax4.plot(d2.D_SI_Pr,lat_diff2,'g.',label= 'Discrepant')
+        # ax4.plot(ns2.D_SI_Pr,lat_ns2,'g.',label='Discrepant')
+        # ax4.plot(m2.D_SI_Pr,lat_match2,'b.',label='Matching')
+        ax1.set_xlim([0,0.1])
+        ax2.set_xlim([0,1.2])
+        ax1.set_ylim([36,54])
+        ax1.set_ylabel(r'Latitude $(\degree)$')
+        ax1.set_xlabel(r'$\bar{\lambda_2}$')
+        ax2.set_xlabel(r'$\Delta SI$')
+        ax2.set_ylabel(r'Latitude $(\degree)$')
+        ax1.legend()
+        plt.suptitle(r'Latitude v Discrepancy parameters for N-S trending SKS-SKKS pairs')
+        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Lat_v_splitting_params.png',dpi = 400,transparent=True)
+        plt.show()
 
 #####################################################################################################
 # Top level where script is invoked from command line
