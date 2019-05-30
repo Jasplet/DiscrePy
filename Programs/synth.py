@@ -81,29 +81,37 @@ class Synth:
         plt.tick_params(labelsize=14)
         plt.show()
 
-    def grid_dSI(self,ax):
-        ''' Plots dSI values (colurised) over the grid of fast, dt'''
+    def grid_dSI(self,ax1,ax2):
+        ''' Plots dSI values (for Projectiona and approximation) (colurised) over the grid of fast, dt'''
         # fig = plt.figure() #figsize=(10,10))
         # ax = fig.add_subplot(111)
         f = self.F.ravel()
         l = self.T.ravel()
-        dsi = self.pairs.D_SI.values.reshape(17,37)
+        dsi_pr = self.pairs.D_SI_Pr.values.reshape(17,37)
+        dsi_pa = self.pairs.D_SI_Pa.values.reshape(17,37)
         # C = ax.scatter(l,f,c=self.pairs.D_SI.values,marker='.',label='d_SI grid')
         # print(dsi.max())
-        C = ax.contourf(self.T,self.F,dsi,18,levels=np.arange(0,dsi.max(),0.2),vmin=0.4,extend='max',cmap='viridis_r')
-        # ax.contour(self.T,self.F,dsi,levels=[0.2],colors=['black'],linestyles='solid')
-        ax.contour(self.T,self.F,dsi,levels=[0.4],colors=['black'],linestyles='solid')
-        C.cmap.set_under('white')
-        # Plot the singular A
+        #Plot DSI (approximation)
+        C1 = ax1.contourf(self.T,self.F,dsi_pa,18,levels=np.arange(0,dsi_pa.max(),0.2),vmin=0.4,extend='max',cmap='viridis_r')
+        ax1.contour(self.T,self.F,dsi_pa,levels=[0.4],colors=['black'],linestyles='solid')
+        C1.cmap.set_under('white')
+        #Plot DSI (projection)
+        C2 = ax2.contourf(self.T,self.F,dsi_pr,18,levels=np.arange(0,dsi_pr.max(),0.2),vmin=0.4,extend='max',cmap='viridis_r')
+        ax2.contour(self.T,self.F,dsi_pr,levels=[0.4],colors=['black'],linestyles='solid')
+        C2.cmap.set_under('white')
+
+        # Plot the phi,dt of the synth that has been paired.
         # ax.plot(self.a_lag,self.a_fast,'rx')
-        ax.plot(l[self.a_ind],f[self.a_ind],'rx')
+        ax1.plot(l[self.a_ind],f[self.a_ind],'rx')
+        ax2.plot(l[self.a_ind],f[self.a_ind],'rx')
         # cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
         # cbar1.set_label(r'$\Delta SI $',rotation=0)
-        ax.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
-        ax.set_ylabel(r'Fast direction, $\phi (\degree)$',fontsize=14)
-        ax.set_title(r'${}: \Delta SI$ for  $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
+        ax1.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
+        ax2.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
+        ax1.set_ylabel(r'Fast direction, $\phi (\degree)$',fontsize=14)
+        ax1.set_title(r'${}: \Delta SI$ for  $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
         plt.tick_params(labelsize=14)
-        return C
+        return C1,C2
         # if save == True:
         #     print('dSI',self.spol,l[self.a_ind],f[self.a_ind])
         #     if f[self.a_ind] < 0:
@@ -142,7 +150,9 @@ class Synth:
 
         # Plot grid of 1s and 0s. 1 is matching 0 is discrepant
         # Potentially ned to find something better than contourf as it interpolats (?) slightly
-        C = ax.contourf(self.T,self.F,sig,levels=[0,1])
+        C = ax.contourf(self.T,self.F,sig,1,vmax=0.5)
+        # ax.contour(self.T,self.F,sig,levels=[1],colors=['black'],linestyles='solid')
+        C.cmap.set_over('white')
         # C = ax.imshow(np.transpose(sig))
         # ax.set_ylabel(r'Fast direction $\phi$ ($\degree$)',fontsize=14)
         # ax.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
@@ -162,9 +172,9 @@ class Synth:
         lam2_p1 = self.pairs.LAM2A_P1.values.reshape(17,37) # Grid of p1 lambda 2 (alpha = 0.05) values
         lam2_p2 = self.pairs.LAM2A_P2.values.reshape(17,37) # Grid of p2 lambda 2 (alpha = 0.05) values
         l2_sum =  (lam2_p1+lam2_p2)
-        C = ax.contourf(self.T,self.F,lam2_bar-l2_sum,18,cmap='magma_r',extend='max')
-        ax.contour(self.T,self.F,lam2_bar-l2_sum,levels=[0])
-        # C.cmap.set_under('white')
+        C = ax.contourf(self.T,self.F,lam2_bar-l2_sum,18,cmap='magma_r',vmin=0,extend='max')
+        ax.contour(self.T,self.F,lam2_bar-l2_sum,levels=[0],colors=['black'],linestyles='solid')
+        C.cmap.set_under('white')
         # Plot the singular A
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
         # cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
@@ -174,27 +184,17 @@ class Synth:
         ax.set_title(r'{}: $\lambda_2$ for $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
         plt.tick_params(labelsize=14)
         return C
-        # if save == True:
-        #     print('Lam2', self.spol,l[self.a_ind],f[self.a_ind])
-        #     if f[self.a_ind] < 0:
-        #         # print(abs(f[self.a_ind]))
-        #         plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
-        #         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
-        #     else:
-        #         plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
-        #         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
-        plt.close('all')
-        plt.show()
+
 
     def plot_grids(self,save=False):
         '''Make a 4 panel plot of sigma2, deltaSI, lambda2bar grids along with a plot on the synthetics results'''
         # First, initialise fiugre instance and axes
         fig = plt.figure(figsize=(12,12))
         gs = gridspec.GridSpec(2,2) # Use gridspec to control axes allocation
-        ax1 = fig.add_subplot(gs[1,0]) # Bottom left, axes to plot Delta SI grid onto
-        ax2 = fig.add_subplot(gs[0,0],sharex=ax1) #  Top left, axes to plot synthetics results onto
-        ax3 = plt.subplot(gs[1,1],sharey=ax1) # Bottom right, axes to plot lambda2 grid onto
-        ax4 = plt.subplot(gs[0,1],sharex=ax3,sharey=ax2) # Top right, axes to plot 2sigma grid onto
+        ax1 = fig.add_subplot(gs[1,0]) # Bottom left, axes to plot Delta SI (approx) grid onto
+        ax2 = fig.add_subplot(gs[0,0],sharex=ax1) #  Top left, axes to plot 2sigma gird
+        ax3 = plt.subplot(gs[1,1],sharey=ax1) # Bottom right, axes to plot Delta SI (projection) grid onto
+        ax4 = plt.subplot(gs[0,1],sharex=ax3,sharey=ax2) # Top right, axes to plot lambda2
         # Make the share x,y tick label invisible
         plt.setp(ax2.get_xticklabels(), visible=False)
         plt.setp(ax3.get_yticklabels(), visible=False)
@@ -209,7 +209,6 @@ class Synth:
             'legend.fontsize': 8, # was 10
             'xtick.labelsize': 14,
             'ytick.labelsize': 14,
-
         }
         matplotlib.rcParams.update(params)
 
@@ -225,12 +224,12 @@ class Synth:
         l = self.T.ravel()
         ax2.plot(l[self.a_ind],f[self.a_ind],'rx')
         # Plot 2 sigma grid
-        C_2sigma = self.grid_sigma2(ax4)
+        C_2sigma = self.grid_sigma2(ax2)
         # fig.colorbar(C_2sigma,cax=ax2)
         # Plot delta SI grid
-        C_dSI = self.grid_dSI(ax1)
+        C_dSI_pa,C_dSI_pr = self.grid_dSI(ax1,ax3)
         #Plot lamdba 2
-        C_lam2 = self.grid_lam2(ax3)
+        C_lam2 = self.grid_lam2(ax4)
         ########
         # Show plot
         if save == True:
@@ -358,8 +357,13 @@ class Synth:
         '''Calculate the difference in Splitting Intensity for each pair and add it to dataframe'''
         si_sks = self.pairs['SI(Pr)_P1']
         si_skks = self.pairs['SI(Pr)_P2']
-        d_si = np.abs(si_sks-si_skks)
-        self.pairs['D_SI'] = d_si
+        si_sks_pa = self.pairs['SI(Pa)_P1']
+        si_skks_pa = self.pairs['SI(Pa)_P2']
+
+        d_si_pr = np.abs(si_sks-si_skks)
+        d_si_pa = np.abs(si_sks_pa-si_skks_pa)
+        self.pairs['D_SI_Pr'] = d_si_pr
+        self.pairs['D_SI_Pa'] = d_si_pa
         #Delete SI cols as we dont need them any more ?
         # del self.pairs['INTENS_x']
         # del self.pairs['INTENS_y']
@@ -627,7 +631,8 @@ def mk_syn_pairs(a,b):
                'WBEG_y':'WBEG_P2','WEND_y':'WEND_P2','EIGORIG_y':'EIGORIG_P2','EIGCORR_y':'EIGCORR_P2','Q_y':'Q_P2','SNR_y':'SNR_P2','NDF_y':'NDF_P2'}
      pairs.rename(relabel,axis='columns',inplace=True)
      pairs['SNR'] = pairs.SNR_P1 + pairs.SNR_P2
-     pairs['D_SI'] = np.abs(pairs['SI(Pr)'] - pairs['SI(Pr)']) # Only use projection for now
+     pairs['D_SI_Pr'] = np.abs(pairs['SI(Pr)'] - pairs['SI(Pr)']) # Only use projection for now
+     pairs['D_SI_Pa'] = np.abs(pairs['SI(Pa)'] - pairs['SI(Pa)'])
      # del pairs['INTENS_x']
      # del pairs['INTENS_y']
      ldf = synth_stack(pairs.DATE.values)
