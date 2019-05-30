@@ -27,8 +27,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 #######################################
 
-sks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_SKS_sheba_results.sdb',delim_whitespace=True)
-skks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_SKKS_sheba_results.sdb',delim_whitespace=True)
+sks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_SKS_sheba_results.sdb',delim_whitespace=True)
+skks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_SKKS_sheba_results.sdb',delim_whitespace=True)
 
 
 
@@ -114,10 +114,10 @@ fig2.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SI_Pr_v_Pa.png',dpi = 
 ######## END FIG 2   ##########
 
 ######## Start Fig 3 ##########
-pairs = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_05.pairs',delim_whitespace=True)
-diff = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_05_diffs_l2.pairs',delim_whitespace=True)
-match = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_05_matches_l2.pairs',delim_whitespace=True)
-nulls = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_05_nulls.pairs',delim_whitespace=True)
+pairs = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_05.pairs',delim_whitespace=True)
+diff = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_05_diffs_l2.pairs',delim_whitespace=True)
+match = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_05_matches_l2.pairs',delim_whitespace=True)
+nulls = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_05_nulls.pairs',delim_whitespace=True)
 ## Plot sks, skks Lambda 2 values and Delta SI values
 fig3 = plt.figure(figsize=(8,16))
 gs = gridspec.GridSpec(3,2)
