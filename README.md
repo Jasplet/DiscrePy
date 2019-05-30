@@ -1,5 +1,5 @@
-# SKS_Splitting
-Repository to hold scripts which I am currently developing to download seismograms and measure SKS splitting
+# Shear_Wave_Splitting
+Repository to hold scripts which I am currently developing to download seismograms, measure SKS & SKKS splitting and then test for discrepant splitting as a signal for D'' Anisotropy
 
 ## General Warning to Potential Users
 
