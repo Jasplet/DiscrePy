@@ -12,6 +12,7 @@ import numpy as np
 from stack import Stacker
 from time import ctime
 from glob import glob
+from scipy import stats
 
 class Builder:
     """
@@ -28,8 +29,8 @@ class Builder:
         self.sdb_stem = sdb_stem
         self.fpath =     '{}/{}_{:02d}.pairs'.format(self.path,self.sdb_stem,int(snr))
         self.lam2_bar = [ ] # Variabel to hold lambda2 values returned from stacking routine
-        self.lam2_sks = [ ] # Variable to hold list of lam2 values for SKS splititng
-        self.lam2_skks = [ ] # Variable to holf lam2 values for SKKS
+        self.lam2alpha_sks = [ ] # Variable to hold list of lam2alpha values for SKS
+        self.lam2alpha_skks = [ ] # Variable to holf lam2alpha values for SKKS
         self.lam2_sum = [ ]
         self.snr = snr # Holds SNR cutoff (defaul is 5)
         self.syn=syn
@@ -68,6 +69,8 @@ class Builder:
         self.write_out(self.P,'{}_{:02d}.pairs'.format(self.sdb_stem,int(self.snr)))
         end = ctime()
         print('END. start {}, end {}'.format(start,end))
+
+
 
     def gen_pp(self):
         ''' Fucntion to test for whether the .pp file exists and if not call TauP to generate it and the corresponding mspp files '''
@@ -139,6 +142,23 @@ class Builder:
         # del self.P['INTENS_x']
         # del self.P['INTENS_y']
 
+    def ftest(self,lam2min,ndf,alpha=0.05):
+        """
+        returns lambda2 value at 100(1-alpha)% confidence interval
+        by default alpha = 0.05 = 95% confidence interval
+        following Silver and Chan (1991)
+        As we are dealing with traces that have alreayd been passed through SHEBA,
+        we do not need to check (or calculate) degrees of freedom as this has alreay
+        been done.
+
+        Needed for pair_stack to calc lam2alpha for SKS and SKKS
+        """
+
+        k = 2 # two parameters, phi and dt.
+        F = stats.f.ppf(1-alpha,k,ndf)
+        lam2alpha = lam2min * ( 1 + (k/(ndf-k)) * F)
+        return lam2alpha
+
     def pair_stack(self):
         ''' Runs Stacker for all the desired pairs (a .pairs file)'''
 
@@ -168,9 +188,6 @@ class Builder:
                 skks_lam2 = glob('{}/{}/SKKS/{}??_SKKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
                 Stk = Stacker(sks_lam2,skks_lam2,out)
                 self.lam2_bar.append(Stk.lam2_bar)
-                self.lam2_sks.append(Stk.lam2_sks)
-                self.lam2_skks.append(Stk.lam2_skks)
-                self.lam2_sum.append(Stk.lam2_sks + Stk.lam2_skks)
             else:
                 fstem2 = '{}_{}'.format(stat,date)
                 # print('fstem2')
@@ -181,11 +198,13 @@ class Builder:
                 if (len(sks_lam2) is not 0) or (len(skks_lam2) is not 0):
                     Stk = Stacker(sks_lam2,skks_lam2,out)
                     self.lam2_bar.append(Stk.lam2_bar)
-                    self.lam2_sks.append(Stk.lam2_sks)
-                    self.lam2_skks.append(Stk.lam2_skks)
                 else:
-                    #print('lam2 surfaces cannot be found, skipping')
+                    print('lam2 surfaces cannot be found, skipping')
                     pass
+            # Now calulate LAM2ALPHA  for SKS and SKKS
+            ndf_sks, ndf_skks = self.P.NDF_SKS[i],self.P.NDF_SKKS[i]
+            self.lam2alpha_sks.append(self.ftest(Stk.lam2_sks,ndf_sks)) # Calc Lam2 Alpha and append it to list for SKS and SKKS
+            self.lam2alpha_skks.append(self.ftest(Stk.lam2_sks,ndf_skks))
 
     def add_lam2(self):
         '''
@@ -193,9 +212,11 @@ class Builder:
         '''
 
         self.pair_stack()
-        l2df = {'LAM2_BAR' : self.lam2_bar,  'LAM2_SUM' : self.lam2_sum, 'LAM2_SKS' : self.lam2_sks, 'LAM2_SKKS' : self.lam2_skks}
+        lam2_sum = [self.lam2alpha_sks[i] + self.lam2alpha_skks[i] for i in range(0,len(self.lam2alpha_sks))]
+        print(len(self.lam2_bar),len(lam2_sum),len(self.lam2alpha_sks),len(self.lam2alpha_skks))
+        l2df = {'LAM2_BAR' : self.lam2_bar,  'LAM2_SUM' : lam2_sum, 'LAM2A_SKS' : self.lam2alpha_sks, 'LAM2A_SKKS' : self.lam2alpha_skks}
         ldf = pd.DataFrame(l2df)
-        self.P[['LAM2_BAR','LAM2_SUM','LAM2_SKS','LAM2_SKKS']] = ldf
+        self.P[['LAM2_BAR','LAM2_SUM','LAM2A_SKS','LAM2A_SKKS']] = ldf
 
     def add_pp(self):
         '''Adds piercepoints to .pairs file'''
@@ -280,9 +301,9 @@ class Builder:
         null_pairs  = P[((P.Q_SKS <= -0.7) & (P.Q_SKKS <= -0.7))] # Pairs where both phases are nulls (according to Q), auto classify as matching
         null_split_pair = P[(((P.Q_SKS <= -0.7) & (P.Q_SKKS >= 0.5)) | ((P.Q_SKS >= 0.5) & (P.Q_SKKS <= -0.7)))] # Test for pairs with 1 null 1 split, discrepant by definition
         splits = P[((P.Q_SKS > 0.5) & (P.Q_SKKS > 0.5 ))] # Test for pairs whjere both phases are split
-        t_l2_splits = 1.15*(splits.LAM2_SUM)
-        t_l2_ns = 1.15*(null_split_pair.LAM2_SUM )
-        t_dSI = 0.4 # Slightly reduced from the Threshold of 0.4 taken from Deng et al (2017)
+        t_l2_splits = splits.LAM2_SUM # Lam2_SUm is now the sum of the two 95% confidence levels
+        t_l2_ns = null_split_pair.LAM2_SUM
+        t_dSI = 0.4 # Threshold of 0.4 taken from Deng et al (2017)
         diff= splits[(splits.LAM2_BAR > t_l2_splits) & (splits.D_SI_Pr > t_dSI)] #| (splits.D_SI > t_dSI))] # Apply tests for discrepant splitting
         match = splits[(splits.LAM2_BAR <= t_l2_splits) | (splits.D_SI_Pr <= t_dSI)] # If the pair fails either lam2 or dSI test then we call it matching
         diff_dsi = splits[(splits.D_SI_Pr > 0.4)]
@@ -468,10 +489,10 @@ class Pairs:
         ax1.set_title('Match/Diff according to  2 sigma test')
         ax1.legend()
 
-        ax2.plot(self.matches.DIST,self.matches.D_SI,marker='.',color='blue',label='Matching')
-        ax2.plot(self.diffs.DIST,self.diffs.D_SI,marker='.',color='darkorange',label='Discrepant')
+        ax2.plot(self.matches.DIST,self.matches.D_SI_Pr,marker='.',color='blue',label='Matching')
+        ax2.plot(self.diffs.DIST,self.diffs.D_SI_Pr,marker='.',color='darkorange',label='Discrepant')
         ax2.set_xlim([105,140])
-        ax2.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
+        ax2.set_ylim([0,np.around(self.df.D_SI_Pr.max(),decimals=1)])
         ax2.set_xlabel('Epicentral Distrance (Deg)')
         ax2.set_ylabel(R'$\Delta SI $')
 
@@ -484,10 +505,10 @@ class Pairs:
         ax3.set_title(r'Match/Diff according to $\bar{lambda _2} / \Delta SI $ test')
         ax3.legend()
 
-        ax4.plot(self.matches_l2.DIST,self.matches_l2.D_SI,marker='.',color='blue',label='Matching')
-        ax4.plot(self.diffs_l2.DIST,self.diffs_l2.D_SI,marker='.',color='darkorange',label='Discrepant')
+        ax4.plot(self.matches_l2.DIST,self.matches_l2.D_SI_Pr,marker='.',color='blue',label='Matching')
+        ax4.plot(self.diffs_l2.DIST,self.diffs_l2.D_SI_Pr,marker='.',color='darkorange',label='Discrepant')
         ax4.set_xlim([105,140])
-        ax4.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
+        ax4.set_ylim([0,np.around(self.df.D_SI_Pr.max(),decimals=1)])
         ax4.set_xlabel('Epicentral Distrance (Deg)')
         ax4.set_ylabel(R'$\Delta SI $')
 
@@ -563,21 +584,21 @@ class Pairs:
         # Isolate clear split pairs
         splits = self.df[(self.df.Q_SKS >= 0.5) & self.df.Q_SKKS >= 0.5]
         print(len(splits))
-        c1 = ax1.scatter(splits.LAM2_BAR,splits.D_SI,c=splits.SNR_SKS,marker='.',vmax=15,vmin=5)
+        c1 = ax1.scatter(splits.LAM2_BAR,splits.D_SI_Pr,c=splits.SNR_SKS,marker='.',vmax=15,vmin=5)
         plt.colorbar(c1,ax=ax1)
-        c2 = ax2.scatter(splits.LAM2_BAR,splits.D_SI,c=splits.SNR_SKKS,marker='.',vmax=15,vmin=5)
+        c2 = ax2.scatter(splits.LAM2_BAR,splits.D_SI_Pr,c=splits.SNR_SKKS,marker='.',vmax=15,vmin=5)
         plt.colorbar(c2,ax=ax2)
         #Plot Thresholds
         ax1.plot([0,max([np.around(splits.LAM2_BAR.max(),decimals=2),np.around(splits.LAM2_BAR.max(),decimals=2) ] ) ],[0.2,0.2],'k--')
-        ax1.plot([0.03,0.03],[0,max([np.around(splits.D_SI.max(),decimals=2),np.around(splits.D_SI.max(),decimals=2)])],'k--')
-        ax1.set_ylim([0,max([np.around(splits.D_SI.max(),decimals=1),np.around(splits.D_SI.max(),decimals=2)])])
+        ax1.plot([0.03,0.03],[0,max([np.around(splits.D_SI_Pr.max(),decimals=2),np.around(splits.D_SI_Pr.max(),decimals=2)])],'k--')
+        ax1.set_ylim([0,max([np.around(splits.D_SI_Pr.max(),decimals=1),np.around(splits.D_SI_Pr.max(),decimals=2)])])
         ax1.set_xlim([0,max([np.around(splits.LAM2_BAR.max(),decimals=1),np.around(splits.LAM2_BAR.max(),decimals=2)])])
         ax1.set_xlabel(r'$\bar{\lambda _2}$')
         ax1.set_ylabel(r'$\Delta$ SI')
         ax1.set_title('SKS')
         ax2.plot([0,max([np.around(splits.LAM2_BAR.max(),decimals=2),np.around(splits.LAM2_BAR.max(),decimals=2) ] ) ],[0.2,0.2],'k--')
-        ax2.plot([0.03,0.03],[0,max([np.around(splits.D_SI.max(),decimals=2),np.around(splits.D_SI.max(),decimals=2)])],'k--')
-        ax2.set_ylim([0,np.around(splits.D_SI.max(),decimals=2)])
+        ax2.plot([0.03,0.03],[0,max([np.around(splits.D_SI_Pr.max(),decimals=2),np.around(splits.D_SI_Pr.max(),decimals=2)])],'k--')
+        ax2.set_ylim([0,np.around(splits.D_SI_Pr.max(),decimals=2)])
         ax2.set_xlim([0,np.around(splits.LAM2_BAR.max(),decimals=2)])
         ax2.set_xlabel(r'$\bar{\lambda _2}$')
         ax2.set_ylabel(r'$\Delta$ SI')
@@ -599,11 +620,11 @@ class Pairs:
         ax1.set_ylabel('Count')
         ax1.legend()
         ax1.set_xlim([0, np.around(self.df.LAM2_BAR.max(),decimals=1)])
-        ax2.hist([m_splits.D_SI,d_splits.D_SI],bins_dsi, histtype='bar', stacked=True,label=["'Matching'","'Discrepent'"])
+        ax2.hist([m_splits.D_SI_Pr,d_splits.D_SI_Pr],bins_dsi, histtype='bar', stacked=True,label=["'Matching'","'Discrepent'"])
         ax2.set_xlabel(r'$\Delta SI$ values')
         ax2.set_ylabel('Count')
         ax2.legend()
-        ax2.set_xlim([0,np.around(self.df.D_SI.max(),decimals=1)])
+        ax2.set_xlim([0,np.around(self.df.D_SI_Pr.max(),decimals=1)])
         # ax2.set_ylim([0,4.0])
         if save is True:
             plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/hist_and_dVs.png',format='png',dpi=1000)
@@ -853,7 +874,7 @@ class Pairs:
 
             fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
             fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
-            lam2 = self.p_sorted.LAM2_BAR.values[s]
+            lam2,lam2a_sks,lam2a_skks,lam2a_sum = self.p_sorted.LAM2_BAR.values[s],self.p_sorted.LAM2A_SKS.values[s],self.p_sorted.LAM2A_SKKS.values[s],self.p_sorted.LAM2_SUM.values[s]
             l_path = '{}/{}'.format(self.spath,stat) #Path to lambda 2 surfaces for SKS and SKKS
             print(l_path)
             self.lam2_surface(l_path,stat,date,time)
@@ -881,7 +902,8 @@ class Pairs:
             # ax0 = plt.subplot(gs[0,0])
             ax0.set_title(r'SKS $\lambda _2$ surface',fontsize=24)
             C0 = ax0.contourf(self.T,self.F,(self.sks_lam2),20,vmin=0,cmap='inferno_r',extend='max')
-            ax0.contour(C0,colors='k')
+            # ax0.contour(C0,colors='k')
+            ax0.contour(self.T,self.F,self.sks_lam2,lam2a_sks,label='95% confidence region')
             # ax0.clabel(C0,C0.levels,inline=True,fmt ='%2.3f')
             #Plot SKS Solution
             ax0.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
@@ -900,7 +922,8 @@ class Pairs:
             # ax0.contourf(self.sks_lam2,cmap='inferno_r')
             # ax1 = plt.subplot(gs[0,1])
             C1 = ax1.contourf(self.T,self.F,self.skks_lam2,20,vmin=0,cmap='inferno_r',extend='max')
-            C3 = ax1.contour(C1,colors='k')
+            # C3 = ax1.contour(C1,colors='k')
+            ax1.contour(self.T,self.F,self.skks_lam2,lam2a_skks,label='95% confidence region')
             # ax1.clabel(C1,C1.levels,inline=True,fmt ='%2.3f')
             # ax1.contourf(self.skks_lam2,cmap='magma')
             #Plot SKS Solution
@@ -918,7 +941,7 @@ class Pairs:
             ax1.set_title(r'SKKS $\lambda _2$ surface',fontsize=24)
             # ax2 = plt.subplot(gs[1:,:])
 
-            C_plot = self.show_stacks(ax2,'{}_{}_{}'.format(stat,date,time))
+            C_plot = self.show_stacks(ax2,'{}_{}_{}'.format(stat,date,time),lam2a_sum)
             # print('STK_FAST: {} +/- {}'.format(self.df_fast,self.df_dfast))
             # Modify stk_dlag and stk_dfast by sigma
             ##########################
@@ -988,7 +1011,7 @@ class Pairs:
         lag_max = 4.
         [self.T,self.F] = np.meshgrid(np.linspace(0,lag_max,num=nlag),np.arange(-90,91,1)) ;
 
-    def show_stacks(self,ax,evt,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Combined/Filt_05Hz'):
+    def show_stacks(self,ax,evt,l2sum,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific'):
         '''Function to find and plot desired surface stacks based on the LAMDA2 value '''
         ### Plot Min Lamnda 2
 
@@ -1010,14 +1033,13 @@ class Pairs:
         fast = np.arange(-90,91,1)[jf]
         lag = np.arange(0,lag_max,lag_step)[jt]
         C = ax.contourf(T,F,stk/2,20,cmap='inferno_r',vmin=0,extend='max')
-        C2 = ax.contour(C,colors='k')
+        # C2 = ax.contour(C,colors='k')
         # ax.set_ylabel(r'Fast,$\phi$, (deg)')
         ax.set_xlabel(r'Lag time, $\delta t$ (s)')
         # ax.plot([lag-dlag,lag+dlag],[fast,fast],'g-')
         # ax.plot([lag,lag],[fast-dfast,fast+dfast],'g-')
         ax.plot(lag,fast,'g.')
         # ax.clabel(C,C.levels,inline=True,fmt ='%4.3f')
-        l2sum = 1.15 * (self.sks_lam2.min() + self.skks_lam2.min())
         print('Lam2 BAR is ',stk.min())
         print('Lam2 Sum is ',l2sum)
         ax.contour(T,F,stk,[l2sum],colors='b')
@@ -1054,8 +1076,8 @@ class Pairs:
         #Plot null - split pairs
         # ax.scatter((self.null_split.LAM2_SKS + self.null_split.LAM2_SKKS),self.null_split.LAM2_BAR,marker='.',c='red',label='Null-Split Pairs')
         mod = np.linspace(0,0.2,10)
-        ax.plot(mod,mod,'k--',label=r'$\lambda_2^{SKS} + \lambda_2^{SKKS} = \bar{\lambda_2}$')
-        ax.plot(mod,mod*1.15,'k-.',label=r'$\bar{\lambda_2} = 1.15*(\lambda_2^{SKS} + \lambda_2^{SKKS}) $')
+        # ax.plot(mod,mod,'k--',label=r'$\lambda_2^{SKS} + \lambda_2^{SKKS} = \bar{\lambda_2}$')
+        ax.plot(mod,mod,'k-.',label=r'$\bar{\lambda_2} = (\lambda_2^{SKS 95\%} + \lambda_2^{SKKS 95\%}) $')
         ax.set_xlabel(r'$\lambda_2^{SKS} + \lambda_2^{SKKS}$')
         ax.set_ylabel(r'$\bar{\lambda_2}$')
         ax.set_xlim([0,0.07])
@@ -1088,7 +1110,7 @@ class Pairs:
         ax.set_xlabel(r'$\bar{\lambda_2}$')
         ax.set_ylabel(r'$\Delta SI$')
         ax.set_title('For the Eastern Pacific Region')
-        ax.set_xlim([0,0.2])
+        ax.set_xlim([0.01,np.around(max(d.LAM2_BAR.max(),m.LAM2_BAR.max()), decimals=3)])
         # ax.set_ylim([0,0.2])
         ax.legend(fontsize='medium')
         #plt.colorbar(C)\
