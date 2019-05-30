@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from stack import Stacker
 import matplotlib
+from scipy import stats
 ###############################
 
 class Synth:
@@ -138,8 +139,10 @@ class Synth:
                 if ((lbf_P2<= ubf_P1) & (lbf_P1 <= ubf_P2)) & ((lbt_P2 <= ubt_P1) & (lbt_P1 <= ubt_P2)):
                     # If test is passed that they match and the grid position is assigned a 1
                     sig[l,f] = 1
-        # Plot grid of 1s and 0s. Potentially ned to find something better than contourf as it interpolats (?) slightly
-        C = ax.contourf(self.T,self.F,sig)
+
+        # Plot grid of 1s and 0s. 1 is matching 0 is discrepant
+        # Potentially ned to find something better than contourf as it interpolats (?) slightly
+        C = ax.contourf(self.T,self.F,sig,levels=[0,1])
         # C = ax.imshow(np.transpose(sig))
         # ax.set_ylabel(r'Fast direction $\phi$ ($\degree$)',fontsize=14)
         # ax.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
@@ -156,11 +159,11 @@ class Synth:
         f = self.F.ravel()
         l = self.T.ravel()
         lam2_bar = self.pairs.LAM2_BAR.values.reshape(17,37)
-        lam2_p1 = self.pairs.LAM2_P1.values.min()
-        lam2_p2 = self.pairs.LAM2_P2.values.min()
-        l2_sum =  0.01 + (lam2_p1+lam2_p2)
-        C = ax.contourf(self.T,self.F,lam2_bar,18,cmap='magma_r',extend='max')
-        ax.contour(self.T,self.F,lam2_bar,levels=[l2_sum])
+        lam2_p1 = self.pairs.LAM2A_P1.values.reshape(17,37) # Grid of p1 lambda 2 (alpha = 0.05) values
+        lam2_p2 = self.pairs.LAM2A_P2.values.reshape(17,37) # Grid of p2 lambda 2 (alpha = 0.05) values
+        l2_sum =  (lam2_p1+lam2_p2)
+        C = ax.contourf(self.T,self.F,lam2_bar-l2_sum,18,cmap='magma_r',extend='max')
+        ax.contour(self.T,self.F,lam2_bar-l2_sum,levels=[0])
         # C.cmap.set_under('white')
         # Plot the singular A
         ax.plot(l[self.a_ind],f[self.a_ind],'rx')
@@ -239,7 +242,12 @@ class Synth:
                 # plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
                 plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
 
-        plt.close('all')
+            plt.close('all')
+
+        else:
+            plt.show()
+
+
         # plt.show()
 
     def plot_si_Pr_v_Ap(self,save=False):
@@ -368,8 +376,8 @@ class Synth:
             Exception()
             #Throw excpetion if length of a,b dont match
         self.lam2bar = [ ]
-        self.lam2p1 = [ ]
-        self.lam2p2 = [ ]
+        self.lam2alpha_p1 = [ ]
+        self.lam2alpha_p2 = [ ]
         self.lam2sum = [ ]
         for i,k in enumerate(b):
 
@@ -381,15 +389,20 @@ class Synth:
             outfile = '{}_3{:03d}{:03d}'.format(self.spol,a[i],b[i])
             Stk = Stacker(f1,f2,out,outfile)
             self.lam2bar.append(Stk.lam2_bar)
-            self.lam2p1.append(Stk.lam2_sks)
-            self.lam2p2.append(Stk.lam2_skks)
-            # self.lam2sum = self.lam2p1 + self.lam2p2
-        # Now we've done the stacks, add Lam2 to Synth pair_stack
-        print('{} {} {}'.format(len(self.lam2bar),len(self.lam2p1),len(self.lam2p2))) #,len(self.lam2sum)))
+            #Add Lambda2 alpha = 0.05 (95% condifence contour) values
+            #Get degreeof freedom
+            ndf_p1,ndf_p2 = self.pairs.NDF_P1[i],self.pairs.NDF_P2[i]
+            l2a_p1 = self.ftest(Stk.lam2_sks,ndf_p1)
+            l2a_p2 = self.ftest(Stk.lam2_sks,ndf_p2)
+            self.lam2alpha_p1.append(l2a_p1)
+            self.lam2alpha_p2.append(l2a_p2)
 
-        l2df = {'LAM2_BAR' : self.lam2bar, 'LAM2_P1' : self.lam2p1, 'LAM2_P2' : self.lam2p2} #,'LAM2_SUM' : self.lam2sum}
+        # Now we've done the stacks, add Lam2 to Synth pair_stack
+        print('{} {} {}'.format(len(self.lam2bar),len(self.lam2alpha_p1),len(self.lam2alpha_p2))) #,len(self.lam2sum)))
+
+        l2df = {'LAM2_BAR' : self.lam2bar,'LAM2A_P1':self.lam2alpha_p1,'LAM2A_P2':self.lam2alpha_p2} #,'LAM2_SUM' : self.lam2sum}
         ldf = pd.DataFrame(l2df)
-        self.pairs[['LAM2_BAR','LAM2_P1','LAM2_P2',]] = ldf # 'LAM2_SUM' has been removed for now
+        self.pairs[['LAM2_BAR','LAM2A_P1','LAM2A_P2']] = ldf # 'LAM2_SUM' has been removed for now
 
     def synth_pairs(self,a,b,one_a=True,save=False,):
         '''makes synthetics pairs file sbased on user input (i,e you need to say which synthetics need pairing)
@@ -456,6 +469,22 @@ class Synth:
             # self.grid_dSI()
             # self.grid_lam2()
 
+    def ftest(self,lam2min,ndf,alpha=0.05):
+        """
+        returns lambda2 value at 100(1-alpha)% confidence interval
+        by default alpha = 0.05 = 95% confidence interval
+        following Silver and Chan (1991)
+        As we are dealing with traces that have alreayd been passed through SHEBA,
+        we do not need to check (or calculate) degrees of freedom as this has alreay
+        been done.
+
+        Needed for pair_stack to calc lam2alpha for SKS and SKKS
+        """
+
+        k = 2 # two parameters, phi and dt.
+        F = stats.f.ppf(1-alpha,k,ndf)
+        lam2alpha = lam2min * ( 1 + (k/(ndf-k)) * F)
+        return lam2alpha
 
     def l2_v_dSI(self):
         '''Plot lambda2 (bar) agaisnt splitting intensity'''
