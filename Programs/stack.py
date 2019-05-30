@@ -46,8 +46,10 @@ class Stacker:
         # print('Starting Stacker')
 
         if os.path.isfile(lam2_sks) is False:
+            print(lam2_sks)
             raise NameError('Lambda 2 (for sks) provided does not exist')
         elif os.path.isfile(lam2_skks) is False:
+            print(lam2_skks)
             raise NameError('Lambda 2 (for skks) provided does not exist')
         # else:
             # print('Lambda 2 surfaces exist')
@@ -61,13 +63,13 @@ class Stacker:
 
         if outfile == None:
             self.out = '_'.join(self.sks.split('_')[:-1])
-            print('Outfile:', self.out)
+            # print('Outfile:', self.out)
         else:
             print(outfile)
             self.out = outfile
 
         #Copy .lamR files to our Stacks directory so we still have them for plotting if I decide to Purge the Runs directory
-        print('Outpath:',outpath)
+        # print('Outpath:',outpath)
         self.copy_files(lam2_sks,lam2_skks,outpath)
 
         self.outfile = '{}/{}'.format(outpath,self.out)
@@ -112,21 +114,23 @@ class Stacker:
 
         #perform stack by adding surfaces together.
         # No weighting applied
-        self.stk = (self.sks_lamR + self.skks_lamR) / 2
+        self.stk = (self.sks_lamR + self.skks_lamR)
 
-        # find min lam2 value
-        self.lam2 = self.stk.min()
+        # find min lam2 value - for both phases and for the stacked surface
+        self.lam2_sks = self.sks_lamR.min()
+        self.lam2_skks = self.skks_lamR.min()
+        self.lam2_bar = self.stk.min()
         # find its location
 
         jf,jt  = np.unravel_index(self.stk.argmin(),self.stk.shape)
-        print('Min Lam2 of stack is {}, located at dt = {}  and phi = {}'.format(self.lam2,self.T[jt],self.F[jf]))
-        print(self.outfile)
+        print('Min Lam2 of stack is {}, located at dt = {}  and phi = {}'.format(self.lam2_bar,self.T[jt],self.F[jf]))
+        # print(self.outfile)
         # write out stack
         # print(self.stk.shape)
 
         np.savetxt('{}.lamSTK'.format(self.outfile),self.stk,fmt='%.5f')
 
-        self.sol = self.lam2
+        self.sol = self.lam2_bar
 
 
     def collect(self):

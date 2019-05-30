@@ -55,29 +55,32 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
                 data = data.reset_index()
                 del data['index']
 
-                (a,d,fd,t,x,s)= run_download(data,station,ext,outdir)
-                attempts += a
-                dwn += d
-                fdsnx += fd
-                ts += t
-                ex += x
-                sum.append(s[0])
+                (a,d,fd,t,x)= run_download(data,station,ext,outdir)
+                attempts += a # counter for number of attmepts
+                dwn += d # count number of downloads
+                fdsnx += fd # coutn number of fdsn exceptions
+                ts += t # count numbers of streams that were too short (ideally 0)
+                ex += x # numbers of files that already existed
+                # sum.append(s[0])
         elif batch is False:
             station = input('Input Station Name > ')
             (attempts,dwn,fdsnx,ts,ex,sum) = run_download(df,station,ext,outdir)
     elif mode is 'sep':
         #If event and station lists are seperate
         #We dont need to filter df by station and instead can pass it straight in
-        sdf= pd.read_csv(stat_list,skiprows=1)
+        sdf= pd.read_csv(stat_list)
+        # print(sdf)
         stations = sdf.STAT
         for station in stations:
-            (a,d,fd,t,x,s)= run_download(df,station,ext,outdir,sep=True)
+
+            (a,d,fd,t,x)= run_download(df,station,ext,outdir,sep=True)
             attempts += a
             dwn += d
             fdsnx += fd
             ts += t
             ex += x
-            sum.append(s[0])
+            # print(s)
+            # sum.append(s[0])
     print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} have already been downloaded'.format(attempts,dwn,fdsnx,ts,ex))
     print(sum)
     with open('{}/{}_downloaded_streams.txt'.format(outdir,outdir.split('/')[-1]),'w+') as writer:
@@ -103,8 +106,9 @@ def run_download(df,station,ext,out,sep=False):
 
     stat_found = Instance.download_station_data()
     if stat_found is True:
+        print(Instance.data)
         for i in range(0,len(Instance.data)):
-            # print(station, Instance.data.DATE[i])
+            print(station, Instance.data.DATE[i])
         #Loop over events for the given station Instance
 
             Instance.set_event_data(i,sep)
@@ -117,9 +121,8 @@ def run_download(df,station,ext,out,sep=False):
 
         print('Station {} could not be found'.format(station))
     Instance.outfile.close()
-    # print('It {}, stat {}'.format(Instance.attempts,station))
-    return(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex,Instance.summary)
-
+    print('It {}, stat {}'.format(Instance.attempts,station))
+    return(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex)#Instance.summary
 class Downloader:
 
     def __init__(self,df,station,outdir):
@@ -127,17 +130,18 @@ class Downloader:
         self.station = station
         self.data = df
         self.out = outdir
-        self.summary = [] # list to hold all tr_ids
+        # self.summary = [] # list to hold all tr_ids
         # print(self.data)
 #           Resets indexing of DataFrame
 
-        print('{}/{}_downloaded_streams.txt'.format(outdir,outdir.split('/')[-1]))
+        # print('{}/{}_downloaded_streams.txt'.format(outdir,outdir.split('/')[-1]))
         try:
             #print('Make /Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}'.format(station))
             os.mkdir('{}/{}'.format(self.out,station))
         except FileExistsError:
-            #print('It already exists, Hooray! Less work for me!')
-            pass
+            print('It already exists, Hooray! Less work for me!')
+
+            # pass
     #   Made
 
         #self.outfile = open('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_downloaded_streams_Jacks_Split.txt'.format(station,station),'w+')
@@ -187,7 +191,7 @@ class Downloader:
                     end = self.start + 60
                     print('Search starts {} , ends at {}'.format(self.start,end))
                     cat = self.fdsnclient_evt.get_events(starttime=self.start,endtime=self.start+86400 ,latitude=self.evla,longitude=self.evlo,maxradius=0.25,minmag=5.5) #Get event in order to get more accurate event times.
-                    self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
+                    # self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
                 else:
                     # No Time so we need to search over the whole day
                     end = self.start + 86400
@@ -205,7 +209,7 @@ class Downloader:
                 self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
                 self.start.minute = cat[0].origins[0].time.minute
                 self.start.hour = cat[0].origins[0].time.hour
-                # print(self.time)
+                print(self.time)
 
                 self.start.second = cat[0].origins[0].time.second
 
@@ -224,12 +228,13 @@ class Downloader:
                 self.evdp = 0
             except FDSNException:
                 print("FDSNException for get_events")
-                pass
+                # pass
         elif sep is True:
-            self.start = obspy.core.UTCDateTime(self.data.DATE[i]) #iso8601=True
+            self.start = obspy.core.UTCDateTime('{}'.format(self.data.DATE[i])) #iso8601=True
             self.date = '{:04d}{:03d}'.format(self.start.year,self.start.julday)
             self.time = '{:02d}{:02d}{:02d}'.format(self.start.hour,self.start.minute,self.start.second)
             self.evdp = self.data.EVDP[i]
+
     def download_traces(self,ch):
         """
         Function that downloads the traces for a given event and station
@@ -251,7 +256,7 @@ class Downloader:
             if ch == 'BHE':
                 out_id = '_'.join(tr_id.split('_')[0:-1])
                 self.outfile.write('{}_\n'.format(out_id))
-                self.summary.append(out_id)
+                # self.summary.append(out_id)
                 self.ex += 1
         else:
             # print("It doesnt exists. Download attempted")
@@ -270,22 +275,25 @@ class Downloader:
                     self.ts += 1
 
                 dist_client = iris.Client() # Creates client to calculate event - station distance
+                print('STLA {} STLO {} EVLA {} EVLO {}'.format(self.stla,self.stlo,self.evla,self.evlo))
                 self.d = dist_client.distaz(stalat=self.stla,stalon=self.stlo,evtlat=self.evla,evtlon=self.evlo)
-                # print('Source-Reciever distance is {}'.format(self.d['distance']))
-                if self.d['distance'] >= 85.0:
-                    if st[0].stats.endtime - st[0].stats.starttime >= 2000:
-                        # print('Record length is {}, which is ok'.format(st[0].stats.endtime - st[0].stats.starttime))
-                        self.write_st(st,tr_id)
+                print('Source-Reciever distance is {}'.format(self.d['distance']))
+                if (self.d['distance'] >= 85.0) or (self.d['distance'] >=145.0):
+                
+                        if st[0].stats.endtime - st[0].stats.starttime >= 2000:
+                            # print('Record length is {}, which is ok'.format(st[0].stats.endtime - st[0].stats.starttime))
+                            self.write_st(st,tr_id)
 
-                        if ch == 'BHE':
-                            self.dwn += 1
-                            out_id = '_'.join(tr_id.split('_')[0:-1])
-                            self.outfile.write('{}_\n'.format(out_id))
-                            self.summary.append(out_id)
-                    else:
-                        print('Record length is {}, which is too short'.format(st[0].stats.endtime - st[0].stats.starttime))
-                        if ch == 'BHE':
-                            self.ts += 1
+                            if ch == 'BHE':
+                                self.dwn += 1
+                                out_id = '_'.join(tr_id.split('_')[0:-1])
+                                self.outfile.write('{}_\n'.format(out_id))
+                                # self.summary.append(out_id)
+
+                        else:
+                            print('Record length is {}, which is too short'.format(st[0].stats.endtime - st[0].stats.starttime))
+                            if ch == 'BHE':
+                                self.ts += 1
                 else:
                     print("Source Reciever Distance is too small")
                     if ch == 'BHE':
