@@ -27,10 +27,11 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 #######################################
 
-sks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_SKS_sheba_results.sdb',delim_whitespace=True)
-skks = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_SKKS_sheba_results.sdb',delim_whitespace=True)
+sks_raw = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_SKS_sheba_results.sdb',delim_whitespace=True)
+skks_raw = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_SKKS_sheba_results.sdb',delim_whitespace=True)
 
-
+sks = sks_raw[sks_raw.SNR > 5]
+skks = skks_raw[skks_raw.SNR > 5]
 
 #def plot_si_Pr_v_Ap():
 # '''Plot Splitting intensity calculated by approximatation against SI calculated by following the full projection method of Chevrot(20
@@ -59,13 +60,13 @@ ax1.legend()
 ## Beneath plot SI v Snr for both methods
 ax3.plot(sks['Q'],sks['SI(Pr)'],'k.')
 
-ax3.set_title('SI(Pr) v Q for SKS')
-ax3.set_ylabel(r'$\Delta SI$ by Projection')
+ax3.set_title('SKS')
+ax3.set_ylabel(r'$SI$ by Projection')
 ax3.set_xlim([-1 ,1])
 # Not for SI by proejction
 ax5.plot(skks['Q'],skks['SI(Pr)'],'r.')
-ax5.set_title('SI(Pr) v Q for SKKS')
-ax5.set_ylabel(r'$\Delta SI$ by Projection')
+ax5.set_title('SKKS')
+ax5.set_ylabel(r'$SI$ by Projection')
 ax5.set_xlim([-1 ,1])
 ax5.set_xlabel(r'Q')
 ax6.set_xlabel(r'Q')
@@ -77,19 +78,19 @@ ax2.plot(skks_null['SI(Pa)'],skks_null['SI(Pr)'],'r.',label='skks')
 ax2.plot([-4, 4],[-4, 4],'k--',label='SI(Pr) = SI(Pa)')
 ax2.set_ylim([-2,2])
 ax2.set_xlim([-4,4])
-ax2.set_xlabel(r'$\Delta SI$ by Approximation')
-ax2.set_ylabel(r'$\Delta SI$ by Projection')
+ax2.set_xlabel(r'$SI$ by Approximation')
+ax2.set_ylabel(r'$SI$ by Projection')
 ax2.set_title('Null Phases (Q < -0.7)')
 ax2.legend()
 ## Beneath plot SI v Snr for both methods
 ax4.plot(sks['Q'],sks['SI(Pa)'],'k.')
-ax4.set_title('SI(Pa) v Q for SKS')
-ax4.set_ylabel(r'$\Delta SI$ by Approximation')
+ax4.set_title('SKS')
+ax4.set_ylabel(r'$SI$ by Approximation')
 ax4.set_xlim([-1 ,1])
 # Not for SI by proejction
 ax6.plot(skks['Q'],skks['SI(Pa)'],'r.')
-ax6.set_title('SI(Pa) v Q for SKKS')
-ax6.set_ylabel(r'$\Delta SI$ by Approximation')
+ax6.set_title('SKKS')
+ax6.set_ylabel(r'$SI$ by Approximation')
 ax6.set_xlim([-1 ,1])
 
 # Adjust space between figures so there is enough room
