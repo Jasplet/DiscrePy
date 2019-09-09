@@ -60,24 +60,50 @@ class Synth:
 
     def syn_in_v_out(self,save=False):
         '''Plot 2 subplot figure showing input synthetics (top) and the measurements made by sheba (bottom) '''
-        fig, (ax1,ax2) = plt.subplots(nrows=2,ncols=1,sharex=True,figsize= (7,14))
+        fig, (ax1,ax2) = plt.subplots(nrows=2,ncols=1,sharex=True,figsize= (8,16))
 
-        ax1.scatter(self.T,self.F,c='black',marker='.')
+        t_plot = self.T.copy().ravel() # Un-wrap grids so it is easier to overwrtie them to plot highlighted points
+        f_plot = self.F.copy().ravel()
+        # Indicies of the 4 points of interest we want to highlight
+        i1 = 138
+        i2 = 128
+        i3 = 471
+        i4 = 461
+        T_i = t_plot[[i1,i2,i3,i4]].copy()
+        F_i = f_plot[[i1,i2,i3,i4]].copy()
+        t_plot[[i1,i2,i3,i4]] = 0
+        f_plot[[i1,i2,i3,i4]] = 0
+        ax1.scatter(t_plot,f_plot,c='black',s=15,marker='.')
+        ax1.scatter(T_i[0],F_i[0],c='black',s=49,marker='*')
+        ax1.scatter(T_i[1],F_i[1],c='black',s=49,marker='*')
+        ax1.scatter(T_i[2],F_i[2],c='black',s=49,marker='*')
+        ax1.scatter(T_i[3],F_i[3],c='black',s=49,marker='*')
         ax1.set_xlim([0,4.0])
         ax1.set_ylim([-90,90])
         # ax1.set_xlabel(r'$\delta t$ (s)',fontsize=14)
-        ax1.set_ylabel(r'$\Phi$ ( $\degree$)',fontsize=14 )
-        ax1.set_title(r'$ \Phi$ v $\delta t$ space sampled by synthetics',fontsize=15)
+        ax1.set_ylabel(r'Fast direction $\phi$ ( $\degree$)',fontsize=16 )
+        ax1.set_title(r'Splitting parameter space modelled by synthetics',fontsize=16)
         #Bottom Axis
-        ax2.scatter(self.syn.TLAG,self.syn.FAST,marker='.',label='-0.7 < Q < 0.7')
-        ax2.scatter(self.nulls.TLAG,self.nulls.FAST,marker='.',c='darkorange',label='Q < -0.7')
+
+        for i,v in enumerate(self.syn.DATE):
+            if self.syn.Q[i] < -0.7:
+                colour='darkorange'
+            elif self.syn.Q[i] > 0.7:
+                colour='black'
+
+            if i in [i1,i2,i3,i4]:
+                ax2.errorbar(self.syn.TLAG[i],self.syn.FAST[i],xerr=self.syn.DTLAG[i],yerr=self.syn.DFAST[i],markersize=7,marker='*',c=colour)  # Formeraly blue color
+            else:
+                ax2.scatter(self.syn.TLAG[i],self.syn.FAST[i],marker='.',c=colour,s=15)  # Formeraly blue color
+                # ax2.scatter(self.nulls.TLAG,self.nulls.FAST,marker='.',c='darkorange',label='Q < -0.7') # Formeraly darkorange color
+
         ax2.set_xlim([0,4.0])
         ax2.set_ylim([-90,90])
         ax2.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=16)
-        ax2.set_ylabel(r'$Fast direction \phi$ ( $\degree$)' ,fontsize=16)
-        ax2.set_title(r'Recovered $\Phi, \delta t$',fontsize=16)
+        ax2.set_ylabel(r'Fast direction $\phi$ ( $\degree$)' ,fontsize=16)
+        ax2.set_title(r'Splitting parameters recovered by SHEBA',fontsize=16)
         if save is True:
-            plt.savefig('/Users/ja17375/Presentations/SYNTH_in_v_out.eps',format='eps',dpi=400)
+            plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/SYNTH_in_v_out_025.png',format='png',dpi=400,transparent=True)
         plt.tick_params(labelsize=14)
         plt.show()
 
@@ -109,7 +135,9 @@ class Synth:
         ax1.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
         ax2.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
         ax1.set_ylabel(r'Fast direction, $\phi (\degree)$',fontsize=14)
-        ax1.set_title(r'${}: \Delta SI$ for  $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
+        ax1.set_title(r'${}: \Delta SI$ (approximation) for  $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
+        ax2.set_title(r'${}: \Delta SI$ (projection) for  $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
+
         plt.tick_params(labelsize=14)
         return C1,C2
         # if save == True:
@@ -129,30 +157,36 @@ class Synth:
         fast = self.F.ravel() # Array of fast directions
         lag = self.T.ravel() # Array of lag times
         sig = np.zeros([17,37])
-
+        i = 0
         for l in range(0,17): # We know there are 17 different lag times in our grid (0 - 4.0 at 0.25 spacing)
-            #Define 2 sigma bound in fast direction for both phases
-            lbt_P1 = self.pairs.TLAG_P1[l] - 2*self.pairs.DTLAG_P1[l]
-            ubt_P1 = self.pairs.TLAG_P1[l] + 2*self.pairs.DTLAG_P1[l]
-            lbt_P2 = self.pairs.TLAG_P2[l] - 2*self.pairs.DTLAG_P2[l]
-            ubt_P2 = self.pairs.TLAG_P2[l] + 2*self.pairs.DTLAG_P2[l]
 
             for f in range(0,37): # We know there are 37 fast directions (-90 - 90 at 10 degree spacing)
-                #Define 2 sigma bound in fast direction for both phases
-                lbf_P1 = self.pairs.FAST_P1[f] - 2*self.pairs.DFAST_P1[f]
-                ubf_P1 = self.pairs.FAST_P1[f] + 2*self.pairs.DFAST_P1[f]
-                lbf_P2 = self.pairs.FAST_P2[f] - 2*self.pairs.DFAST_P2[f]
-                ubf_P2 = self.pairs.FAST_P2[f] + 2*self.pairs.DFAST_P2[f]
+                #Define 2 sigma bound in fast,lag direction direction for both phases
+
+                print('P1 {} P2 {}'.format(self.a_ind,i))
+                lbt_P1 = self.pairs.TLAG_P1[self.a_ind] - 2*self.pairs.DTLAG_P1[self.a_ind]
+                ubt_P1 = self.pairs.TLAG_P1[self.a_ind] + 2*self.pairs.DTLAG_P1[self.a_ind]
+                lbt_P2 = self.pairs.TLAG_P2[i] - 2*self.pairs.DTLAG_P2[i]
+                ubt_P2 = self.pairs.TLAG_P2[i] + 2*self.pairs.DTLAG_P2[i]
+
+                lbf_P1 = self.pairs.FAST_P1[self.a_ind] - 2*self.pairs.DFAST_P1[self.a_ind]
+                ubf_P1 = self.pairs.FAST_P1[self.a_ind] + 2*self.pairs.DFAST_P1[self.a_ind]
+                lbf_P2 = self.pairs.FAST_P2[i] - 2*self.pairs.DFAST_P2[i]
+                ubf_P2 = self.pairs.FAST_P2[i] + 2*self.pairs.DFAST_P2[i]
                 # Now test to see if the phases match or not
-                if ((lbf_P2<= ubf_P1) & (lbf_P1 <= ubf_P2)) & ((lbt_P2 <= ubt_P1) & (lbt_P1 <= ubt_P2)):
+                # fast_test = (lbf_SKKS <= ubf_SKS) & (lbf_SKS <= ubf_SKKS)
+                # lag_test = (lbt_SKKS <= ubt_SKS) & (lbt_SKS <= ubt_SKKS)
+                i = i+1 # Counter through index to pick out data from .pairs df
+                if ((lbf_P2 <= ubf_P1) & (lbf_P1 <= ubf_P2)):
+                    if ((lbt_P2 <= ubt_P1) & (lbt_P1 <= ubt_P2)):
                     # If test is passed that they match and the grid position is assigned a 1
-                    sig[l,f] = 1
+                        sig[l,f] = 1
 
         # Plot grid of 1s and 0s. 1 is matching 0 is discrepant
         # Potentially ned to find something better than contourf as it interpolats (?) slightly
-        C = ax.contourf(self.T,self.F,sig,1,vmax=0.5)
+        C = ax.contourf(self.T,self.F,sig,1,cmap='plasma')
         # ax.contour(self.T,self.F,sig,levels=[1],colors=['black'],linestyles='solid')
-        C.cmap.set_over('white')
+        # C.cmap.set_over('white')
         # C = ax.imshow(np.transpose(sig))
         # ax.set_ylabel(r'Fast direction $\phi$ ($\degree$)',fontsize=14)
         # ax.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
@@ -180,7 +214,7 @@ class Synth:
         # cbar1 = plt.colorbar(C,cax=ax,use_gridspec=True)
         # cbar1.set_label(r'$\bar{\lambda_2} $',rotation=0)
         # ax.set_ylabel(r'Fast direction $\phi (\degree)$',fontsize=14)
-        ax.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
+        # ax.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=14)
         ax.set_title(r'{}: $\lambda_2$ for $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
         plt.tick_params(labelsize=14)
         return C
@@ -206,6 +240,10 @@ class Synth:
             'axes.labelsize': 12, # fontsize for x and y labels (was 10)
             'axes.titlesize': 14,
             'font.size': 12, # was 10
+            'text.color': 'white',
+            'axes.labelcolor' : 'white',
+            'xtick.color' : 'white',
+            'ytick.color' : 'white',
             'legend.fontsize': 8, # was 10
             'xtick.labelsize': 14,
             'ytick.labelsize': 14,
@@ -235,11 +273,11 @@ class Synth:
         if save == True:
             if f[self.a_ind] < 0:
                 # print(abs(f[self.a_ind]))
-                # plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Presentations/Figs/Synths/{}_A_{:2.2f}_N{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
+                # plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
             else:
-                # plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Presentations/Figs/Synths/{}_A_{:2.2f}_{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
+                # plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
 
             plt.close('all')
 
@@ -248,6 +286,64 @@ class Synth:
 
 
         # plt.show()
+    def plot_grids_pres(self,save=True):
+        ''' Plot dSI (approx) lam2 bar and grid in for PRESENTATION purposes'''
+        fig , (ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize= (22,8),sharex=True)
+        params = {
+            'savefig.dpi': 150,  # to adjust notebook inline plot size
+            'axes.labelsize': 12, # fontsize for x and y labels (was 10)
+            'axes.titlesize': 14,
+            'font.size': 12, # was 10
+            'text.color': 'white',
+            'axes.labelcolor' : 'white',
+            'xtick.color' : 'white',
+            'ytick.color' : 'white',
+            'legend.fontsize': 8, # was 10
+            'xtick.labelsize': 14,
+            'ytick.labelsize': 14,
+        }
+        matplotlib.rcParams.update(params)
+        # Plot synthetics grid
+        ax1.scatter(self.T,self.F,c='white',marker='.')
+        ax1.set_xlim([0,4.0])
+        ax1.set_ylim([-90,90])
+        ax1.set_ylabel(r'Fast direction $\phi$ ( $\degree$)',fontsize=16 )
+        ax1.set_title(r'$ \Phi$ v $\delta t$ space sampled by synthetics',fontsize=16)
+        ax1.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=16)
+        # Plot dSI (approx)
+        f = self.F.ravel()
+        l = self.T.ravel()
+        dsi_pr = self.pairs.D_SI_Pr.values.reshape(17,37)
+        # C = ax.scatter(l,f,c=self.pairs.D_SI.values,marker='.',label='d_SI grid')
+        # print(dsi.max())
+        #Plot DSI (approximation)
+        C1 = ax2.contourf(self.T,self.F,dsi_pr,18,levels=np.arange(0,dsi_pr.max(),0.2),vmin=0.4,extend='max',cmap='viridis_r')
+        ax2.contour(self.T,self.F,dsi_pa,levels=[0.4],colors=['black'],linestyles='solid')
+        ax2.plot(l[self.a_ind],f[self.a_ind],'rx')
+        ax2.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=16)
+        ax2.set_title(r'${}: \Delta SI$ (approximation) for  $\delta t = {}, \phi = {}$ '.format(self.spol,l[self.a_ind],f[self.a_ind]))
+        C1.cmap.set_under('white')
+        # cbar1 = fig.colorbar(C1,ax=ax2)
+        # cbar1.ax.set_ylabel(r'$\Delta SI$',rotation='horizontal')
+        #add lambda2
+        C_lam2 = self.grid_lam2(ax3)
+        ax3.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=16)
+        # cbar2 = fig.colorbar(C_lam2,ax=ax3)
+        # cbar2.ax.set_ylabel(r'$\bar{\lambda_2}$',rotation='horizontal')
+
+        if save == True:
+            if f[self.a_ind] < 0:
+                # print(abs(f[self.a_ind]))
+                # plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Presentations/Figs/Synths/{}_noise_{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.spol,self.noise_lvl,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
+            else:
+                # plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_L2_grid.eps'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
+                plt.savefig('/Users/ja17375/Presentations/Figs/Synths/{}_noise_{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.spol,self.noise_lvl,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
+            plt.close('all')
+
+        else:
+            plt.show()
+
 
     def plot_si_Pr_v_Ap(self,save=False):
         '''
@@ -315,8 +411,8 @@ class Synth:
              #pass
         ax.plot([-1,5],[30,30],'k--',linewidth=0.7)
         ax.plot([-1,5],[-60,-60],'k--',linewidth=0.7)
-        ax.set_xlim([-0.5,4.5])
-        ax.set_ylim([-95,95])
+        ax.set_xlim([0,4])
+        ax.set_ylim([-90,90])
         ax.set_xlabel(r'$\delta t$ (s)')
         ax.set_ylabel(r'$\Phi $ ( $\degree$)')
         if save is True:
@@ -338,11 +434,12 @@ class Synth:
         ax1.contourf(self.T,self.F,pa)
         ax1.set_title('SI by approximation')
 
-        ax2.contourf(self.T,self.F,pr)
+        C = ax2.contourf(self.T,self.F,pr)
         ax2.set_title('SI by projection',fontsize=16)
         ax1.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
         ax1.set_xlabel(r'$\delta t$ (s)',fontsize=14)
         ax2.set_xlabel(r'$\delta t$ (s)',fontsize=14)
+        # fig.colorbar(C)
         # Plot difference in meausres
         fig2, ax3 = plt.subplots(1,1,figsize=(8,8))
         pr_pa_diff = pr - pa
@@ -350,7 +447,8 @@ class Synth:
         ax3.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
         ax3.set_xlabel(r'$\delta t$ (s)',fontsize=14)
         plt.colorbar(s)
-        fig.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Synth_SI_comp.png',dpi=400)
+        fig.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Synth_SI_comp.png',dpi=400, transparent=True)
+
         plt.show()
 
     def add_DSI(self):
@@ -397,7 +495,7 @@ class Synth:
             #Get degreeof freedom
             ndf_p1,ndf_p2 = self.pairs.NDF_P1[i],self.pairs.NDF_P2[i]
             l2a_p1 = self.ftest(Stk.lam2_sks,ndf_p1)
-            l2a_p2 = self.ftest(Stk.lam2_sks,ndf_p2)
+            l2a_p2 = self.ftest(Stk.lam2_skks,ndf_p2)
             self.lam2alpha_p1.append(l2a_p1)
             self.lam2alpha_p2.append(l2a_p2)
 

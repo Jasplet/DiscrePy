@@ -204,7 +204,7 @@ class Builder:
             # Now calulate LAM2ALPHA  for SKS and SKKS
             ndf_sks, ndf_skks = self.P.NDF_SKS[i],self.P.NDF_SKKS[i]
             self.lam2alpha_sks.append(self.ftest(Stk.lam2_sks,ndf_sks)) # Calc Lam2 Alpha and append it to list for SKS and SKKS
-            self.lam2alpha_skks.append(self.ftest(Stk.lam2_sks,ndf_skks))
+            self.lam2alpha_skks.append(self.ftest(Stk.lam2_skks,ndf_skks))
 
     def add_lam2(self):
         '''
@@ -226,6 +226,7 @@ class Builder:
             self.P['SKS_PP_LON'] = self.pp.lon_SKS
             self.P['SKKS_PP_LAT'] = self.pp.lat_SKKS
             self.P['SKKS_PP_LON'] = self.pp.lon_SKKS
+
             print('Added piercepoints')
         else:
             print('Dimension mismatch, not adding piercepoints')
@@ -832,16 +833,22 @@ class Pairs:
             sigma - multiplier to error bounds of splitting results
         '''
         #Set some plotting params
+        # Font coors set to white for presentaiton
         params = {
             'savefig.dpi': 150,  # to adjust notebook inline plot size
             'axes.labelsize': 14, # fontsize for x and y labels (was 10)
-            'axes.titlesize': 14,
-            'font.size': 12, # was 10
-            'legend.fontsize': 8, # was 10
-           'xtick.labelsize': 14,
-           'ytick.labelsize': 14,
-           }
+            'axes.titlesize': 16,
+            'axes.edgecolor': 'white',
 
+            'font.size': 12, # was 10
+            'text.color': 'white', # change to white for presentations
+            'axes.labelcolor' : 'white',
+            'xtick.color' : 'white',
+            'ytick.color' : 'white',
+            'legend.fontsize': 12, # was 10
+            'xtick.labelsize': 14,
+            'ytick.labelsize': 14,
+        }
         matplotlib.rcParams.update(params)
 
         self.spath = surf_path
@@ -894,17 +901,18 @@ class Pairs:
             fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,7),sharey=True)
             fig.patch.set_facecolor('None')
             if self.syn is True:
-                plt.suptitle(r'Syn Stack E1: {} E2: {} $\lambda _2$ value = {:4.3f}'.format(self.syn1[s],self.syn2[s],self.df.LAM2_BAR.values[s]),fontsize=28)
+                plt.suptitle(r'Syn Stack E1: {} E2: {} $\lambda _2$ value = {:4.3f}'.format(self.syn1[s],self.syn2[s],self.df.LAM2_BAR.values[s]),fontsize=20)
             else:
-                plt.suptitle(r'Event {}_{}_{}. Stacked $\lambda _2$ value = {:4.3f}'.format(stat,date,time,self.p_sorted.LAM2_BAR.values[s]),fontsize=28)
+                plt.suptitle(r'Station {} Date {} Time {}. $\bar{{\lambda_2}}$ = {:4.3f}, $\Delta SI$ = {}'.format(stat,date,time,self.p_sorted.LAM2_BAR.values[s],self.p_sorted.D_SI_Pa.values[s]),fontsize=20)
 
             # gs = gridspec.GridSpec(3,2)
             # ax0 = plt.subplot(gs[0,0])
-            ax0.set_title(r'SKS $\lambda _2$ surface',fontsize=24)
-            C0 = ax0.contourf(self.T,self.F,(self.sks_lam2),20,vmin=0,cmap='inferno_r',extend='max')
+            ax0.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKS')
+            C0 = ax0.contour(self.T,self.F,(self.sks_lam2)/lam2a_sks,[2,5,10,15,20],colors='w')#,vmin=0,cmap='inferno_r',extend='max')
             # ax0.contour(C0,colors='k')
-            ax0.contour(self.T,self.F,self.sks_lam2,lam2a_sks,label='95% confidence region')
-            # ax0.clabel(C0,C0.levels,inline=True,fmt ='%2.3f')
+            C0a = ax0.contour(self.T,self.F,(self.sks_lam2)/lam2a_sks,[1],linewidths=3,label='95% confidence region',colors='w')
+            ax0.clabel(C0,C0.levels,inline=True,fmt ='%2.0f')
+            ax0.clabel(C0a,C0a.levels,inline=True,fmt ='%2.0f')
             #Plot SKS Solution
             ax0.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
             print('Lag sks {}. Fast SKS {}.'.format(lag_sks,fast_sks))
@@ -921,10 +929,13 @@ class Pairs:
             ax0.set_yticks([-90,-60,-30,0,30,60,90])
             # ax0.contourf(self.sks_lam2,cmap='inferno_r')
             # ax1 = plt.subplot(gs[0,1])
-            C1 = ax1.contourf(self.T,self.F,self.skks_lam2,20,vmin=0,cmap='inferno_r',extend='max')
+            C1 = ax1.contour(self.T,self.F,(self.skks_lam2/lam2a_skks),[2,5,10,15,20],colors='w')#vmin=0,cmap='inferno_r',extend='max')
+            # print(C1)
+            # print(C0)
             # C3 = ax1.contour(C1,colors='k')
-            ax1.contour(self.T,self.F,self.skks_lam2,lam2a_skks,label='95% confidence region')
-            # ax1.clabel(C1,C1.levels,inline=True,fmt ='%2.3f')
+            C1a = ax1.contour(self.T,self.F,(self.skks_lam2/lam2a_skks),[1],linewidths=3,label='95% confidence region',colors='w')
+            ax1.clabel(C1,C1.levels,inline=True,fmt ='%2.0f')
+            ax1.clabel(C1a,C1a.levels,inline=True,fmt ='%2.0f')
             # ax1.contourf(self.skks_lam2,cmap='magma')
             #Plot SKS Solution
             ax1.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
@@ -938,12 +949,31 @@ class Pairs:
             ax1.set_ylim([-90,90])
             ax1.set_xlim([0,4])
             ax1.set_yticks([-90,-60,-30,0,30,60,90])
-            ax1.set_title(r'SKKS $\lambda _2$ surface',fontsize=24)
+            ax1.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKKS')
             # ax2 = plt.subplot(gs[1:,:])
 
-            C_plot = self.show_stacks(ax2,'{}_{}_{}'.format(stat,date,time),lam2a_sum)
-            # print('STK_FAST: {} +/- {}'.format(self.df_fast,self.df_dfast))
-            # Modify stk_dlag and stk_dfast by sigma
+            stk = (self.sks_lam2 + self.skks_lam2) / (lam2a_sks + lam2a_skks)
+            jf,jt  = np.unravel_index(stk.argmin(),stk.shape)
+            print(stk.argmin())
+            print(jf,jt)
+            stk_fast = np.arange(-90,91,1)[jf]
+            stk_lag = np.arange(0,4.025,0.025)[jt]
+
+            C2 = ax2.contour(self.T,self.F,stk,[1,2,5,10,15,20],colors='w')#,cmap='inferno_r',vmin=0,extend='max')
+            C2a = ax2.contour(self.T,self.F,stk,[1],linewidths=3,label='95% confidence region',colors='w')
+            ax2.clabel(C2a,C2a.levels,inline=True,fmt ='%2.0f')
+            ax2.clabel(C2,C2.levels,inline=True,fmt ='%2.0f')
+            ax2.set_xlabel(r'Lag time, $\delta t$ (s)')
+            ax2.plot(stk_lag,stk_fast,'g.')
+            print('Lam2 BAR is ',stk.min())
+            # print('Lam2 Sum is ',l2sum)
+            # ax2.contour(T,F,stk,,colors='b')
+            # self.cbar = plt.colorbar(C)
+            # self.cbar.add_lines(C2)
+            # ax.set_title(r'Event {}. $\lambda$ 2 value = {}'.format(evt,lam2))
+            # Add fast, lag as attributes so we can plot them elsewhere
+            sol = stk.min()
+
             ##########################
             # self.stk_dlag = self.stk_dlag*sigma
             # self.stk_dfast = self.stk_dfast*sigma
@@ -960,25 +990,25 @@ class Pairs:
             ax2.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
             ax2.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
             # Plot Stacked solution on SKS
-            ax0.plot(self.stk_lag,self.stk_fast,'g.',label='Stacked Solution')
+            ax0.plot(stk_lag,stk_fast,'g.',label='Stacked Solution')
             # Plot Stacked Solution on SKKS surface
-            ax1.plot(self.stk_lag,self.stk_fast,'g.',label='Stacked Solution')
+            ax1.plot(stk_lag,stk_fast,'g.',label='Stacked Solution')
             ## Add a legend (on ax0)
-            ax0.legend(bbox_to_anchor=(0,1),loc='upper left')
-
+            # leg = ax0.legend(bbox_to_anchor=(0,1),loc='best')
+            # plt.setp(leg.get_texts(),color='k')
             # divider = make_axes_locatable(ax2)
             # cax = divider.append_axes("right", size="5%", pad=0.3)
-            fig.colorbar(C_plot,ax=[ax0,ax1,ax2])
+            # fig.colorbar(C1,ax=[ax0,ax1,ax2])
             # ax2.cax.colorbar(C_plot)#, cax=cax)
             # ax2.cax.toggle_label(True)
 
             # cb = fig.colorbar(C1)
             # cb.add_lines(C3)
 
-            ax2.set_title('Stacked SKS SKKS surface',fontsize=24)
+            ax2.set_title(r'$ \bar{\Lambda_2} (\phi,\delta t)$')
             if save is True:
                 # dir = input('Enter Directory you want to save stacked surfaces to > ')
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.eps'.format(dir,lam2,stat),format='eps',dpi=400)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.png'.format(dir,lam2,stat),format='png',dpi=400,transparent=True)
                 plt.close()
             elif save is False:
                 plt.show()
@@ -1007,9 +1037,9 @@ class Pairs:
         self.sks_lam2 = np.loadtxt(sks[0])#,skiprows=4) # skip rows not needed for .lamR files
         self.skks_lam2 = np.loadtxt(skks[0])#,skiprows=4)
 
-        nfast,nlag = self.sks_lam2.shape ;
-        lag_max = 4.
-        [self.T,self.F] = np.meshgrid(np.linspace(0,lag_max,num=nlag),np.arange(-90,91,1)) ;
+        self.nfast,self.nlag = self.sks_lam2.shape ;
+        self.lag_max = 4.
+        [self.T,self.F] = np.meshgrid(np.linspace(0,self.lag_max,num=self.nlag),np.arange(-90,91,1)) ;
 
     def show_stacks(self,ax,evt,l2sum,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific'):
         '''Function to find and plot desired surface stacks based on the LAMDA2 value '''
@@ -1022,37 +1052,37 @@ class Pairs:
             file = glob('{}/Stacks/{}*.lamSTK'.format(path,'_'.join(evt.split('_')[0:-1])))
 
         stk = np.loadtxt(file[0])
-
-        nfast,nlag = stk.shape ;
-        lag_step = 0.025
-        lag_max = (nlag) * lag_step;
-        [T,F] = np.meshgrid(np.arange(0,lag_max,lag_step),np.arange(-90,91,1)) ;
-        jf,jt  = np.unravel_index(stk.argmin(),stk.shape)
-        print(stk.argmin())
-        print(jf,jt)
-        fast = np.arange(-90,91,1)[jf]
-        lag = np.arange(0,lag_max,lag_step)[jt]
-        C = ax.contourf(T,F,stk/2,20,cmap='inferno_r',vmin=0,extend='max')
-        # C2 = ax.contour(C,colors='k')
-        # ax.set_ylabel(r'Fast,$\phi$, (deg)')
-        ax.set_xlabel(r'Lag time, $\delta t$ (s)')
-        # ax.plot([lag-dlag,lag+dlag],[fast,fast],'g-')
-        # ax.plot([lag,lag],[fast-dfast,fast+dfast],'g-')
-        ax.plot(lag,fast,'g.')
-        # ax.clabel(C,C.levels,inline=True,fmt ='%4.3f')
-        print('Lam2 BAR is ',stk.min())
-        print('Lam2 Sum is ',l2sum)
-        ax.contour(T,F,stk,[l2sum],colors='b')
-        # self.cbar = plt.colorbar(C)
-        # self.cbar.add_lines(C2)
-        # ax.set_title(r'Event {}. $\lambda$ 2 value = {}'.format(evt,lam2))
-        # Add fast, lag as attributes so we can plot them elsewhere
-        sol = stk.min()
+        # return stk
+        # nfast,nlag = stk.shape ;
+        # lag_step = 0.025
+        # lag_max = (nlag) * lag_step;
+        # [T,F] = np.meshgrid(np.arange(0,lag_max,lag_step),np.arange(-90,91,1)) ;
+        # jf,jt  = np.unravel_index(stk.argmin(),stk.shape)
+        # print(stk.argmin())
+        # print(jf,jt)
+        # fast = np.arange(-90,91,1)[jf]
+        # lag = np.arange(0,lag_max,lag_step)[jt]
+        # C = ax.contourf(T,F,stk/(),20,cmap='inferno_r',vmin=0,extend='max')
+        # # C2 = ax.contour(C,colors='k')
+        # # ax.set_ylabel(r'Fast,$\phi$, (deg)')
+        # ax.set_xlabel(r'Lag time, $\delta t$ (s)')
+        # # ax.plot([lag-dlag,lag+dlag],[fast,fast],'g-')
+        # # ax.plot([lag,lag],[fast-dfast,fast+dfast],'g-')
+        # ax.plot(lag,fast,'g.')
+        # # ax.clabel(C,C.levels,inline=True,fmt ='%4.3f')
+        # print('Lam2 BAR is ',stk.min())
+        # print('Lam2 Sum is ',l2sum)
+        # ax.contour(T,F,stk,[l2sum],colors='b')
+        # # self.cbar = plt.colorbar(C)
+        # # self.cbar.add_lines(C2)
+        # # ax.set_title(r'Event {}. $\lambda$ 2 value = {}'.format(evt,lam2))
+        # # Add fast, lag as attributes so we can plot them elsewhere
+        # sol = stk.min()
 
         print('Lam2 {}, fast {} lag {}'.format(sol,fast,lag))
         self.stk_fast = fast
         self.stk_lag = lag
-        return C
+        return stk
 
     def plot_l2sum_v_l2bar(self,save=False):
         '''
