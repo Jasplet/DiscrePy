@@ -387,6 +387,21 @@ class Interface:
         st = self.BHN + self.BHE + self.BHZ
         st.plot(type='relative')
 
+    def gen_infile(self,path,label,phase,nwind=10,tlag_max=4.0):
+
+        os.chdir(path) # Make sure we are in the right directory
+
+        with open('sheba.in','w') as writer:
+            writer.write('SHEBA.IN \n')
+            writer.write('{}{} \n'.format(label,phase)) # write file prefix
+            writer.write('{} \n'.format(self.BHE[0].stats.channel)) # Write channels for each component (E, N, Z order)
+            writer.write('{} \n'.format(self.BHN[0].stats.channel))
+            writer.write('{} \n'.format(self.BHZ[0].stats.channel))
+            writer.write('1 \n') # Specifies Eigenvalue minimisation, replace with spol if transverse minimisation is desired (not supported here)
+            writer.write('{:i} {:i} \n'.format(nwind,nwind))
+            writer.write('{} \n'.format(tlag_max)) # sets max tlag in gridsearch
+            writer.write('0')
+            
     def sheba(self,station,phase,label,i = 0,nwind=True,path=None):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
