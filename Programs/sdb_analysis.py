@@ -835,16 +835,16 @@ class Pairs:
         #Set some plotting params
         # Font coors set to white for presentaiton
         params = {
-            'savefig.dpi': 150,  # to adjust notebook inline plot size
+            'savefig.dpi': 500,  # to adjust notebook inline plot size
             'axes.labelsize': 14, # fontsize for x and y labels (was 10)
             'axes.titlesize': 16,
-            'axes.edgecolor': 'white',
+            'axes.edgecolor': 'black', #white for pres. version
 
             'font.size': 12, # was 10
-            'text.color': 'white', # change to white for presentations
-            'axes.labelcolor' : 'white',
-            'xtick.color' : 'white',
-            'ytick.color' : 'white',
+            'text.color': 'black', # change to white for presentations
+            'axes.labelcolor' : 'black', #white for pres. version
+            'xtick.color' : 'black', #white for pres. version
+            'ytick.color' : 'black', #white for pres. version
             'legend.fontsize': 12, # was 10
             'xtick.labelsize': 14,
             'ytick.labelsize': 14,
@@ -908,9 +908,9 @@ class Pairs:
             # gs = gridspec.GridSpec(3,2)
             # ax0 = plt.subplot(gs[0,0])
             ax0.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKS')
-            C0 = ax0.contour(self.T,self.F,(self.sks_lam2)/lam2a_sks,[2,5,10,15,20],colors='w')#,vmin=0,cmap='inferno_r',extend='max')
+            C0 = ax0.contour(self.T,self.F,(self.sks_lam2)/lam2a_sks,[2,5,10,15,20],colors='k')#,vmin=0,cmap='inferno_r',extend='max')  ## White contours ('w') for pres. versions
             # ax0.contour(C0,colors='k')
-            C0a = ax0.contour(self.T,self.F,(self.sks_lam2)/lam2a_sks,[1],linewidths=3,label='95% confidence region',colors='w')
+            C0a = ax0.contour(self.T,self.F,(self.sks_lam2)/lam2a_sks,[1],linewidths=3,label='95% confidence region',colors='k')
             ax0.clabel(C0,C0.levels,inline=True,fmt ='%2.0f')
             ax0.clabel(C0a,C0a.levels,inline=True,fmt ='%2.0f')
             #Plot SKS Solution
@@ -929,11 +929,11 @@ class Pairs:
             ax0.set_yticks([-90,-60,-30,0,30,60,90])
             # ax0.contourf(self.sks_lam2,cmap='inferno_r')
             # ax1 = plt.subplot(gs[0,1])
-            C1 = ax1.contour(self.T,self.F,(self.skks_lam2/lam2a_skks),[2,5,10,15,20],colors='w')#vmin=0,cmap='inferno_r',extend='max')
+            C1 = ax1.contour(self.T,self.F,(self.skks_lam2/lam2a_skks),[2,5,10,15,20],colors='k')#vmin=0,cmap='inferno_r',extend='max')  ## White contours ('w') for pres. versions
             # print(C1)
             # print(C0)
             # C3 = ax1.contour(C1,colors='k')
-            C1a = ax1.contour(self.T,self.F,(self.skks_lam2/lam2a_skks),[1],linewidths=3,label='95% confidence region',colors='w')
+            C1a = ax1.contour(self.T,self.F,(self.skks_lam2/lam2a_skks),[1],linewidths=3,label='95% confidence region',colors='k')  ## White contours ('w') for pres. versions
             ax1.clabel(C1,C1.levels,inline=True,fmt ='%2.0f')
             ax1.clabel(C1a,C1a.levels,inline=True,fmt ='%2.0f')
             # ax1.contourf(self.skks_lam2,cmap='magma')
@@ -959,8 +959,8 @@ class Pairs:
             stk_fast = np.arange(-90,91,1)[jf]
             stk_lag = np.arange(0,4.025,0.025)[jt]
 
-            C2 = ax2.contour(self.T,self.F,stk,[1,2,5,10,15,20],colors='w')#,cmap='inferno_r',vmin=0,extend='max')
-            C2a = ax2.contour(self.T,self.F,stk,[1],linewidths=3,label='95% confidence region',colors='w')
+            C2 = ax2.contour(self.T,self.F,stk,[2,5,10,15,20],colors='k')#,cmap='inferno_r',vmin=0,extend='max') ## White contours ('w') for pres. versions
+            C2a = ax2.contour(self.T,self.F,stk,[1],linewidths=3,label='95% confidence region',colors='k') ## White contours ('w') for pres. versions
             ax2.clabel(C2a,C2a.levels,inline=True,fmt ='%2.0f')
             ax2.clabel(C2,C2.levels,inline=True,fmt ='%2.0f')
             ax2.set_xlabel(r'Lag time, $\delta t$ (s)')
@@ -994,8 +994,8 @@ class Pairs:
             # Plot Stacked Solution on SKKS surface
             ax1.plot(stk_lag,stk_fast,'g.',label='Stacked Solution')
             ## Add a legend (on ax0)
-            # leg = ax0.legend(bbox_to_anchor=(0,1),loc='best')
-            # plt.setp(leg.get_texts(),color='k')
+            leg = ax0.legend(bbox_to_anchor=(0,1),loc='best')
+            plt.setp(leg.get_texts(),color='k')
             # divider = make_axes_locatable(ax2)
             # cax = divider.append_axes("right", size="5%", pad=0.3)
             # fig.colorbar(C1,ax=[ax0,ax1,ax2])
