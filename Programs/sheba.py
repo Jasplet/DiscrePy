@@ -239,6 +239,7 @@ class Interface:
         self.station = st[0].stats.station
         self.delta = st[0].stats.delta
         self.bad = False
+        # self.path = os.getcwd()
 #       As this gcarc is calculated in split_read.py I know that it should be the same for all three traces
 #       So for ease we will always read it from st[0]
 
@@ -401,7 +402,7 @@ class Interface:
             writer.write('{:i} {:i} \n'.format(nwind,nwind))
             writer.write('{} \n'.format(tlag_max)) # sets max tlag in gridsearch
             writer.write('0')
-            
+
     def sheba(self,station,phase,label,i = 0,nwind=True,path=None):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
@@ -482,10 +483,10 @@ if __name__ == '__main__':
     ######################################################################################
     ############### Run Sheba - using parallel processing with Pool ######################
     ######################################################################################
+    runpath ='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
+    print('Runpath is :',runpath)
     if mode == 'data':
-        runpath ='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
-        print('Runpath is :',runpath)
-
+        # runpath ='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
         runner = partial(run_sheba,runpath)
         if run_mode == 'par':
             with contextlib.closing( Pool(processes = 5) ) as pool:
@@ -510,10 +511,11 @@ if __name__ == '__main__':
 
     elif mode == 'syn':
         phase='SYNTH'
-        runpath ='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
+
         runner = partial(run_synth,runpath)
-        # As all the synthetics files are in the same directory (They share a "station") we cannot run in parralel and use the sac macro. (Maybe switch to making my own infiles then?)
-        # THis is because the workers trip over each other an corrupt the majority of infiles.
+        # As all the synthetics files are in the same directory (They share a "station") we cannot run in parralel with all the synthetics being stored in the same directory.
+        # This occurs as my sythetics are all stored under one station directory, so we cannot keep each worker looking at a different station
+        # As a result, the workers trip over each other an corrupt the majority of infiles.
         print('Synthetics Run')
         print('Runpath is :',runpath)
         # with contextlib.closing( Pool(processes = 8) ) as pool:
