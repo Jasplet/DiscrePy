@@ -994,8 +994,8 @@ class Pairs:
             # Plot Stacked Solution on SKKS surface
             ax1.plot(stk_lag,stk_fast,'g.',label='Stacked Solution')
             ## Add a legend (on ax0)
-            leg = ax0.legend(bbox_to_anchor=(0,1),loc='best')
-            plt.setp(leg.get_texts(),color='k')
+            # leg = ax0.legend(bbox_to_anchor=(0,1),loc='upper right')
+            # plt.setp(leg.get_texts(),color='k')
             # divider = make_axes_locatable(ax2)
             # cax = divider.append_axes("right", size="5%", pad=0.3)
             # fig.colorbar(C1,ax=[ax0,ax1,ax2])
