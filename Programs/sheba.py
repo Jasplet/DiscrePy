@@ -169,7 +169,7 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
                     Event = Interface(st)
                     if Event.check_phase_dist(phase_to_check=phase) is True:
                 #       To ensure that we contain the phase information completlely lets model the arrival using TauP
-                        Event.tt = Event.model_traveltimes(phase)
+                        Event.model_traveltimes(phase)
                         if Event.tt is None:
                             print('NO Traveltimes, bad data file {}'.format(st_id))
                             pass
@@ -191,7 +191,7 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
                                     # print('Label is {}. Path is {}'.format(label,path))
                                     Event.write_out(phase,label,path=outdir)
                                 # print('RUn sheba, stat {}, phase {}, label {}, out {}'.format(station,phase,label,outdir))
-                                Event.sheba(station,phase,label,path=outdir,nwind=True)
+                                Event.sheba(phase,label,path=outdir,nwind=True)
                                 #tidyup_by_stat(path,station,phase,label,outfile)
                     else:
                         # print('Fail, Distance ')
@@ -260,7 +260,7 @@ class Interface:
             # Having a depth of zero will give us problems so NOW change it to 10.0km exactly (these traveltimes could be very dodgy)
             err_out = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Events_with_evdp_of_0.txt','w+')
             err_out.write('Station: {}, has event starting at {} with an evdp of 0!\n'.format(self.station,self.BHN[0].stats.starttime))
-            traveltime = model.get_travel_times(10,self.BHN[0].stats.sac.gcarc,[phase])[0].time
+            traveltime = model.get_travel_times(10,self.BHN.stats.sac.gcarc,[phase])[0].time
         else:
             tt = model.get_travel_times((self.BHN[0].stats.sac.evdp),self.BHN[0].stats.sac.gcarc,[phase])
             # print(self.BHN[0].stats.sac)
@@ -270,7 +270,7 @@ class Interface:
             except IndexError:
                 print('index Error')
                 traveltime =None
-
+        self.tt = traveltime
         return traveltime
 
     def check_phase_dist(self,phase_to_check):
@@ -403,7 +403,7 @@ class Interface:
             writer.write('{} \n'.format(tlag_max)) # sets max tlag in gridsearch
             writer.write('0')
 
-    def sheba(self,station,phase,label,i = 0,nwind=True,path=None):
+    def sheba(self,phase,label,nwind=True,path=None):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
@@ -432,7 +432,7 @@ class Interface:
             '''.format(label,phase,label,phase)
         try:
             out = p.communicate(s)
-            # print(out[0])
+            print(out[0])
         except CalledProcessError as err:
             print(err)
 ##############################
