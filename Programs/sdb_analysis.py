@@ -477,6 +477,47 @@ class Pairs:
             print('Expectinf df input')
             self.df = df
 
+    ########## UTILS ###############
+
+    def _surf(self,ax,l2n,b_on_w=True,ylab=True,**kwargs):
+
+        '''
+        A function to plot a lambda2 surface over phi,dt (dtmax=4.0). Axis object is returned so other things such as a Title can be added.
+        '''
+        if b_on_w == True:
+            c = 'black'
+        else:
+            c = 'white'
+        params = {
+            'savefig.dpi': 500,  # to adjust notebook inline plot size
+            'axes.labelsize': 14, # fontsize for x and y labels (was 10)
+            'axes.titlesize': 16,
+            'axes.edgecolor': c, #white for pres. version
+            'font.size': 12, # was 10
+            'text.color': c, # change to white for presentations
+            'axes.labelcolor' : c, #white for pres. version
+            'xtick.color' : c, #white for pres. version
+            'ytick.color' : c, #white for pres. version
+            'legend.fontsize': 12, # was 10
+            'xtick.labelsize': 14,
+            'ytick.labelsize': 14,
+        }
+        matplotlib.rcParams.update(params)
+        C  =  ax.contour(self.T,self.F,l2n,levels=[2,5,10,15,20],colors=c)
+        Ca =  ax.contour(self.T,self.F,l2n,levels=[1],linewidths=3,lable='95% contour',colors=c)
+        # Add labels to contours
+        ax.clabel(C,C.levels,inline=True,fmt ='%2.0f')
+        ax.clabel(Ca,Ca.levels,inline=True,fmt ='%2.0f')
+        ax.set_xlim([0, 4.0])
+        ax.set_ylim([-90,90])
+        ax.set_yticks([-90,-60,-30,0,30,60,90])
+        ax.set_xticks([0,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0])
+        ax.set_xlabel(r'Lag time, $\delta t$ (s)')
+        if ylab == True:
+            ax.set_ylabel(r'Fast direction, $\phi$, ($\degree$)')
+
+        # return C, Ca
+
     def plot_dist_v_discrep(self):
 
         fig,((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2, figsize = [12,6])
@@ -832,30 +873,10 @@ class Pairs:
             surfs_to_plot - allows
             sigma - multiplier to error bounds of splitting results
         '''
-        #Set some plotting params
-        # Font coors set to white for presentaiton
-        params = {
-            'savefig.dpi': 500,  # to adjust notebook inline plot size
-            'axes.labelsize': 14, # fontsize for x and y labels (was 10)
-            'axes.titlesize': 16,
-            'axes.edgecolor': 'black', #white for pres. version
-
-            'font.size': 12, # was 10
-            'text.color': 'black', # change to white for presentations
-            'axes.labelcolor' : 'black', #white for pres. version
-            'xtick.color' : 'black', #white for pres. version
-            'ytick.color' : 'black', #white for pres. version
-            'legend.fontsize': 12, # was 10
-            'xtick.labelsize': 14,
-            'ytick.labelsize': 14,
-        }
-        matplotlib.rcParams.update(params)
-
         self.spath = surf_path
         self.p_sorted = self.df.sort_values(by='LAM2_BAR',ascending=True)
         self.p_sorted.reset_index(drop=True)
-
-        # Find indecies of events we want to plot
+        # Find indicies of events we want to plot
         if surfs_to_plot is None:
             self.surfs= np.round(np.arange(0,len(self.p_sorted),round((len(self.p_sorted)/nplots))))
         else:
@@ -875,29 +896,13 @@ class Pairs:
                     sys.exit()
 
         for s in self.surfs:
-            print(s)
             stat,date,time = self.p_sorted.STAT.values[s],self.p_sorted.DATE.values[s], self.p_sorted.TIME.values[s]
             # Note that dtlag and dfast are multiplied through by sigma HERE !
-
             fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
             fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
             lam2,lam2a_sks,lam2a_skks,lam2a_sum = self.p_sorted.LAM2_BAR.values[s],self.p_sorted.LAM2A_SKS.values[s],self.p_sorted.LAM2A_SKKS.values[s],self.p_sorted.LAM2_SUM.values[s]
             l_path = '{}/{}'.format(self.spath,stat) #Path to lambda 2 surfaces for SKS and SKKS
-            print(l_path)
             self.lam2_surface(l_path,stat,date,time)
-
-            print('Stat {}, Evt Time {}-{} LAM2 = {}'.format(stat,date,time,lam2))
-            # fig = plt.figure(figsize=(24,8))
-            # grid = ImageGrid(fig, 111,
-            #                  nrows_ncols=(1,3),
-            #                  aspect=False,
-            #                  axes_pad = 0.4,
-            #                  share_all=True,
-            #                  cbar_location='right',
-            #                  cbar_mode='single',
-            #                  cbar_size='5%',
-            #                  cbar_pad=0.20)
-            # (ax0,ax1,ax2) = grid[0],grid[1],grid[2]
             fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,7),sharey=True)
             fig.patch.set_facecolor('None')
             if self.syn is True:
@@ -905,38 +910,21 @@ class Pairs:
             else:
                 plt.suptitle(r'Station {} Date {} Time {}. $\bar{{\lambda_2}}$ = {:4.3f}, $\Delta SI$ = {}'.format(stat,date,time,self.p_sorted.LAM2_BAR.values[s],self.p_sorted.D_SI_Pa.values[s]),fontsize=20)
 
-            # gs = gridspec.GridSpec(3,2)
-            # ax0 = plt.subplot(gs[0,0])
+            self._surf(ax0,self.sks_lam2/lam2a_sks)
             ax0.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKS')
-            C0 = ax0.contour(self.T,self.F,(self.sks_lam2)/lam2a_sks,[2,5,10,15,20],colors='k')#,vmin=0,cmap='inferno_r',extend='max')  ## White contours ('w') for pres. versions
-            # ax0.contour(C0,colors='k')
-            C0a = ax0.contour(self.T,self.F,(self.sks_lam2)/lam2a_sks,[1],linewidths=3,label='95% confidence region',colors='k')
-            ax0.clabel(C0,C0.levels,inline=True,fmt ='%2.0f')
-            ax0.clabel(C0a,C0a.levels,inline=True,fmt ='%2.0f')
+            self._surf(ax1,self.skks_lam2/lam2a_skks,ylab=False)
+            ax1.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKKS')
             #Plot SKS Solution
             ax0.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
             print('Lag sks {}. Fast SKS {}.'.format(lag_sks,fast_sks))
             ax0.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
             ax0.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
-            ax0.set_ylabel(r'Fast direction, $\phi$, ($\degree$)')
-            ax0.set_xlabel(r'Lag time, $\delta t$ (s)')
+
             #Plot SKKS Solution
             ax0.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
             ax0.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
             ax0.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
-            ax0.set_ylim([-90,90])
-            ax0.set_xlim([0,4])
-            ax0.set_yticks([-90,-60,-30,0,30,60,90])
-            # ax0.contourf(self.sks_lam2,cmap='inferno_r')
-            # ax1 = plt.subplot(gs[0,1])
-            C1 = ax1.contour(self.T,self.F,(self.skks_lam2/lam2a_skks),[2,5,10,15,20],colors='k')#vmin=0,cmap='inferno_r',extend='max')  ## White contours ('w') for pres. versions
-            # print(C1)
-            # print(C0)
-            # C3 = ax1.contour(C1,colors='k')
-            C1a = ax1.contour(self.T,self.F,(self.skks_lam2/lam2a_skks),[1],linewidths=3,label='95% confidence region',colors='k')  ## White contours ('w') for pres. versions
-            ax1.clabel(C1,C1.levels,inline=True,fmt ='%2.0f')
-            ax1.clabel(C1a,C1a.levels,inline=True,fmt ='%2.0f')
-            # ax1.contourf(self.skks_lam2,cmap='magma')
+
             #Plot SKS Solution
             ax1.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
             ax1.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
@@ -945,34 +933,15 @@ class Pairs:
             ax1.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
             ax1.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
             ax1.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
-            ax1.set_xlabel(r'Lag time, $\delta t$ (s)')
-            ax1.set_ylim([-90,90])
-            ax1.set_xlim([0,4])
-            ax1.set_yticks([-90,-60,-30,0,30,60,90])
-            ax1.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKKS')
-            # ax2 = plt.subplot(gs[1:,:])
 
             stk = (self.sks_lam2 + self.skks_lam2) / (lam2a_sks + lam2a_skks)
             jf,jt  = np.unravel_index(stk.argmin(),stk.shape)
-            print(stk.argmin())
-            print(jf,jt)
             stk_fast = np.arange(-90,91,1)[jf]
             stk_lag = np.arange(0,4.025,0.025)[jt]
+            self._surf(ax2,stk,ylab=False)
 
-            C2 = ax2.contour(self.T,self.F,stk,[2,5,10,15,20],colors='k')#,cmap='inferno_r',vmin=0,extend='max') ## White contours ('w') for pres. versions
-            C2a = ax2.contour(self.T,self.F,stk,[1],linewidths=3,label='95% confidence region',colors='k') ## White contours ('w') for pres. versions
-            ax2.clabel(C2a,C2a.levels,inline=True,fmt ='%2.0f')
-            ax2.clabel(C2,C2.levels,inline=True,fmt ='%2.0f')
-            ax2.set_xlabel(r'Lag time, $\delta t$ (s)')
             ax2.plot(stk_lag,stk_fast,'g.')
             print('Lam2 BAR is ',stk.min())
-            # print('Lam2 Sum is ',l2sum)
-            # ax2.contour(T,F,stk,,colors='b')
-            # self.cbar = plt.colorbar(C)
-            # self.cbar.add_lines(C2)
-            # ax.set_title(r'Event {}. $\lambda$ 2 value = {}'.format(evt,lam2))
-            # Add fast, lag as attributes so we can plot them elsewhere
-            sol = stk.min()
 
             ##########################
             # self.stk_dlag = self.stk_dlag*sigma
@@ -996,15 +965,6 @@ class Pairs:
             ## Add a legend (on ax0)
             # leg = ax0.legend(bbox_to_anchor=(0,1),loc='upper right')
             # plt.setp(leg.get_texts(),color='k')
-            # divider = make_axes_locatable(ax2)
-            # cax = divider.append_axes("right", size="5%", pad=0.3)
-            # fig.colorbar(C1,ax=[ax0,ax1,ax2])
-            # ax2.cax.colorbar(C_plot)#, cax=cax)
-            # ax2.cax.toggle_label(True)
-
-            # cb = fig.colorbar(C1)
-            # cb.add_lines(C3)
-
             ax2.set_title(r'$ \bar{\Lambda_2} (\phi,\delta t)$')
             if save is True:
                 # dir = input('Enter Directory you want to save stacked surfaces to > ')
@@ -1012,8 +972,6 @@ class Pairs:
                 plt.close()
             elif save is False:
                 plt.show()
-
-
 
     def lam2_surface(self,fstem=None,stat=None,date=None,time=None):
         ''' Function to read  SKS and SKKS .lam2 surface files from sheba
@@ -1044,45 +1002,20 @@ class Pairs:
     def show_stacks(self,ax,evt,l2sum,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific'):
         '''Function to find and plot desired surface stacks based on the LAMDA2 value '''
         ### Plot Min Lamnda 2
-
-        print('{}/Stacks/{}??.lamSTK'.format(path,evt))
-        file =glob('{}/Stacks/{}??.lamSTK'.format(path,evt))
-        print(file)
-        if len(file) == 0:
-            file = glob('{}/Stacks/{}*.lamSTK'.format(path,'_'.join(evt.split('_')[0:-1])))
-
-        stk = np.loadtxt(file[0])
+        # 
+        # print('{}/Stacks/{}??.lamSTK'.format(path,evt))
+        # file =glob('{}/Stacks/{}??.lamSTK'.format(path,evt))
+        # print(file)
+        # if len(file) == 0:
+        #     file = glob('{}/Stacks/{}*.lamSTK'.format(path,'_'.join(evt.split('_')[0:-1])))
+        #
+        # stk = np.loadtxt(file[0])
+        #
+        # print('Lam2 {}, fast {} lag {}'.format(sol,fast,lag))
+        # self.stk_fast = fast
+        # self.stk_lag = lag
         # return stk
-        # nfast,nlag = stk.shape ;
-        # lag_step = 0.025
-        # lag_max = (nlag) * lag_step;
-        # [T,F] = np.meshgrid(np.arange(0,lag_max,lag_step),np.arange(-90,91,1)) ;
-        # jf,jt  = np.unravel_index(stk.argmin(),stk.shape)
-        # print(stk.argmin())
-        # print(jf,jt)
-        # fast = np.arange(-90,91,1)[jf]
-        # lag = np.arange(0,lag_max,lag_step)[jt]
-        # C = ax.contourf(T,F,stk/(),20,cmap='inferno_r',vmin=0,extend='max')
-        # # C2 = ax.contour(C,colors='k')
-        # # ax.set_ylabel(r'Fast,$\phi$, (deg)')
-        # ax.set_xlabel(r'Lag time, $\delta t$ (s)')
-        # # ax.plot([lag-dlag,lag+dlag],[fast,fast],'g-')
-        # # ax.plot([lag,lag],[fast-dfast,fast+dfast],'g-')
-        # ax.plot(lag,fast,'g.')
-        # # ax.clabel(C,C.levels,inline=True,fmt ='%4.3f')
-        # print('Lam2 BAR is ',stk.min())
-        # print('Lam2 Sum is ',l2sum)
-        # ax.contour(T,F,stk,[l2sum],colors='b')
-        # # self.cbar = plt.colorbar(C)
-        # # self.cbar.add_lines(C2)
-        # # ax.set_title(r'Event {}. $\lambda$ 2 value = {}'.format(evt,lam2))
-        # # Add fast, lag as attributes so we can plot them elsewhere
-        # sol = stk.min()
 
-        print('Lam2 {}, fast {} lag {}'.format(sol,fast,lag))
-        self.stk_fast = fast
-        self.stk_lag = lag
-        return stk
 
     def plot_l2sum_v_l2bar(self,save=False):
         '''
@@ -1317,6 +1250,8 @@ class Pairs:
         plt.suptitle(r'Latitude v Discrepancy parameters for N-S trending SKS-SKKS pairs')
         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Lat_v_splitting_params.png',dpi = 400,transparent=True)
         plt.show()
+
+
 
 #####################################################################################################
 # Top level where script is invoked from command line
