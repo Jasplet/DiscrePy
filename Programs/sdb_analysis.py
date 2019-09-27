@@ -819,7 +819,6 @@ class Pairs:
         ax2.set_ylabel('Count')
         plt.show()
 
-
     def plot_SNR_v_l2(self):
         '''
         Make plots of SNR v lambda2. In the style of phi_i v SNR from Restivo and Helffrich (2006)
@@ -999,22 +998,8 @@ class Pairs:
         self.lag_max = 4.
         [self.T,self.F] = np.meshgrid(np.linspace(0,self.lag_max,num=self.nlag),np.arange(-90,91,1)) ;
 
-    def show_stacks(self,ax,evt,l2sum,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific'):
-        '''Function to find and plot desired surface stacks based on the LAMDA2 value '''
-        ### Plot Min Lamnda 2
-        # 
-        # print('{}/Stacks/{}??.lamSTK'.format(path,evt))
-        # file =glob('{}/Stacks/{}??.lamSTK'.format(path,evt))
-        # print(file)
-        # if len(file) == 0:
-        #     file = glob('{}/Stacks/{}*.lamSTK'.format(path,'_'.join(evt.split('_')[0:-1])))
-        #
-        # stk = np.loadtxt(file[0])
-        #
-        # print('Lam2 {}, fast {} lag {}'.format(sol,fast,lag))
-        # self.stk_fast = fast
-        # self.stk_lag = lag
-        # return stk
+    def plot_single_surf(self,fstem,stat,date):
+        '''Function to find and plot a single lambda 2 surface surface '''
 
 
     def plot_l2sum_v_l2bar(self,save=False):
