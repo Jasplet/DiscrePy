@@ -516,7 +516,203 @@ class Pairs:
         if ylab == True:
             ax.set_ylabel(r'Fast direction, $\phi$, ($\degree$)')
 
+        return
+
+    def _ppm(self,ax,e,n, **kwargs):
+        '''
+        e - east component seismogram (st[0].data, not stream channel)
+        n - north component seismogram (st[1].data, not stream channel)
+        '''
         # return C, Ca
+
+        ax.plot(n,e)
+
+        # set limits
+        lim = np.abs(max([e.max(),n.max()])) * 1.1
+        if 'lims' not in kwargs: kwargs['lims'] = [-lim, lim]
+        ax.set_aspect('equal')
+        ax.set_ylim(kwargs['lims'])
+        ax.set_xlim(kwargs['lims'])
+
+        # set axes labels
+        ax.set_xlabel('N')
+        ax.set_lyabel('E')
+
+        # turn off tick labels
+        ax.axes.xaxis.set_ticklabels([])
+        ax.axes.yaxis.set_ticklabels([])
+        return
+
+    def lam2_surface(self,fstem=None,stat=None,date=None,time=None):
+        ''' Function to read  SKS and SKKS .lam2 surface files from sheba
+        If syn if False (i.e real data is being used.) Then fstem in needed
+        IF syn is True then f1 , f2 are needed
+        '''
+        print(fstem)
+
+        t_sks = '{}/SKS/{}_{}_{}??_SKS.lamR'.format(fstem,stat,date,time)
+        t_skks = '{}/SKKS/{}_{}_{}??_SKKS.lamR'.format(fstem,stat,date,time)
+
+        sks =glob(t_sks)
+        skks = glob(t_skks)
+        print(sks)
+        if len(sks) == 0:
+            # print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1]))
+            sks = glob('{}/SKS/{}_{}*_SKS.lamR'.format(fstem,stat,date))
+            skks = glob('{}/SKKS/{}_{}*_SKKS.lamR'.format(fstem,stat,date))
+            print(sks)
+
+        self.sks_lam2 = np.loadtxt(sks[0])#,skiprows=4) # skip rows not needed for .lamR files
+        self.skks_lam2 = np.loadtxt(skks[0])#,skiprows=4)
+
+        self.nfast,self.nlag = self.sks_lam2.shape ;
+        self.lag_max = 4.
+        [self.T,self.F] = np.meshgrid(np.linspace(0,self.lag_max,num=self.nlag),np.arange(-90,91,1)) ;
+        return
+
+    def package(self,outdir,mypath='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'):
+        '''
+        Function to package the SAC files for the observations made into a new directory (for sharing data and results)
+        '''
+        if os.path.isdir('{}{}'.format(mypath,outdir)) is False:
+            #If outdir doesnt exist then Make it ad underlying structure (an additional SAC directory )
+            os.makedirs('{}{}/SAC'.format(mypath,outdir))
+
+        def mk_sacfiles(path,stat,date,time):
+            '''Function to generate sacfile names'''
+            #path='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'
+            return '{}/{}/{}_{}_{}*BH?.sac'.format(path,stat,stat,date,time)
+
+        def cp_sacfile(sacfile,path,outdir):
+            '''Function to copy sacfile to the output directory
+            Path - path to the output directorys
+            Outdir - output directory name
+            '''
+            call('cp {} {}/{}/SAC/'.format(sacfile,path,outdir),shell=True)
+            print('cp {} {}/{}/SAC/'.format(sacfile,path,outdir))
+
+        mk_sacfiles_mypath = lambda stat,date,time : mk_sacfiles('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files',stat,date,time)
+        cp_sacfiles_mypath = lambda sacfile: cp_sacfile(sacfile,mypath,outdir)
+        sacfiles = list(map(mk_sacfiles_mypath,self.P.STAT,self.P.DATE,self.P.TIME))
+
+        for file in sacfiles:
+            cp_sacfile(file,mypath,outdir)
+
+
+    def discrepancy_plot(self,surf_path=None,nplots=2,surfs_to_plot=None,save=False,sigma=1,**kwargs):
+        '''Top level plotting function for surfaces to look for discrepancy in Splitting
+            surf_path [str] - path to the runs directory containing the surfaces to plot
+            nplots - the number of plots that you want (if the surfs_to_plot is not specified)
+            surfs_to_plot - allows
+            sigma - multiplier to error bounds of splitting results
+        '''
+        self.spath = surf_path
+        self.p_sorted = self.df.sort_values(by='LAM2_BAR',ascending=True)
+        self.p_sorted.reset_index(drop=True)
+        # Find indicies of events we want to plot
+        if surfs_to_plot is None:
+            self.surfs= np.round(np.arange(0,len(self.p_sorted),round((len(self.p_sorted)/nplots))))
+        else:
+            self.surfs = list(set([i if i < len(self.p_sorted) else (len(self.p_sorted)-1) for i in surfs_to_plot])) # This makes sure that indicies are always within the range of available surfaces (stops errors for occuring)
+            #self.surfs = self.surfs.sort() # Sorts list in ascending order, has to be done speratly as sort acts of list and returns nothing
+        # print(self.surfs)
+        if save is True:
+            dir = input('Enter Directory you want to save stacked surfaces to > ')
+
+            if os.path.isdir('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}'.format(dir)) is False:
+                make_d = input('Directory {} does not exist, do you want to create it? (y/n)'.format(dir))
+                if make_d =='y':
+                    print('Ok, creating directory {}'.format(dir))
+                    os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}'.format(dir))
+                else:
+                    print('Exiting....')
+                    sys.exit()
+
+        for s in self.surfs:
+            stat,date,time = self.p_sorted.STAT.values[s],self.p_sorted.DATE.values[s], self.p_sorted.TIME.values[s]
+            # Note that dtlag and dfast are multiplied through by sigma HERE !
+            fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
+            fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
+            lam2,lam2a_sks,lam2a_skks,lam2a_sum = self.p_sorted.LAM2_BAR.values[s],self.p_sorted.LAM2A_SKS.values[s],self.p_sorted.LAM2A_SKKS.values[s],self.p_sorted.LAM2_SUM.values[s]
+            l_path = '{}/{}'.format(self.spath,stat) #Path to lambda 2 surfaces for SKS and SKKS
+            self.lam2_surface(l_path,stat,date,time)
+            fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,7),sharey=True)
+            fig.patch.set_facecolor('None')
+            if self.syn is True:
+                plt.suptitle(r'Syn Stack E1: {} E2: {} $\lambda _2$ value = {:4.3f}'.format(self.syn1[s],self.syn2[s],self.df.LAM2_BAR.values[s]),fontsize=20)
+            else:
+                plt.suptitle(r'Station {} Date {} Time {}. $\bar{{\lambda_2}}$ = {:4.3f}, $\Delta SI$ = {}'.format(stat,date,time,self.p_sorted.LAM2_BAR.values[s],self.p_sorted.D_SI_Pa.values[s]),fontsize=20)
+
+            self._surf(ax0,self.sks_lam2/lam2a_sks)
+            ax0.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKS')
+            self._surf(ax1,self.skks_lam2/lam2a_skks,ylab=False)
+            ax1.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKKS')
+            #Plot SKS Solution
+            ax0.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
+            print('Lag sks {}. Fast SKS {}.'.format(lag_sks,fast_sks))
+            ax0.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
+            ax0.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
+
+            #Plot SKKS Solution
+            ax0.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
+            ax0.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
+            ax0.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
+
+            #Plot SKS Solution
+            ax1.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
+            ax1.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
+            ax1.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
+            #Plot SKKS Solution
+            ax1.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
+            ax1.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
+            ax1.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
+
+            stk = (self.sks_lam2 + self.skks_lam2) / (lam2a_sks + lam2a_skks)
+            jf,jt  = np.unravel_index(stk.argmin(),stk.shape)
+            stk_fast = np.arange(-90,91,1)[jf]
+            stk_lag = np.arange(0,4.025,0.025)[jt]
+            self._surf(ax2,stk,ylab=False)
+
+            ax2.plot(stk_lag,stk_fast,'g.')
+            print('Lam2 BAR is ',stk.min())
+
+            ##########################
+            # self.stk_dlag = self.stk_dlag*sigma
+            # self.stk_dfast = self.stk_dfast*sigma
+            ############################
+            ax2.set_ylim([-90,90])
+            ax2.set_xlim([0,4])
+            ax2.set_yticks([-90,-60,-30,0,30,60,90])
+            #Plto SKS solution
+            ax2.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
+            ax2.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
+            ax2.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
+            #Plot SKKS solution
+            ax2.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
+            ax2.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
+            ax2.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
+            # Plot Stacked solution on SKS
+            ax0.plot(stk_lag,stk_fast,'g.',label='Stacked Solution')
+            # Plot Stacked Solution on SKKS surface
+            ax1.plot(stk_lag,stk_fast,'g.',label='Stacked Solution')
+            ## Add a legend (on ax0)
+            # leg = ax0.legend(bbox_to_anchor=(0,1),loc='upper right')
+            # plt.setp(leg.get_texts(),color='k')
+            ax2.set_title(r'$ \bar{\Lambda_2} (\phi,\delta t)$')
+            if save is True:
+                # dir = input('Enter Directory you want to save stacked surfaces to > ')
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.png'.format(dir,lam2,stat),format='png',dpi=400,transparent=True)
+                plt.close()
+            elif save is False:
+                plt.show()
+
+
+    def plot_single_surf(self,i,phase):
+        '''Function to find a SWS result from SHEBA and make a nicer version of the output plot (Lam2 surface, ppm ) '''
+
+
+        fig = plt.figure()
+
 
     def plot_dist_v_discrep(self):
 
@@ -835,172 +1031,6 @@ class Pairs:
         ax2.set_xlabel('S/N ratio')
         ax2.set_title(r'$\bar{\lambda_2}$ v SNR for SKKS')
         plt.show()
-
-    def package(self,outdir,mypath='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'):
-        '''
-        Function to package the SAC files for the observations made into a new directory (for sharing data and results)
-        '''
-        if os.path.isdir('{}{}'.format(mypath,outdir)) is False:
-            #If outdir doesnt exist then Make it ad underlying structure (an additional SAC directory )
-            os.makedirs('{}{}/SAC'.format(mypath,outdir))
-
-        def mk_sacfiles(path,stat,date,time):
-            '''Function to generate sacfile names'''
-            #path='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'
-            return '{}/{}/{}_{}_{}*BH?.sac'.format(path,stat,stat,date,time)
-
-        def cp_sacfile(sacfile,path,outdir):
-            '''Function to copy sacfile to the output directory
-            Path - path to the output directorys
-            Outdir - output directory name
-            '''
-            call('cp {} {}/{}/SAC/'.format(sacfile,path,outdir),shell=True)
-            print('cp {} {}/{}/SAC/'.format(sacfile,path,outdir))
-
-        mk_sacfiles_mypath = lambda stat,date,time : mk_sacfiles('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files',stat,date,time)
-        cp_sacfiles_mypath = lambda sacfile: cp_sacfile(sacfile,mypath,outdir)
-        sacfiles = list(map(mk_sacfiles_mypath,self.P.STAT,self.P.DATE,self.P.TIME))
-
-        for file in sacfiles:
-            cp_sacfile(file,mypath,outdir)
-
-
-    def discrepancy_plot(self,surf_path=None,nplots=2,surfs_to_plot=None,save=False,sigma=1,**kwargs):
-        '''Top level plotting function for surfaces to look for discrepancy in Splitting
-            surf_path [str] - path to the runs directory containing the surfaces to plot
-            nplots - the number of plots that you want (if the surfs_to_plot is not specified)
-            surfs_to_plot - allows
-            sigma - multiplier to error bounds of splitting results
-        '''
-        self.spath = surf_path
-        self.p_sorted = self.df.sort_values(by='LAM2_BAR',ascending=True)
-        self.p_sorted.reset_index(drop=True)
-        # Find indicies of events we want to plot
-        if surfs_to_plot is None:
-            self.surfs= np.round(np.arange(0,len(self.p_sorted),round((len(self.p_sorted)/nplots))))
-        else:
-            self.surfs = list(set([i if i < len(self.p_sorted) else (len(self.p_sorted)-1) for i in surfs_to_plot])) # This makes sure that indicies are always within the range of available surfaces (stops errors for occuring)
-            #self.surfs = self.surfs.sort() # Sorts list in ascending order, has to be done speratly as sort acts of list and returns nothing
-        # print(self.surfs)
-        if save is True:
-            dir = input('Enter Directory you want to save stacked surfaces to > ')
-
-            if os.path.isdir('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}'.format(dir)) is False:
-                make_d = input('Directory {} does not exist, do you want to create it? (y/n)'.format(dir))
-                if make_d =='y':
-                    print('Ok, creating directory {}'.format(dir))
-                    os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}'.format(dir))
-                else:
-                    print('Exiting....')
-                    sys.exit()
-
-        for s in self.surfs:
-            stat,date,time = self.p_sorted.STAT.values[s],self.p_sorted.DATE.values[s], self.p_sorted.TIME.values[s]
-            # Note that dtlag and dfast are multiplied through by sigma HERE !
-            fast_sks,dfast_sks,lag_sks,dlag_sks = self.p_sorted.FAST_SKS.values[s],(sigma*self.p_sorted.DFAST_SKS.values[s]),self.p_sorted.TLAG_SKS.values[s],(sigma*self.p_sorted.DTLAG_SKS.values[s])
-            fast_skks,dfast_skks,lag_skks,dlag_skks = self.p_sorted.FAST_SKKS.values[s],(sigma*self.p_sorted.DFAST_SKKS.values[s]),self.p_sorted.TLAG_SKKS.values[s],(sigma*self.p_sorted.DTLAG_SKKS.values[s])
-            lam2,lam2a_sks,lam2a_skks,lam2a_sum = self.p_sorted.LAM2_BAR.values[s],self.p_sorted.LAM2A_SKS.values[s],self.p_sorted.LAM2A_SKKS.values[s],self.p_sorted.LAM2_SUM.values[s]
-            l_path = '{}/{}'.format(self.spath,stat) #Path to lambda 2 surfaces for SKS and SKKS
-            self.lam2_surface(l_path,stat,date,time)
-            fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,7),sharey=True)
-            fig.patch.set_facecolor('None')
-            if self.syn is True:
-                plt.suptitle(r'Syn Stack E1: {} E2: {} $\lambda _2$ value = {:4.3f}'.format(self.syn1[s],self.syn2[s],self.df.LAM2_BAR.values[s]),fontsize=20)
-            else:
-                plt.suptitle(r'Station {} Date {} Time {}. $\bar{{\lambda_2}}$ = {:4.3f}, $\Delta SI$ = {}'.format(stat,date,time,self.p_sorted.LAM2_BAR.values[s],self.p_sorted.D_SI_Pa.values[s]),fontsize=20)
-
-            self._surf(ax0,self.sks_lam2/lam2a_sks)
-            ax0.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKS')
-            self._surf(ax1,self.skks_lam2/lam2a_skks,ylab=False)
-            ax1.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKKS')
-            #Plot SKS Solution
-            ax0.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
-            print('Lag sks {}. Fast SKS {}.'.format(lag_sks,fast_sks))
-            ax0.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
-            ax0.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
-
-            #Plot SKKS Solution
-            ax0.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
-            ax0.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
-            ax0.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
-
-            #Plot SKS Solution
-            ax1.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
-            ax1.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
-            ax1.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
-            #Plot SKKS Solution
-            ax1.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
-            ax1.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
-            ax1.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
-
-            stk = (self.sks_lam2 + self.skks_lam2) / (lam2a_sks + lam2a_skks)
-            jf,jt  = np.unravel_index(stk.argmin(),stk.shape)
-            stk_fast = np.arange(-90,91,1)[jf]
-            stk_lag = np.arange(0,4.025,0.025)[jt]
-            self._surf(ax2,stk,ylab=False)
-
-            ax2.plot(stk_lag,stk_fast,'g.')
-            print('Lam2 BAR is ',stk.min())
-
-            ##########################
-            # self.stk_dlag = self.stk_dlag*sigma
-            # self.stk_dfast = self.stk_dfast*sigma
-            ############################
-            ax2.set_ylim([-90,90])
-            ax2.set_xlim([0,4])
-            ax2.set_yticks([-90,-60,-30,0,30,60,90])
-            #Plto SKS solution
-            ax2.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
-            ax2.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
-            ax2.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
-            #Plot SKKS solution
-            ax2.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
-            ax2.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
-            ax2.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
-            # Plot Stacked solution on SKS
-            ax0.plot(stk_lag,stk_fast,'g.',label='Stacked Solution')
-            # Plot Stacked Solution on SKKS surface
-            ax1.plot(stk_lag,stk_fast,'g.',label='Stacked Solution')
-            ## Add a legend (on ax0)
-            # leg = ax0.legend(bbox_to_anchor=(0,1),loc='upper right')
-            # plt.setp(leg.get_texts(),color='k')
-            ax2.set_title(r'$ \bar{\Lambda_2} (\phi,\delta t)$')
-            if save is True:
-                # dir = input('Enter Directory you want to save stacked surfaces to > ')
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.png'.format(dir,lam2,stat),format='png',dpi=400,transparent=True)
-                plt.close()
-            elif save is False:
-                plt.show()
-
-    def lam2_surface(self,fstem=None,stat=None,date=None,time=None):
-        ''' Function to read  SKS and SKKS .lam2 surface files from sheba
-        If syn if False (i.e real data is being used.) Then fstem in needed
-        IF syn is True then f1 , f2 are needed
-        '''
-        print(fstem)
-
-        t_sks = '{}/SKS/{}_{}_{}??_SKS.lamR'.format(fstem,stat,date,time)
-        t_skks = '{}/SKKS/{}_{}_{}??_SKKS.lamR'.format(fstem,stat,date,time)
-
-        sks =glob(t_sks)
-        skks = glob(t_skks)
-        print(sks)
-        if len(sks) == 0:
-            # print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1]))
-            sks = glob('{}/SKS/{}_{}*_SKS.lamR'.format(fstem,stat,date))
-            skks = glob('{}/SKKS/{}_{}*_SKKS.lamR'.format(fstem,stat,date))
-            print(sks)
-
-        self.sks_lam2 = np.loadtxt(sks[0])#,skiprows=4) # skip rows not needed for .lamR files
-        self.skks_lam2 = np.loadtxt(skks[0])#,skiprows=4)
-
-        self.nfast,self.nlag = self.sks_lam2.shape ;
-        self.lag_max = 4.
-        [self.T,self.F] = np.meshgrid(np.linspace(0,self.lag_max,num=self.nlag),np.arange(-90,91,1)) ;
-
-    def plot_single_surf(self,fstem,stat,date):
-        '''Function to find and plot a single lambda 2 surface surface '''
-
 
     def plot_l2sum_v_l2bar(self,save=False):
         '''
