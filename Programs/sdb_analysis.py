@@ -6,6 +6,7 @@ import os
 import shlex
 from subprocess import call
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib
 import numpy as np
@@ -13,6 +14,9 @@ from stack import Stacker
 from time import ctime
 from glob import glob
 from scipy import stats
+import obspy
+import obspy.taup
+
 
 class Builder:
     """
@@ -439,6 +443,7 @@ class Pairs:
                     leading zeros in date and time will be applied
         fname [str] - Full path to (and including) the pairs file your want to read in.
         '''
+        self.rpath = '/Users/ja17375/Shear_Wave_Splitting/'
         self.syn = syn # [Bool] - is data synthetics or not?
         if self.syn == True:
             self.syn1 = syn1
@@ -474,7 +479,7 @@ class Pairs:
 
 
         elif file is False:
-            print('Expectinf df input')
+            print('Expecting df input')
             self.df = df
 
     ########## UTILS ###############
@@ -504,7 +509,7 @@ class Pairs:
         }
         matplotlib.rcParams.update(params)
         C  =  ax.contour(self.T,self.F,l2n,levels=[2,5,10,15,20],colors=c)
-        Ca =  ax.contour(self.T,self.F,l2n,levels=[1],linewidths=3,lable='95% contour',colors=c)
+        Ca =  ax.contour(self.T,self.F,l2n,levels=[1],linewidths=3,label='95% contour',colors=c)
         # Add labels to contours
         ax.clabel(C,C.levels,inline=True,fmt ='%2.0f')
         ax.clabel(Ca,Ca.levels,inline=True,fmt ='%2.0f')
@@ -536,26 +541,51 @@ class Pairs:
 
         # set axes labels
         ax.set_xlabel('N')
-        ax.set_lyabel('E')
+        ax.set_ylabel('E')
 
         # turn off tick labels
         ax.axes.xaxis.set_ticklabels([])
         ax.axes.yaxis.set_ticklabels([])
         return
 
+    def _mod_tt(self,tr,phase):
+        """
+        Function to run TauP traveltime models for the SKS phase.
+        Returns SKS predictided arrivals (seconds), origin time of the event (t0) as a UTCDateTime obejct and the SKS arrival as a UTCDateTime object
+        tr - trace object for which SKS arrival time will be predicted
+        """
+        model = obspy.taup.tau.TauPyModel(model="iasp91")
+
+        # Add in a test for the case where depth has been gien in meters
+        if tr.stats.sac.evdp >= 1000:
+            #This might be a bit generous but my events shouldnt be shallower the ~ 1 km or deeper than 1000km anyway (and if this is the case than there is something SERIOUSLY wrong with our earth models)
+            traveltime = model.get_travel_times((tr.stats.sac.evdp/1000),tr.stats.sac.gcarc,[phase])[0].time
+            print(traveltime)
+        elif tr.stats.sac.evdp == 0: # Theres an event where the event data couldnt be found so evdp was set to be 0
+            # Having a depth of zero will give us problems so NOW change it to 10.0km exactly (these traveltimes could be very dodgy)
+            traveltime = model.get_travel_times(10,tr.stats.sac.gcarc,[phase])[0].time
+        else:
+            tt = model.get_travel_times((tr.stats.sac.evdp),tr.stats.sac.gcarc,[phase])
+            try:
+                traveltime = tt[0].time
+            except IndexError:
+                print('index Error')
+                traveltime =None
+        return traveltime
+
     def lam2_surface(self,fstem=None,stat=None,date=None,time=None):
         ''' Function to read  SKS and SKKS .lam2 surface files from sheba
         If syn if False (i.e real data is being used.) Then fstem in needed
         IF syn is True then f1 , f2 are needed
         '''
-        print(fstem)
+        # print(fstem)
 
         t_sks = '{}/SKS/{}_{}_{}??_SKS.lamR'.format(fstem,stat,date,time)
         t_skks = '{}/SKKS/{}_{}_{}??_SKKS.lamR'.format(fstem,stat,date,time)
 
         sks =glob(t_sks)
         skks = glob(t_skks)
-        print(sks)
+        # print(sks)
         if len(sks) == 0:
             # print('{}/SKS/{}*_SKS.lamR'.format('/'.join(fstem.split('/')[0:-1]),fstem.split('/')[-1]))
             sks = glob('{}/SKS/{}_{}*_SKS.lamR'.format(fstem,stat,date))
@@ -707,12 +737,98 @@ class Pairs:
                 plt.show()
 
 
-    def plot_single_surf(self,i,phase):
+    def plot_single_phase(self,i,phase,rdir='E_pacific',save=False):
         '''Function to find a SWS result from SHEBA and make a nicer version of the output plot (Lam2 surface, ppm ) '''
 
+        evt = self.df.iloc[i].copy()
+        s = '{}/Sheba/Runs/{}/{}/{}/{}_{}_{}??_{}.BH*'.format(self.rpath,rdir,evt.STAT,phase,evt.STAT,evt.DATE,evt.TIME,phase)
+        s_c = '{}/Sheba/Runs/{}/{}/{}/{}_{}_{}??_{}_corr.BH*'.format(self.rpath,rdir,evt.STAT,phase,evt.STAT,evt.DATE,evt.TIME,phase)
+        st = obspy.read(s) # Read in uncorrected trace (trimmed and output from Sheba.py)
+        d_st = st[0].stats.delta # Read the sampling interval
+        tt = self._mod_tt(st[0],phase) - 60# Get traveltime (minus 60 seconds as thats when traces start)
+        st_c = obspy.read(s_c)
+        t = tt + np.arange(0,st[0].stats.npts*d_st,d_st)
 
-        fig = plt.figure()
+        self.lam2_surface('{}/Sheba/Runs/{}/{}'.format(self.rpath,rdir,evt.STAT),evt.STAT,evt.DATE,evt.TIME)
 
+        if phase == 'SKS':
+            wbeg = evt.WBEG_SKS
+            wend = evt.WEND_SKS
+            l2n = self.sks_lam2/evt.LAM2A_SKS
+            phi = evt.FAST_SKS
+            dphi = evt.DFAST_SKS
+            dt = evt.TLAG_SKS
+            ddt = evt.DTLAG_SKS
+            spol = evt.SPOL_SKS
+            Q = evt.Q_SKS
+
+        elif phase == 'SKKS':
+            wbeg = evt.WBEG_SKKS
+            wend = evt.WEND_SKKS
+            l2n = self.skks_lam2/evt.LAM2A_SKKS
+            phi = evt.FAST_SKKS
+            dphi = evt.DFAST_SKKS
+            dt = evt.TLAG_SKKS
+            ddt = evt.DTLAG_SKKS
+            spol = evt.SPOL_SKKS
+            Q = evt.Q_SKKS
+        ####### Plotting ########
+        fig = plt.figure(figsize=(18,12))
+        gs = GridSpec(4,3)
+        ax1 = fig.add_subplot(gs[0,:])   # top row for traces
+        ax2 = fig.add_subplot(gs[1,:])   # top row for traces
+        ax3 = fig.add_subplot(gs[2,0])   # box for uncorrected particle motion
+        ax4 = fig.add_subplot(gs[3,0])   # box for corrected particle motion
+        ax5 = fig.add_subplot(gs[2:,1:]) # 2x2 box for lam2 surface
+        #Plot traces
+        ax1.plot(t,st[0].data,'-')
+        ax1.plot(t,st[1].data,'-',color='darkorange')
+        ax1.axvline(wbeg,linewidth=1.5,color='r')
+        ax1.axvline(wend,linewidth=1.5,color='r')
+        ax1.set_xlim([wbeg - 20,wend+20])
+
+        # Plot corrected traces
+        ax2.plot(t,st_c[0].data,'--')
+        ax2.plot(t,st_c[1].data,'--')
+        ax2.axvline(wbeg,linewidth=1.5,color='r')
+        ax2.axvline(wend,linewidth=1.5,color='r')
+        ax2.set_xlim([wbeg - 20,wend + 20])
+
+        #Plot Uncorrected particle motion
+        st2 = st.copy()
+        st2[0].trim(st2[0].stats.starttime + (wbeg - tt), st2[0].stats.starttime + (wend - tt))
+        st2[1].trim(st2[1].stats.starttime + (wbeg - tt), st2[1].stats.starttime + (wend - tt))
+        self._ppm(ax3,st2[0].data,st2[1].data)
+        # Plor corrected particle motion
+        st2_c = st.copy()
+        st2_c[0].trim(st2_c[0].stats.starttime + (wbeg - tt), st2_c[0].stats.starttime + (wend - tt))
+        st2_c[1].trim(st2_c[1].stats.starttime + (wbeg - tt), st2_c[1].stats.starttime + (wend - tt))
+        self._ppm(ax4,st2_c[0].data,st2_c[1].data)
+        #
+
+        self._surf(ax5,l2n)
+        ax5.plot(dt,phi,'X',markersize=10,color='r')
+
+        #### Just plot the Lam2 surface
+        fig2 = plt.figure(figsize=(9,9))
+        ax = fig2.add_subplot(111)
+
+        y = st[0].stats.starttime.year
+        d =st[0].stats.starttime.julday
+        h = st[0].stats.starttime.hour
+        m = st[0].stats.starttime.minute
+        s = st[0].stats.starttime.second
+
+        self._surf(ax,l2n)
+        ax.plot(dt,phi,'X',markersize=16,color='r')
+        plt.suptitle(r'Stat: {}, Date: {:04}{:03} Time: {:02}:{:02}:{:02}'.format(evt.STAT,y,d,h,m,s),fontsize=14)
+        plt.title(r'$\phi$ = {:2.2f}$\degree$ +/- {:2.2f}, $\delta t$ = {:2.2f}s +/- {:2.2f}, SPOL = {:3.1f}$\degree$, Q = {:2.3f}'.format(phi,dphi,dt,ddt,spol,Q),fontsize=14)
+
+        if save == True:
+            fig2.savefig('{}Figures/{}_null_ex.png'.format(self.rpath,evt.STAT),dpi = 400)
+
+        plt.show()
+        # return st
 
     def plot_dist_v_discrep(self):
 
