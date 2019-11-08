@@ -731,7 +731,7 @@ class Pairs:
             ax2.set_title(r'$ \bar{\Lambda_2} (\phi,\delta t)$')
             if save is True:
                 # dir = input('Enter Directory you want to save stacked surfaces to > ')
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.png'.format(dir,lam2,stat),format='png',dpi=400,transparent=True)
+                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.eps'.format(dir,lam2,stat),format='eps',dpi=600,transparent=True)
                 plt.close()
             elif save is False:
                 plt.show()
@@ -825,7 +825,7 @@ class Pairs:
         plt.title(r'$\phi$ = {:2.2f}$\degree$ +/- {:2.2f}, $\delta t$ = {:2.2f}s +/- {:2.2f}, SPOL = {:3.1f}$\degree$, Q = {:2.3f}'.format(phi,dphi,dt,ddt,spol,Q),fontsize=14)
 
         if save == True:
-            fig2.savefig('{}Figures/{}_null_ex.png'.format(self.rpath,evt.STAT),dpi = 400)
+            fig2.savefig('{}Figures/{}_null_ex.eps'.format(self.rpath,evt.STAT),dpi = 600)
 
         plt.show()
         # return st
@@ -1179,7 +1179,7 @@ class Pairs:
         ax.legend(fontsize='medium')
         #plt.colorbar(C)\
         if save == True:
-            plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/Lam2bar_v_Lam2sum_l2_dsi.png',format='png',transparent=True,dpi=400) # /Users/ja17375/Shear_Wave_Splitting/Figures/
+            plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/Lam2bar_v_Lam2sum_l2_dsi.png',format='eps',transparent=True,dpi=400) # /Users/ja17375/Shear_Wave_Splitting/Figures/
             plt.show()
         else:
             plt.show()
