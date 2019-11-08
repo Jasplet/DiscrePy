@@ -103,7 +103,7 @@ class Synth:
         ax2.set_ylabel(r'Fast direction $\phi$ ( $\degree$)' ,fontsize=16)
         ax2.set_title(r'Splitting parameters recovered by SHEBA',fontsize=16)
         if save is True:
-            plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/SYNTH_in_v_out_025.png',format='png',dpi=400,transparent=True)
+            plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/SYNTH_in_v_out_025.eps',format='eps',dpi=400,transparent=True)
         plt.tick_params(labelsize=14)
         plt.show()
 
