@@ -260,7 +260,7 @@ class Interface:
             # Having a depth of zero will give us problems so NOW change it to 10.0km exactly (these traveltimes could be very dodgy)
             err_out = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Events_with_evdp_of_0.txt','w+')
             err_out.write('Station: {}, has event starting at {} with an evdp of 0!\n'.format(self.station,self.BHN[0].stats.starttime))
-            traveltime = model.get_travel_times(10,self.BHN.stats.sac.gcarc,[phase])[0].time
+            traveltime = model.get_travel_times(10,self.BHN[0].stats.sac.gcarc,[phase])[0].time
         else:
             tt = model.get_travel_times((self.BHN[0].stats.sac.evdp),self.BHN[0].stats.sac.gcarc,[phase])
             # print(self.BHN[0].stats.sac)
@@ -432,7 +432,7 @@ class Interface:
             '''.format(label,phase,label,phase)
         try:
             out = p.communicate(s)
-            print(out[0])
+            # print(out[0])
         except CalledProcessError as err:
             print(err)
 ##############################
@@ -464,7 +464,7 @@ if __name__ == '__main__':
     evt_list = sys.argv[1] # A .events file containing a list of filestems to al the data we want to measure
     rundir=sys.argv[2] # The run directory that you want to house the output files
     run_mode = sys.argv[3] # par is wanting to run in parallel, ser if running serially
-    mode=sys.argv[4] # None if using real data, syn is using synthetics
+    mode=sys.argv[4] # data if using real data, syn is using synthetics
     # print(mode,type(mode))
     file_list ='/Users/ja17375/Shear_Wave_Splitting/Data/{}'.format(evt_list)
     # echo out where I expect the staiton list to be
