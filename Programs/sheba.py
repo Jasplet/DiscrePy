@@ -54,7 +54,7 @@ def tidyup(path,phase,outfile,outdir):
     else:
         fnames = glob('{}/*/{}/*final_result'.format(path,phase))
     results = []
-    print(fnames)
+    # print(fnames)
     for i,file in enumerate(fnames):
         # print(file)
         f_stat = fnames[i].rstrip('final_result') + 'stats'
@@ -489,7 +489,7 @@ if __name__ == '__main__':
         # runpath ='/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
         runner = partial(run_sheba,runpath)
         if run_mode == 'par':
-            with contextlib.closing( Pool(processes = 5) ) as pool:
+            with contextlib.closing( Pool(processes = 2) ) as pool:
             #           Iterate over stations in the station list.
                 pool.map(runner,files)
             #               pool.map(tidyup,stations) ??? Maybe this would work???
@@ -505,8 +505,8 @@ if __name__ == '__main__':
             """ Loop over phases process and tidyup results """
             tidy_path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(rundir)
             outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
-            outdir = tidy_path.split('/')[-1]
-            tidyup(tidy_path,phase,outfile,outdir)
+            # outdir = tidy_path.split('/')[-1]
+            tidyup(tidy_path,phase,outfile,rundir)
 
 
     elif mode == 'syn':
