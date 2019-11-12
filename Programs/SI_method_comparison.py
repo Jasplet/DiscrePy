@@ -96,7 +96,7 @@ ax6.set_xlim([-1 ,1])
 # Adjust space between figures so there is enough room
 fig1.subplots_adjust(hspace=0.25)
 # Save figure properly
-fig1.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SI_Pr_v_Pa_6panel.png',dpi = 400, format = 'png')
+fig1.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SI_Pr_v_Pa_6panel.eps',dpi = 400, format = 'png')
 ######## END FIG1    ###########
 
 ######## START FIG2  ###########
