@@ -74,10 +74,14 @@ class Synth:
         t_plot[[i1,i2,i3,i4]] = 0
         f_plot[[i1,i2,i3,i4]] = 0
         ax1.scatter(t_plot,f_plot,c='black',s=15,marker='.')
-        ax1.scatter(T_i[0],F_i[0],c='black',s=49,marker='*')
-        ax1.scatter(T_i[1],F_i[1],c='black',s=49,marker='*')
-        ax1.scatter(T_i[2],F_i[2],c='black',s=49,marker='*')
-        ax1.scatter(T_i[3],F_i[3],c='black',s=49,marker='*')
+        ax1.scatter(T_i[0],F_i[0],c='black',s=49,marker='s',fill_style='none')
+        ax1.scatter(T_i[1],F_i[1],c='black',s=49,marker='s',fill_style='none')
+        ax1.scatter(T_i[2],F_i[2],c='black',s=49,marker='s',fill_style='none')
+        ax1.scatter(T_i[3],F_i[3],c='black',s=49,marker='s',fill_style='none')
+        ax1.text(T_i[0],F_i[0],'1')
+        ax1.text(T_i[1],F_i[1],'2')
+        ax1.text(T_i[2],F_i[2],'3')
+        ax1.text(T_i[3],F_i[3],'4')
         ax1.set_xlim([0,4.0])
         ax1.set_ylim([-90,90])
         # ax1.set_xlabel(r'$\delta t$ (s)',fontsize=14)
