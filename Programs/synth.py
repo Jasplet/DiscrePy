@@ -74,18 +74,18 @@ class Synth:
         t_plot[[i1,i2,i3,i4]] = 0
         f_plot[[i1,i2,i3,i4]] = 0
         ax1.scatter(t_plot,f_plot,c='black',s=15,marker='.')
-        ax1.scatter(T_i[0],F_i[0],c='black',s=49,marker='s',fill_style='none')
-        ax1.scatter(T_i[1],F_i[1],c='black',s=49,marker='s',fill_style='none')
-        ax1.scatter(T_i[2],F_i[2],c='black',s=49,marker='s',fill_style='none')
-        ax1.scatter(T_i[3],F_i[3],c='black',s=49,marker='s',fill_style='none')
-        ax1.text(T_i[0],F_i[0],'1')
-        ax1.text(T_i[1],F_i[1],'2')
-        ax1.text(T_i[2],F_i[2],'3')
-        ax1.text(T_i[3],F_i[3],'4')
+        # ax1.scatter(T_i[0],F_i[0],c='black',s=49,marker='o',markerfacecolor='None')
+        # ax1.scatter(T_i[1],F_i[1],c='black',s=49,marker='o',markerfacecolors='None')
+        # ax1.scatter(T_i[2],F_i[2],c='black',s=49,marker='o',markerfacecolors='None')
+        # ax1.scatter(T_i[3],F_i[3],c='black',s=49,marker='o',markerfacecolors='None')
+        ax1.text(T_i[0],F_i[0],'1',horizontalalignment='center',verticalalignment='center',fontsize=11)
+        ax1.text(T_i[1],F_i[1],'2',horizontalalignment='center',verticalalignment='center',fontsize=11)
+        ax1.text(T_i[2],F_i[2],'3',horizontalalignment='center',verticalalignment='center',fontsize=11)
+        ax1.text(T_i[3],F_i[3],'4',horizontalalignment='center',verticalalignment='center',fontsize=11)
         ax1.set_xlim([0,4.0])
         ax1.set_ylim([-90,90])
         # ax1.set_xlabel(r'$\delta t$ (s)',fontsize=14)
-        ax1.set_ylabel(r'Fast direction $\phi$ ( $\degree$)',fontsize=16 )
+        ax1.set_ylabel(r'Fast direction, $\phi$ ( $\degree$)',fontsize=16 )
         ax1.set_title(r'Splitting parameter space modelled by synthetics',fontsize=16)
         #Bottom Axis
 
@@ -95,16 +95,26 @@ class Synth:
             elif self.syn.Q[i] > 0.7:
                 colour='black'
 
-            if i in [i1,i2,i3,i4]:
-                ax2.errorbar(self.syn.TLAG[i],self.syn.FAST[i],xerr=self.syn.DTLAG[i],yerr=self.syn.DFAST[i],markersize=7,marker='*',c=colour)  # Formeraly blue color
+            if i == i1:
+                ax2.errorbar(self.syn.TLAG[i],self.syn.FAST[i],xerr=self.syn.DTLAG[i],yerr=self.syn.DFAST[i],markersize=1,marker='.',c=colour)  # Formeraly blue color
+                ax2.text(self.syn.TLAG[i],self.syn.FAST[i],'1',fontsize=11,color=colour,verticalalignment='bottom',horizontalalignment='right')
+            elif i == i2:
+                ax2.errorbar(self.syn.TLAG[i],self.syn.FAST[i],xerr=self.syn.DTLAG[i],yerr=self.syn.DFAST[i],markersize=1,marker='.',c=colour)
+                ax2.text(self.syn.TLAG[i],self.syn.FAST[i],'2',fontsize=11,color=colour,verticalalignment='bottom',horizontalalignment='right')
+            elif i == i3:
+                ax2.errorbar(self.syn.TLAG[i],self.syn.FAST[i],xerr=self.syn.DTLAG[i],yerr=self.syn.DFAST[i],markersize=1,marker='.',c=colour)
+                ax2.text(self.syn.TLAG[i],self.syn.FAST[i],'3',fontsize=11,color=colour,verticalalignment='bottom',horizontalalignment='right')
+            elif i == i4:
+                ax2.errorbar(self.syn.TLAG[i],self.syn.FAST[i],xerr=self.syn.DTLAG[i],yerr=self.syn.DFAST[i],markersize=1,marker='.',c=colour)
+                ax2.text(self.syn.TLAG[i],self.syn.FAST[i],'4',fontsize=11,color=colour,verticalalignment='bottom',horizontalalignment='right')
             else:
                 ax2.scatter(self.syn.TLAG[i],self.syn.FAST[i],marker='.',c=colour,s=15)  # Formeraly blue color
                 # ax2.scatter(self.nulls.TLAG,self.nulls.FAST,marker='.',c='darkorange',label='Q < -0.7') # Formeraly darkorange color
 
         ax2.set_xlim([0,4.0])
         ax2.set_ylim([-90,90])
-        ax2.set_xlabel(r'Lag time $\delta t$ (s)',fontsize=16)
-        ax2.set_ylabel(r'Fast direction $\phi$ ( $\degree$)' ,fontsize=16)
+        ax2.set_xlabel(r'Lag time, $\delta t$ (s)',fontsize=16)
+        ax2.set_ylabel(r'Fast direction, $\phi$ ( $\degree$)' ,fontsize=16)
         ax2.set_title(r'Splitting parameters recovered by SHEBA',fontsize=16)
         if save is True:
             plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/SYNTH_in_v_out_025.eps',format='eps',dpi=400,transparent=True)
