@@ -668,6 +668,7 @@ class Pairs:
             self.lam2_surface(l_path,stat,date,time)
             fig, (ax0,ax1,ax2) = plt.subplots(1,3,figsize=(24,7),sharey=True)
             fig.patch.set_facecolor('None')
+            # ax0.patch.set_facecolor('black')
             if self.syn is True:
                 plt.suptitle(r'Syn Stack E1: {} E2: {} $\lambda _2$ value = {:4.3f}'.format(self.syn1[s],self.syn2[s],self.df.LAM2_BAR.values[s]),fontsize=20)
             else:
@@ -678,24 +679,24 @@ class Pairs:
             self._surf(ax1,self.skks_lam2/lam2a_skks,ylab=False)
             ax1.set_title(r'$\Lambda _2 (\phi,\delta t)$ for SKKS')
             #Plot SKS Solution
-            ax0.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
+            ax0.plot(lag_sks,fast_sks,'.',color='xkcd:blue',label='SKS Solution',markersize=18)
             print('Lag sks {}. Fast SKS {}.'.format(lag_sks,fast_sks))
-            ax0.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
-            ax0.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
+            ax0.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'-',color='xkcd:blue',linewidth=3)
+            ax0.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'-',color='xkcd:blue',linewidth=3)
 
             #Plot SKKS Solution
-            ax0.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
-            ax0.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
-            ax0.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
+            ax0.plot(lag_skks,fast_skks,'.',color='orange',label='SKKS Solution',markersize=18)
+            ax0.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'-',color='orange',linewidth=3)
+            ax0.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'-',color='orange',linewidth=3)
 
             #Plot SKS Solution
-            ax1.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
-            ax1.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
-            ax1.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
+            ax1.plot(lag_sks,fast_sks,'.',color='xkcd:blue',label='SKS Solution',markersize=18)
+            ax1.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'-',color='xkcd:blue',linewidth=3)
+            ax1.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'-',color='xkcd:blue',linewidth=3)
             #Plot SKKS Solution
-            ax1.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
-            ax1.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
-            ax1.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
+            ax1.plot(lag_skks,fast_skks,'.',color='orange',label='SKKS Solution',markersize=18)
+            ax1.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'-',color='orange',linewidth=3)
+            ax1.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'-',color='orange',linewidth=3)
 
             stk = (self.sks_lam2 + self.skks_lam2) / (lam2a_sks + lam2a_skks)
             jf,jt  = np.unravel_index(stk.argmin(),stk.shape)
@@ -703,7 +704,7 @@ class Pairs:
             stk_lag = np.arange(0,4.025,0.025)[jt]
             self._surf(ax2,stk,ylab=False)
 
-            ax2.plot(stk_lag,stk_fast,'g.')
+
             print('Lam2 BAR is ',stk.min())
 
             ##########################
@@ -714,17 +715,18 @@ class Pairs:
             ax2.set_xlim([0,4])
             ax2.set_yticks([-90,-60,-30,0,30,60,90])
             #Plto SKS solution
-            ax2.plot(lag_sks,fast_sks,'b.',label='SKS Solution')
-            ax2.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'b-')
-            ax2.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'b-')
+            ax2.plot(lag_sks,fast_sks,'.',color='xkcd:blue',label='SKS Solution',markersize=18)
+            ax2.plot([lag_sks-dlag_sks,lag_sks+dlag_sks],[fast_sks,fast_sks],'-',color='xkcd:blue',linewidth=3)
+            ax2.plot([lag_sks,lag_sks],[fast_sks-dfast_sks,fast_sks+dfast_sks],'-',color='xkcd:blue',linewidth=3)
             #Plot SKKS solution
-            ax2.plot(lag_skks,fast_skks,'r.',label='SKKS Solution')
-            ax2.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'r-')
-            ax2.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'r-')
+            ax2.plot(lag_skks,fast_skks,'.',color='orange',label='SKKS Solution',markersize=18)
+            ax2.plot([lag_skks-dlag_skks,lag_skks+dlag_skks],[fast_skks,fast_skks],'-',color='orange',linewidth=3)
+            ax2.plot([lag_skks,lag_skks],[fast_skks-dfast_skks,fast_skks+dfast_skks],'-',color='orange',linewidth=3)
             # Plot Stacked solution on SKS
-            ax0.plot(stk_lag,stk_fast,'g.',label='Stacked Solution')
+            ax0.plot(stk_lag,stk_fast,'.',label='Stacked Solution',color='xkcd:green',markersize=18)
             # Plot Stacked Solution on SKKS surface
-            ax1.plot(stk_lag,stk_fast,'g.',label='Stacked Solution')
+            ax1.plot(stk_lag,stk_fast,'.',label='Stacked Solution',color='xkcd:green',markersize=18)
+            ax2.plot(stk_lag,stk_fast,'.',color='xkcd:green',markersize=18)
             ## Add a legend (on ax0)
             # leg = ax0.legend(bbox_to_anchor=(0,1),loc='upper right')
             # plt.setp(leg.get_texts(),color='k')
