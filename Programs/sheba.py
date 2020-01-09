@@ -137,7 +137,8 @@ def run_synth(runpath,filepath):
     # print(r_dir)
     print(label)
     Event.write_out('SYNTH',label,path=runpath)
-    Event.sheba(stat,phase,label,path=runpath,nwind=False)
+    # print('{}, {}, {}, {}, False'.format(stat,phase,label,runpath))
+    Event.sheba(phase,label,path=runpath,nwind=True)
 
 
 
@@ -403,7 +404,7 @@ class Interface:
             writer.write('{} \n'.format(tlag_max)) # sets max tlag in gridsearch
             writer.write('0')
 
-    def sheba(self,phase,label,nwind=True,path=None):
+    def sheba(self,phase,label,path=None,nwind=True,):
         """
         The big one! This function uses the subprocess module to host sac and then runs sheba as a SAC macro
         """
@@ -428,7 +429,7 @@ class Interface:
             s = '''
             echo on\n
             SETMACRO /Users/ja17375/Ext_programs/macros
-            m sheba file {}{} plot yes pick yes
+            m sheba file {}{} plot yes pick yes batch yes
             '''.format(label,phase,label,phase)
         try:
             out = p.communicate(s)
