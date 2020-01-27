@@ -9,12 +9,13 @@ class WindowPicker:
     Pick a Window start/end range, for use with cluster analysis code
     """
 
-    def __init__(self,st,wbeg1,wbeg2,wend1,wend2,t0,**kwargs):
+    def __init__(self,st,wbeg1,wbeg2,wend1,wend2,tt,**kwargs):
 
         #t0 = 60 seconds before traveltime (aka the start of the trimming seismogram)
         self.st = st # Obspy stream containing BHN and BHE
-
-        self.tt = t0 + 60  # traveltime (predicted)
+        # st.plot()
+        self.tt = tt
+        t0 = tt - 60
         self.delta = st[0].stats.delta
         self.t = [t0 + self.delta*i for i,v in enumerate(self.st[0].data)]
         # make initial window rnages attributes
@@ -66,20 +67,21 @@ class WindowPicker:
         # Trim traces to intial wbeg and wend. Use delta to work out the indexes that correspond to the window start/end positions.
         # The transform these positions to integers so we can use slicing
         st = self.st.copy()
-        bhe = st.select(channel='BHE')
-        bhn = st.select(channel='BHN')
 
-        bhe.trim(bhe[0].stats.starttime + 45,bhe[0].stats.starttime + 90)
-        bhn.trim(bhn[0].stats.starttime + 45,bhn[0].stats.starttime + 90)
+        bhe = st[0]
+        bhn = st[1]
+
+        # bhe.trim(bhe[0].stats.starttime + 45,bhe[0].stats.starttime + 90)
+        # bhn.trim(bhn[0].stats.starttime + 45,bhn[0].stats.starttime + 90)
 
         #bhe  = self.st[1].data[n_start:n_end] # Slice out the data in the window
-        N = len(bhn[0]) # number of samples in traces
+        N = len(bhn) # number of samples in traces
         # Set sample spacing in f-domain
         df = 1.0/(2.0*self.delta) # Sample frequency
         xf = np.linspace(0.0,df,N/2) # Frequencies up to F_nyquist (N/2*df)
         # Take the fft
-        BHN_f = fft(bhn[0].data)
-        BHE_f = fft(bhe[0].data)
+        BHN_f = fft(bhn.data)
+        BHE_f = fft(bhe.data)
         # print(N//2)
         # print(BHN_f[1:N//2].shape)
         # print(xf[1:N//2].shape)
