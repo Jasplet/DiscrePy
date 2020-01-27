@@ -32,14 +32,17 @@ class Synth:
     '''
     Class to hold the a Synthetics sdb. and then do some clever things with it ....
     '''
-    def __init__(self,file,a=None):
+    def __init__(self,file,a=None,TwoLayer=False):
         '''
         file - [str] The name of the synthetics SDB to read in
         '''
         date_time_convert = {'TIME': lambda x: str(x),'DATE': lambda x : str(x)}
         if file.split('.')[-1] == 'sdb':
             print('Sdb file read in')
-            self.syn = pd.read_csv(file,delim_whitespace=True,converters=date_time_convert)
+            syn = pd.read_csv(file,delim_whitespace=True,converters=date_time_convert)
+            # Make sure synthetics are in proper (expected) order
+            syn = syn.sort_values(by=['DATE'])
+            self.syn = syn.reset_index(drop=True)
             self.nulls = self.syn[self.syn.Q <= -0.5] # df of clear nulls
             self.splits = self.syn[self.syn.Q >= 0.5] # df of clear splits
             self.unID = self.syn[(self.syn.Q > -0.5) & (self.syn.Q < 0.5)] # df of undeterminate events, in thoery there should be any ... ?
@@ -57,6 +60,7 @@ class Synth:
         nse = file.split('_')[2] # Pick out noise level from filename
         self.noise_lvl = ''.join(['Noise',nse])
         print(self.noise_lvl)
+        self.TwoLayer = TwoLayer
 
     def syn_in_v_out(self,save=False):
         '''Plot 2 subplot figure showing input synthetics (top) and the measurements made by sheba (bottom) '''
@@ -177,7 +181,7 @@ class Synth:
             for f in range(0,37): # We know there are 37 fast directions (-90 - 90 at 10 degree spacing)
                 #Define 2 sigma bound in fast,lag direction direction for both phases
 
-                print('P1 {} P2 {}'.format(self.a_ind,i))
+                # print('P1 {} P2 {}'.format(self.a_ind,i))
                 lbt_P1 = self.pairs.TLAG_P1[self.a_ind] - 2*self.pairs.DTLAG_P1[self.a_ind]
                 ubt_P1 = self.pairs.TLAG_P1[self.a_ind] + 2*self.pairs.DTLAG_P1[self.a_ind]
                 lbt_P2 = self.pairs.TLAG_P2[i] - 2*self.pairs.DTLAG_P2[i]
@@ -217,8 +221,8 @@ class Synth:
         f = self.F.ravel()
         l = self.T.ravel()
         lam2_bar = self.pairs.LAM2_BAR.values.reshape(17,37)
-        lam2_p1 = self.pairs.LAM2A_P1.values.reshape(17,37) # Grid of p1 lambda 2 (alpha = 0.05) values
-        lam2_p2 = self.pairs.LAM2A_P2.values.reshape(17,37) # Grid of p2 lambda 2 (alpha = 0.05) values
+        lam2_p1 = self.pairs.LAM2A_P1.values.reshape(17,37) # Grid of p1 lambda 2 (alpha = 0.05) values (95% confidence values)
+        lam2_p2 = self.pairs.LAM2A_P2.values.reshape(17,37) # Grid of p2 lambda 2 (alpha = 0.05) values (95% confidence values)
         l2_sum =  (lam2_p1+lam2_p2)
         C = ax.contourf(self.T,self.F,lam2_bar-l2_sum,18,cmap='magma_r',vmin=0,extend='max')
         ax.contour(self.T,self.F,lam2_bar-l2_sum,levels=[0],colors=['black'],linestyles='solid')
@@ -254,10 +258,10 @@ class Synth:
             'axes.labelsize': 12, # fontsize for x and y labels (was 10)
             'axes.titlesize': 14,
             'font.size': 12, # was 10
-            'text.color': 'white',
-            'axes.labelcolor' : 'white',
-            'xtick.color' : 'white',
-            'ytick.color' : 'white',
+            'text.color': 'black',
+            'axes.labelcolor' : 'black',
+            'xtick.color' : 'black',
+            'ytick.color' : 'black',
             'legend.fontsize': 8, # was 10
             'xtick.labelsize': 14,
             'ytick.labelsize': 14,
@@ -265,13 +269,13 @@ class Synth:
         matplotlib.rcParams.update(params)
 
         # Plot Synthetics as measured by sheba
-        ax2.scatter(self.syn.TLAG,self.syn.FAST,marker='.',label='-0.7 < Q < 0.7')
-        ax2.scatter(self.nulls.TLAG,self.nulls.FAST,marker='.',c='darkorange',label='Q < -0.7')
+        # ax2.scatter(self.syn.TLAG,self.syn.FAST,marker='.',label='-0.7 < Q < 0.7')
+        # ax2.scatter(self.nulls.TLAG,self.nulls.FAST,marker='.',c='darkorange',label='Q < -0.7')
         ax2.set_xlim([0,4.0])
         ax2.set_ylim([-90,90])
         # ax2.set_xlabel(r'$\delta t$ (s)',fontsize=16)
-        ax2.set_ylabel(r'Fast direction $\phi$ ( $\degree$)' ,fontsize=16)
-        ax2.set_title(r'Recovered $\Phi, \delta t$',fontsize=16)
+        ax2.set_ylabel(r'Fast direction, $\phi$ ($\degree$)' ,fontsize=14)
+        ax2.set_title(r'Recovered $\Phi, \delta t$',fontsize=14)
         f = self.F.ravel()
         l = self.T.ravel()
         ax2.plot(l[self.a_ind],f[self.a_ind],'rx')
@@ -287,19 +291,23 @@ class Synth:
         if save == True:
             if f[self.a_ind] < 0:
                 # print(abs(f[self.a_ind]))
-                plt.savefig('/Users/ja17375/Presentations/Figs/Synths/{}_A_{:2.2f}_N{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
-                # plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
+                if self.TwoLayer is True:
+                    plt.suptitle('Two Layer Synthetics')
+                    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/TwoLayer/{}_A_{:2.2f}_N{:03.0f}_4panel_2layer.png'.format(self.noise_lvl,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',dpi=400)
+                else:
+                    # plt.suptitle('Two Layer Synthetics')
+                    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
             else:
-                plt.savefig('/Users/ja17375/Presentations/Figs/Synths/{}_A_{:2.2f}_{:03.0f}_L2_grid.png'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
-                # plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
+                if self.TwoLayer is True:
+                    plt.suptitle('Two Layer Synthetics')
+                    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/TwoLayer/{}_A_{:2.2f}_{:03.0f}_4panel_2layer.png'.format(self.noise_lvl,self.spol,l[self.a_ind],f[self.a_ind]),format='png',dpi=400)
+                else:
+                    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
 
-            plt.close('all')
+            # plt.close('all')
 
-        else:
-            plt.show()
+        plt.show()
 
-
-        # plt.show()
     def plot_grids_pres(self,save=True):
         ''' Plot dSI (approx) lam2 bar and grid in for PRESENTATION purposes'''
         fig , (ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize= (22,8),sharex=True)
@@ -364,16 +372,22 @@ class Synth:
         Plot SI(Projection) against SI(Approximation) for a set of synthetic pairs
         '''
         fig2,ax = plt.subplots(1,1,figsize=(8,8))
-        s = self.syn[self.syn['Q'] > 0.7]
-        n = self.syn[self.syn['Q'] < -0.7]
-        rem = self.syn[(self.syn['Q'] >= -0.7) & (self.syn['Q'] <= 0.7)]
+        s = self.syn[self.syn['Q'] > 0.5]
+        n = self.syn[self.syn['Q'] < -0.5]
+        rem = self.syn[(self.syn['Q'] >= -0.5) & (self.syn['Q'] <= 0.5)]
         ax.plot(rem['SI(Pa)'],rem['SI(Pr)'],'k.',label='uID') # Plot SI methods for unclear events
         ax.plot(n['SI(Pa)'],n['SI(Pr)'],'b.',label='Null') # Plot SI methods for clear nulls
         ax.plot(s['SI(Pa)'],s['SI(Pr)'],'r.',label='Split') # Plot SI methods for clear splits
+        ax.plot([-5,0,5],[-5,0,5],'k-')
         ax.set_ylabel('Splitting Intensity (Projection)')
         ax.set_xlabel('Splitting Intensity (Approximation)')
-        ax.set_title('Comparison of SI method for Synthetics. SPOL {} Noise level {}'.format(self.spol[2:],self.noise_lvl[5:]))
+        ax.set_title('Comparison of SI method for Synthetics. SPOL = {}, Mean SNR = {:2.2f}'.format(self.spol[2:],self.syn.SNR.mean()))
         ax.legend()
+        ax.set_xlim([-4,4])
+        ax.set_ylim([-4,4])
+        if save is True:
+            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Synthetics_SI_Pr_v_Ap.eps',dpi=400)
+
         plt.show()
 
     def plot_lamR(self,file,save=False):
@@ -495,12 +509,18 @@ class Synth:
         self.lam2alpha_p1 = [ ]
         self.lam2alpha_p2 = [ ]
         self.lam2sum = [ ]
-        for i,k in enumerate(b):
 
-            f1 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,self.spol,(a[i]+1)) # Add 1 to indecides becuase python goes from 0 628
-            f2 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,self.spol,(b[i]+1)) # Whilst in the naing from BASH it goes from 1 to 629
-            print(f1)
-            print(f2)
+        for i,k in enumerate(b):
+            if self.TwoLayer is True:
+                f1 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/TwoLayer/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,(a[i]+1)) # Add 1 to indecides becuase python goes from 0 628
+                f2 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/TwoLayer/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,(b[i]+1)) # Whilst in the naing from BASH it goes from 1 to 629
+                print(f1)
+                print(f2)
+            elif self.TwoLayer is False:
+                f1 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,self.spol,(a[i]+1)) # Add 1 to indecides becuase python goes from 0 628
+                f2 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,self.spol,(b[i]+1)) # Whilst in the naing from BASH it goes from 1 to 629
+                print(f1)
+                print(f2)
             out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Stacks'.format(self.spol)
             outfile = '{}_3{:03d}{:03d}'.format(self.spol,a[i],b[i])
             Stk = Stacker(f1,f2,out,outfile)
@@ -577,9 +597,17 @@ class Synth:
             # self.grid_lam2(save=True)
             plt.close('all')
             if f[self.a_ind] < 0:
-                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
+                if self.TwoLayer is True:
+                    UM = input('Enter which Upper Mantle this is (UM1,UM2,UM3): ')
+                    self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/TwoLayer/{}/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.noise_lvl,UM,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
+                else:
+                    self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
             else:
-                self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ',index=False)
+                if self.TwoLayer is True:
+                    UM = input('Enter which Upper Mantle this is (UM1,UM2,UM3): ')
+                    self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/TwoLayer/{}/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.noise_lvl,UM,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
+                else:
+                    self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ',index=False)
         else:
             pass
             # self.grid_dSI()
@@ -605,7 +633,7 @@ class Synth:
     def l2_v_dSI(self):
         '''Plot lambda2 (bar) agaisnt splitting intensity'''
         fig,ax = plt.subplots(1,1,figsize=(6,6))
-        ax.plot(self.pairs.LAM2_BAR,self.pairs.D_SI,'.')
+        ax.plot(self.pairs.LAM2_BAR,self.pairs.D_SI_Pr,'.')
         ax.set_xlabel(r'$\bar{\lambda_2} $ value', fontsize=14)
         ax.set_ylabel(r'$\Delta SI$ value',fontsize=14)
         plt.show()
