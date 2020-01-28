@@ -56,7 +56,7 @@ def tidyup(path,phase,outfile,outdir):
     results = []
     # print(fnames)
     for i,file in enumerate(fnames):
-        # print(file)
+        print(file)
         f_stat = fnames[i].rstrip('final_result') + 'stats'
 
         with open(file,'r') as input, open(f_stat,'r') as stats:
@@ -157,26 +157,36 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
             #print(phase)
             label = '{}'.format(filepath.split('/')[-1]) # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
             # print('Label is {}'.format(label))
-            st_id = '{}BH?.sac'.format(filepath)
+            # st_id = '{}BH?.sac'.format(filepath)
+            st_id = '{}.BX?'.format(filepath) # .BX? for SPECFeM SYNTHETICS
             st = ob.read(st_id)
             station = st[0].stats.station
             f_check = '{}/{}/{}/{}{}_sheba.final_result'.format(runpath,station,phase,label,phase)
             # print('Fcheck is {}'.format(f_check))
+            # print('{}/{}/{}/{}{}.B?E'.format(runpath,station,phase,label,phase))
             if os.path.isfile(f_check) == True: # Check if event has already been processed
                 print('File has already been processed: {} '.format(f_check))
+            # elif os.path.isfile('{}/{}/{}/{}{}.BXE'.format(runpath,station,phase,label,phase)):
+            #     if os.path.isfile('{}/{}/{}/{}{}.BXN'.format(runpath,station,phase,label,phase)):
+            #         print('File has already been windowed, re-attempting measurement')
+            #         Event = Interface(st)
+            #         outdir = '{}/{}/{}'.format(runpath,station,phase)
+            #         Event.sheba(phase,label,path=outdir,nwind=True)
             else:
                 #print('File to process: {} '.format(f_check))
                 if len(st) is 3:
                     Event = Interface(st)
+                    print('Check epicentral distances')
                     if Event.check_phase_dist(phase_to_check=phase) is True:
                 #       To ensure that we contain the phase information completlely lets model the arrival using TauP
+                        print('Modelling Traveltimes')
                         Event.model_traveltimes(phase)
                         if Event.tt is None:
                             print('NO Traveltimes, bad data file {}'.format(st_id))
                             pass
                         else:
                             print('Process waveform, stat {}, phase {}, label {}'.format(station,phase,label))
-                            Event.process(synth=False,window=False) # If windowing is set to true then SHEBA must be called in serial mode
+                            Event.process(synth=False,window=True) # If windowing is set to true then SHEBA must be called in serial mode
                             if Event.bad is True:
                                 # A bad waveform that we dont want anyhting to do with, so skip it
                                 pass
@@ -212,6 +222,7 @@ class Interface:
     def __init__(self,st):
         # self.date = date
         # self.time = time
+        self.ch = 'H'
         for i in [0,1,2]:
             st[i].stats.sac.kstnm = '{:>8}'.format(st[i].stats.sac.kstnm)
 #§          Formats Station name in headers so that it is 8 characters long, with emtpy character fill with whitespaces
@@ -225,17 +236,42 @@ class Interface:
             self.BHZ = st.select(channel='BHZ')
             self.BHZ[0].stats.sac.cmpinc = 0
             self.BHZ[0].stats.sac.cmpaz = 0
+
         except IndexError:
-            self.BHE = st[0]
-            self.BHE.stats.sac.cmpinc = 90
-            self.BHE.stats.sac.cmpaz = 90
-            self.BHN = st[1]
-            self.BHN.stats.sac.cmpinc = 90
-            self.BHN.stats.sac.cmpaz = 0
-            self.BHZ = st[2]
-            self.BHZ.stats.sac.cmpinc = 0
-            self.BHZ.stats.sac.cmpaz = 0
+            try:
+                print('BH? channels not found, trying BX?')
+                self.BHE = st.select(channel='BXE')
+                self.BHE[0].stats.sac.cmpinc = 90
+                self.BHE[0].stats.sac.cmpaz = 90
+                self.BHN = st.select(channel='BXN')
+                self.BHN[0].stats.sac.cmpinc = 90
+                self.BHN[0].stats.sac.cmpaz = 0
+                self.BHZ = st.select(channel='BXZ')
+                self.BHZ[0].stats.sac.cmpinc = 0
+                self.BHZ[0].stats.sac.cmpaz = 0
+                self.ch = 'X'
+            except IndexError:
+                    print('Channel selection failed, indexing instead')
+                    self.BHE = st[0]
+                    self.BHE.stats.sac.cmpinc = 90
+                    self.BHE.stats.sac.cmpaz = 90
+                    self.BHN = st[1]
+                    self.BHN.stats.sac.cmpinc = 90
+                    self.BHN.stats.sac.cmpaz = 0
+                    self.BHZ = st[2]
+                    self.BHZ.stats.sac.cmpinc = 0
+                    self.BHZ.stats.sac.cmpaz = 0
+        # print(self.BHN)
 #       Also lets load the gcarc from each stream, so we can test for whether SKKS should be measuable
+        print('Checking for lost keys')
+        if all (k in self.BHE for k in ('user0','user1','user2','user3')):
+            print('No lost keys!')
+        else:
+            print('We\'ve lost at least one key, added to dict')
+            keychain = {'user0':0,'user1':1,'user2':2,'user3':3}
+            self.BHE[0].stats.sac.update(keychain)
+            self.BHN[0].stats.sac.update(keychain)
+            self.BHZ[0].stats.sac.update(keychain)
         self.gcarc = (st[0].stats.sac.gcarc)
         self.station = st[0].stats.station
         self.delta = st[0].stats.delta
@@ -271,7 +307,10 @@ class Interface:
             except IndexError:
                 print('index Error')
                 traveltime =None
-        self.tt = traveltime
+
+        evt_time = obspy.UTCDateTime(year = self.BHN[0].stats.sac.nzyear, julday = self.BHN[0].stats.sac.nzjday,hour=self.BHN[0].stats.sac.nzhour,minute=self.BHN[0].stats.sac.nzmin,second=self.BHN[0].stats.sac.nzsec,microsecond=self.BHN[0].stats.sac.nzmsec)
+        self.tt = evt_time + traveltime
+        self.tt_rel = traveltime
         return traveltime
 
     def check_phase_dist(self,phase_to_check):
@@ -318,28 +357,45 @@ class Interface:
         self.BHE.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
         self.BHZ.filter("bandpass",freqmin= c1, freqmax= c2,corners=2,zerophase=True)
 #       Now trim each component to the input length
+
         if synth == False: # We only need to trim and set the window length for real data, not synthetics made with sacsplitwave
 #       Now set the trim
-            # print('Trim Traces')
+
+            print('Trim Traces')
+            # print('tt = {}, Start = {}, End = {}'.format(self.tt,self.BHN[0].stats.starttime,self.BHN[0].stats.endtime ))
             t1 = (self.tt - 60) #I.e A minute before the arrival
-            t2 = (self.tt + 120) #I.e Two minutes after the arrival
-            self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
-            self.BHE.trim(self.BHE[0].stats.starttime + t1,self.BHE[0].stats.starttime + t2)
-            self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
+            t2 = (self.tt+ 120) #I.e Two minutes after the arrival
+            # print('t1 = {}, t2 = {}'.format(t1,t2))
+            # self.BHN.trim(self.BHN[0].stats.starttime + t1,self.BHN[0].stats.starttime + t2)
+            # self.BHE.trim(self.BHE[0].stats.starttime + t1,self.BHE[0].stats.starttime + t2)
+            # self.BHZ.trim(self.BHZ[0].stats.starttime + t1,self.BHZ[0].stats.starttime + t2)
+            self.BHN.trim(t1,t2)
+            self.BHE.trim(t1,t2)
+            self.BHZ.trim(t1,t2)
+            # print('BX? records are assumed to already by short, so no trimming')
     #       Add windowing ranges to sac headers user0,user1,user2,user3 [start1,start2,end1,end2]
-    #       Set the range of window starttime (user0/user1)
-            user0 = self.tt - 15 #15 seconds before arrival
-            user1 = self.tt # t predicted arrival
-    #       Set the raqnge of window endtime (user2/user3)
-            user2 = self.tt + 15 # 15 seconds after, gives a min window size of 20 seconds
-            user3 = self.tt + 30 # 30 seconds after, gives a max window size of 45 seconds
-#
+            print(self.BHN[0].stats.sac.user0)
+            if self.BHN[0].stats.sac.user0 == 0:
+                print("Setting Window start/end ranges")
+                # Set the range of window starttime (user0/user1)
+                user0 = self.tt_rel - 15 #15 seconds before arrival
+                user1 = self.tt_rel # t predicted arrival
+        #       Set the raqnge of window endtime (user2/user3)
+                user2 = self.tt_rel + 15 # 15 seconds after, gives a min window size of 20 seconds
+                user3 = self.tt_rel + 30 # 30 seconds after, gives a max window size of 45 seconds
+            else:
+                print("Windows already set, user0-3 already set")
+                print("User0 = ", self.BHN[0].stats.sac.user0)
+                print("User1 = ",self.BHN[0].stats.sac.user1)
+                print("User2 = ",self.BHN[0].stats.sac.user2)
+                print("User3 = ",self.BHN[0].stats.sac.user3)
+
             if window == True:
                 # Windowing code
                 # Combine BHN and BHE to make a stream
-                st = self.BHN + self.BHE
+                st = self.BHE + self.BHN
                 # print(user0,user1,user2,user3)
-                Windower = Picker.WindowPicker(st,user0,user1,user2,user3,t1)
+                Windower = Picker.WindowPicker(st,user0,user1,user2,user3,self.tt_rel)
                 # Windower.pick()
                 if Windower.wbeg1 is None:
                     print("Skipping")
@@ -348,11 +404,10 @@ class Interface:
                     print("Windower Closed, adjusting window ranges")
                     (user0,user1,user2,user3) = Windower.wbeg1, Windower.wbeg2, Windower.wend1, Windower.wend2
                     self.bad = False
-
-            # Set window ranges in SAC headers
-            self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (user0,user1,user2,user3)
-            self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
-            self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
+                # Set window ranges in SAC headers
+                self.BHN[0].stats.sac.user0,self.BHN[0].stats.sac.user1,self.BHN[0].stats.sac.user2,self.BHN[0].stats.sac.user3 = (user0,user1,user2,user3)
+                self.BHE[0].stats.sac.user0,self.BHE[0].stats.sac.user1,self.BHE[0].stats.sac.user2,self.BHE[0].stats.sac.user3 = (user0,user1,user2,user3)
+                self.BHZ[0].stats.sac.user0,self.BHZ[0].stats.sac.user1,self.BHZ[0].stats.sac.user2,self.BHZ[0].stats.sac.user3 = (user0,user1,user2,user3)
         else:
             # print('Synthetics Used, Windows *should* be predefined')
             # print(self.BHN.stats.sac.user0,self.BHN.stats.sac.user1,self.BHN.stats.sac.user2,self.BHN.stats.sac.user3)
@@ -370,17 +425,17 @@ class Interface:
 #       Naming depends on whether this is being executed as a test or within a loop
 #       where a counter should be provided to prevent overwriting.
         if path is not None:
-            self.BHN.write('{}/{}{}.BHN'.format(path,label,phase),format='SAC',byteorder=1)
-            self.BHE.write('{}/{}{}.BHE'.format(path,label,phase),format='SAC',byteorder=1)
-            self.BHZ.write('{}/{}{}.BHZ'.format(path,label,phase),format='SAC',byteorder=1)
+            self.BHN.write('{}/{}{}.BHN'.format(path,label,phase,self.ch),format='SAC',byteorder=1)
+            self.BHE.write('{}/{}{}.BHE'.format(path,label,phase,self.ch),format='SAC',byteorder=1)
+            self.BHZ.write('{}/{}{}.BHZ'.format(path,label,phase,self.ch),format='SAC',byteorder=1)
         elif synth == True:
-            self.BHN.write('{}/{}SYNTH.BHN'.format(path,label),format='SAC',byteorder=1)
-            self.BHE.write('{}/{}SYNTH.BHE'.format(path,label),format='SAC',byteorder=1)
-            self.BHZ.write('{}/{}SYNTH.BHZ'.format(path,label),format='SAC',byteorder=1)
+            self.BHN.write('{}/{}SYNTH.BHN'.format(path,label,self.ch),format='SAC',byteorder=1)
+            self.BHE.write('{}/{}SYNTH.BHE'.format(path,label,self.ch),format='SAC',byteorder=1)
+            self.BHZ.write('{}/{}SYNTH.BHZ'.format(path,label,self.ch),format='SAC',byteorder=1)
         else:
-            self.BHN.write('{}.BHN'.format(label),format='SAC',byteorder=1)
-            self.BHE.write('{}.BHE'.format(label),format='SAC',byteorder=1)
-            self.BHZ.write('{}.BHZ'.format(label),format='SAC',byteorder=1)
+            self.BHN.write('{}.BHN'.format(label,self.ch),format='SAC',byteorder=1)
+            self.BHE.write('{}.BHE'.format(label,self.ch),format='SAC',byteorder=1)
+            self.BHZ.write('{}.BHZ'.format(label,self.ch),format='SAC',byteorder=1)
 
     def plot_comp(self):
         """
