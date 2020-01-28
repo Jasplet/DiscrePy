@@ -19,10 +19,8 @@ class WindowPicker:
         self.delta = st[0].stats.delta
         self.t = [t0 + self.delta*i for i,v in enumerate(self.st[0].data)]
         # make initial window rnages attributes
-        self.wbeg1 = wbeg1
-        self.wbeg2 = wbeg2
-        self.wend1 = wend1
-        self.wend2 = wend2
+        (self.wbeg1,self.wbeg2,self.wend1,self.wend2) = (wbeg1,wbeg2,wend1,wend2)
+        (self.x1,self.x2,self.x3,self.x4) = (wbeg1,wbeg2,wend1,wend2)
         # Base plot (before interactive stuff)
         fig = plt.figure(figsize = (18,8))
         gs = gridspec.GridSpec(2,2)
