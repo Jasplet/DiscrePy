@@ -82,7 +82,7 @@ class Binning:
 
 class Bin:
     '''A class to hold a signle bin and all in containing events. Requires pairs file (as dataframe) and desired Bin_number as inputs'''
-    def __init__(self, df, bin_no,path='/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Combined/Bin_figs'):
+    def __init__(self, df, bin_no,path='/Users/ja17375/DiscrePy/Sheba/Results/Combined/Bin_figs'):
         self.bn = bin_no # The bin number for the trigonal bin in questions
         self.bin = df[df.bin_no == bin_no].copy()
         self.fig_path = path # This path to the directory where the figures will be saved
@@ -338,7 +338,7 @@ def run(bins_file,plot,lim=10):
     counts = bf.bin_no.value_counts().copy() # make a dataframe with the bin number and the count of how many times it occurs
     print('There are {} bins with {} pairs'.format(len(counts),len(bf)))
     print('Highest count is {} in bin {}'.format(counts[counts.idxmax()],counts.idxmax()))
-    
+
     l2 = [ ] # Initialise lists to hold the average lambda 2 values for each bin
     dSI = [ ] # Initialise list to hold the average delta SI value for each bin
     no,cts,lat,lon,V1_lat,V1_lon,V2_lat,V2_lon,V3_lat,V3_lon = [ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ],[ ]
