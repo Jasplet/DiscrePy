@@ -5,7 +5,7 @@
 ##############################
 #   Author: J. Asplet
 ##############################
-#   A python program to plot Shear_Wave_Splitting measurements
+#   A python program to plot DiscrePy measurements
 #   made using Sheba. This program assumes that the results files
 #   have already been cleaned up into final_resuts and STAT_results
 #   textfiles using tidyup_by_stat.sh and tidyup.sh
@@ -28,7 +28,7 @@ class plotter:
 
     def __init__(self,filename):
         #Load data into object on initiation
-        self.path = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results'
+        self.path = '/Users/ja17375/DiscrePy/Sheba/Results'
         self.data = pd.read_csv('{}/{}'.format(self.path,filename),delim_whitespace=True)
 
 
@@ -76,7 +76,7 @@ class plotter:
 
         if save is True:
             pass
-            # plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Python/Figures/{}_SKS_SKKS_plot'.format(stat))
+            # plt.savefig('/Users/ja17375/DiscrePy/Python/Figures/{}_SKS_SKKS_plot'.format(stat))
             # print('Saving')
         else:
             plt.show()
