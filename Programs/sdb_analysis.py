@@ -28,7 +28,7 @@ class Builder:
     """
     def __init__(self,p,RunDir,sdb_stem,snr=5.0,syn=False):
 
-        self.path = p
+        self.path = p # Path to Results directory
         self.path_stk = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(RunDir)
         self.sdb_stem = sdb_stem
         self.fpath =     '{}/{}_{:02d}.pairs'.format(self.path,self.sdb_stem,int(snr))
@@ -169,7 +169,7 @@ class Builder:
         ext ='lamR'
         print('Stacking')
         rd = self.path_stk.split('/')[-1]
-        out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Combined/{}/Stacks'.format(rd) # For Filt 03/05 casesed need to hardcode in Combined/ directory
+        out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/Stacks'.format(rd) # For Filt 03/05 casesed need to hardcode in Combined/ directory
         if os.path.isdir(out) is False:
             print('{} does not exist, creating'.format(out))
             os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/Stacks'.format(rd))
@@ -188,11 +188,10 @@ class Builder:
             if len(lam2_stem) is not 0:
                 # I.e if glob has managed to find the sks lam2 surface file
                 sks_lam2 = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
-
                 skks_lam2 = glob('{}/{}/SKKS/{}??_SKKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
                 Stk = Stacker(sks_lam2,skks_lam2,out)
                 self.lam2_bar.append(Stk.lam2_bar)
-            else:
+            elif len(glob('{}/{}/SKS/{}_{}_*_SKS.{}'.format(self.path_stk,stat,stat,date,ext))) is not 0 :
                 fstem2 = '{}_{}'.format(stat,date)
                 # print('fstem2')
                 # print('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))
@@ -205,6 +204,13 @@ class Builder:
                 else:
                     print('lam2 surfaces cannot be found, skipping')
                     pass
+            else:
+                print("try bodge for Anulas stuff")
+                sks_lam2 = glob('{}/{}/SKS/{}SKS.{}'.format(self.path_stk,stat,stat,ext))[0]
+                skks_lam2 = glob('{}/{}/SKKS/{}SKKS.{}'.format(self.path_stk,stat,stat,ext))[0]
+                Stk = Stacker(sks_lam2,skks_lam2,out)
+                self.lam2_bar.append(Stk.lam2_bar)
+
             # Now calulate LAM2ALPHA  for SKS and SKKS
             ndf_sks, ndf_skks = self.P.NDF_SKS[i],self.P.NDF_SKKS[i]
             self.lam2alpha_sks.append(self.ftest(Stk.lam2_sks,ndf_sks)) # Calc Lam2 Alpha and append it to list for SKS and SKKS
@@ -410,13 +416,13 @@ class Builder:
         for i,row in self.P.iterrows():
             if row.SNR_SKS > self.snr and row.SNR_SKKS > self.snr:
                 #Test to see if Signal-to-Noise is too high
-                if abs(row.BAZ%180 - row.SPOL_SKS%180) <  10 and abs(row.BAZ%180 - row.SPOL_SKKS%180) < 10:
-                # Test to see if there is a asignficiant difference between source polarisation and back azimuth abs
-                    print('Event accepted')
-                    self.accepted_i.append(i)
-                else:
-                    print('SPOL-BAZ difference greater than 10, reject')
-                    self.baz_spol_fail.append(i)
+                # if abs(row.BAZ%180 - row.SPOL_SKS%180) <  10 and abs(row.BAZ%180 - row.SPOL_SKKS%180) < 10:
+                # # Test to see if there is a asignficiant difference between source polarisation and back azimuth abs
+                #     print('Event accepted')
+                self.accepted_i.append(i)
+                # else:
+                #     print('SPOL-BAZ difference greater than 10, reject')
+                #     self.baz_spol_fail.append(i)
 
             else:
                 print('SNR for SKS or SKKS less than {:02}, auto-reject'.format(self.snr))
@@ -455,28 +461,23 @@ class Pairs:
             date_time_convert = {'TIME': lambda x: str(x).zfill(4),'DATE': lambda x : str(x)}
             self.df = pd.read_csv(fname,delim_whitespace=True,converters=date_time_convert)
             try:
-                # Read in standard match,diff files
-                pmatch = '{}_matches.pairs'.format(fname.split('.')[0])
-                pdiff ='{}_diffs.pairs'.format(fname.split('.')[0])
-                self.matches = pd.read_csv(pmatch,delim_whitespace=True,converters=date_time_convert)
-                self.diffs = pd.read_csv(pdiff,delim_whitespace=True,converters=date_time_convert)
                 # Now read in new match,diffs made using lam2/dSI test
                 pmatch_l2 = '{}_matches_l2.pairs'.format(fname.split('.')[0])
                 pdiff_l2 ='{}_diffs_l2.pairs'.format(fname.split('.')[0])
                 pmatch_dsi = '{}_matches_dsi.pairs'.format(fname.split('.')[0])
                 pdiff_dsi = '{}_diffs_dsi.pairs'.format(fname.split('.')[0])
-                self.matches_l2 = pd.read_csv(pmatch_l2,delim_whitespace=True,converters=date_time_convert)
-                self.diffs_l2 = pd.read_csv(pdiff_l2,delim_whitespace=True,converters=date_time_convert)
-                # self.matches_dsi = pd.read_csv(pmatch_dsi,delim_whitespace=True,converters=date_time_convert)
-                # self.diffs_dsi = pd.read_csv(pdiff_dsi,delim_whitespace=True,converters=date_time_convert)
+                self.matches = pd.read_csv(pmatch_l2,delim_whitespace=True,converters=date_time_convert)
+                self.diffs = pd.read_csv(pdiff_l2,delim_whitespace=True,converters=date_time_convert)
+                self.matches_dsi = pd.read_csv(pmatch_dsi,delim_whitespace=True,converters=date_time_convert)
+                self.diffs_dsi = pd.read_csv(pdiff_dsi,delim_whitespace=True,converters=date_time_convert)
                 self.uID = pd.read_csv('{}_uID_l2.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
-                self.null_split = pd.read_csv('{}_null_split.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
+                # self.null_split = pd.read_csv('{}_null_split.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
                 self.null_split_diffs = pd.read_csv('{}_diffs_null_split.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
                 self.null_split_matches = pd.read_csv('{}_matches_null_split.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
                 self.nulls = pd.read_csv('{}_nulls.pairs'.format(fname.split('.')[0]),delim_whitespace=True,converters=date_time_convert)
             except FileNotFoundError:
                 print('Match or Diff file not found. Are you using synhetics maybe??')
-
+                print('Tried (e.g.,) {}_diffs.pairs'.format(fname.split('.')[0]))
 
         elif file is False:
             print('Expecting df input')
@@ -1406,14 +1407,15 @@ if __name__ == '__main__':
 
     print('{}/{}_SKS_SKKS.pairs'.format(path,sdb_stem))
     if os.path.isfile('{}/{}_SKS_SKKS.pairs'.format(path,sdb_stem)) is False:
-        "Lets's find some pairs"
-        make_pairs(path,sdb_stem)
+        "Lets's make some pairs"
+        B = Builder(p=path,RunDir=path.split('/')[-1],sdb_stem=sdb_stem,snr=1)
+        B.run()
     else:
         'Pairs already exist'
 
-    # Now lets read the pairs
-    pair_file = '{}/{}_SKS_SKKS.pairs'.format(path,sdb_stem)
-    p = Pairs(pair_file)
-    p.match(pair_file[:-6])
+    # # Now lets read the pairs
+    # pair_file = '{}/{}_SKS_SKKS.pairs'.format(path,sdb_stem)
+    # p = Pairs(pair_file)
+    # p.match(pair_file[:-6])
 
     print('End')
