@@ -33,7 +33,7 @@ def benchmark(path):
     baz = sheba.BAZ.values
 
     # Read the SplitWavePy results
-    files = glob.glob('/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split/SplitWavePy/*sks.eigm')
+    files = glob.glob('/Users/ja17375/DiscrePy/Sheba/Runs/Jacks_Split/SplitWavePy/*sks.eigm')
 
     lag_swp,dlag_swp = [],[]
     fast_swp,dfast_swp = [],[]
@@ -44,12 +44,12 @@ def benchmark(path):
         date,time,stat = sheba.DATE[i], sheba.TIME[i], sheba.STAT[i]
         fstem = '{}_{}_{}'.format(stat,date,time)
         try:
-            st = ob.read('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}??_BH[N,E].sac'.format(stat,fstem))
+            st = ob.read('/Users/ja17375/DiscrePy/Data/SAC_files/{}/{}??_BH[N,E].sac'.format(stat,fstem))
 
         except Exception:
             print(Exception)
             fstem2 =  '{}_{}'.format(stat,date)
-            st = ob.read('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}/{}_*_BH[N,E].sac'.format(stat,fstem2))
+            st = ob.read('/Users/ja17375/DiscrePy/Data/SAC_files/{}/{}_*_BH[N,E].sac'.format(stat,fstem2))
         #print(st)
         st.filter('bandpass',freqmin=0.01,freqmax=0.5)
 
@@ -221,7 +221,7 @@ def fast_lag_plot(sheba_lag,sheba_fast,swp_lag,swp_fast):
 
 if __name__ == '__main__':
 
-    sheba,swp,baz = benchmark('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/Jacks_Split/Jacks_Split_SKS_sheba_results.sdb')
+    sheba,swp,baz = benchmark('/Users/ja17375/DiscrePy/Sheba/Results/Jacks_Split/Jacks_Split_SKS_sheba_results.sdb')
     diag_plot(sheba,swp,baz)
     fast_lag_plot(sheba[2],sheba[0],swp[2],swp[0])
     # sheba[0] should hold fast results from sheba
