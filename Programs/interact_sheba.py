@@ -47,7 +47,7 @@ def main(phases=['SKS','SKKS'],batch=False,evt_sta_list=None):
     """
    #First Indentify the possible station that we could have data for
    #This way we know what directory paths to look in for the sac files
-    path = '/Users/ja17375/Shear_Wave_Splitting'
+    path = '/Users/ja17375/DiscrePy'
 
    #Loop over all stations in the list.
    #################### Time run #################
@@ -72,7 +72,7 @@ def main(phases=['SKS','SKKS'],batch=False,evt_sta_list=None):
 #               pool.map(tidyup,stations) ??? Maybe this would work???
         for phase in phases:
             """ Loop over phases process and tidyup results """
-            tidy_path = 'Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Jacks_Split'
+            tidy_path = 'Users/ja17375/DiscrePy/Sheba/Runs/Jacks_Split'
             outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
             tidyup(tidy_path,phase,outfile)
 
@@ -91,7 +91,7 @@ def tidyup(path,phase,outfile):
     """
     Function to collect .final_result files output from Sheba into the Run directory. Results are written in the SBD format to Sheba/Results
 
-    path - [str]: path to the Run directory (e.g. /users/ja17375/Shear_Wave_Splitting/Sheba/Runs/Run_Name)
+    path - [str]: path to the Run directory (e.g. /users/ja17375/DiscrePy/Sheba/Runs/Run_Name)
 
     phase - Phase that you want to collect results for
 
@@ -129,12 +129,12 @@ def tidyup(path,phase,outfile):
 
 
     results.insert(0,header)
-    print('Writing Results to {} in /Users/ja17375/Shear_Wave_Splitting/Sheba/Results'.format(outfile))
-    with open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}'.format(outfile),'w') as writer:
+    print('Writing Results to {} in /Users/ja17375/DiscrePy/Sheba/Results'.format(outfile))
+    with open('/Users/ja17375/DiscrePy/Sheba/Results/{}'.format(outfile),'w') as writer:
         for r in results:
             writer.write(str(r) + '\n')
 
-def run_sheba(station,path='/Users/ja17375/Shear_Wave_Splitting',phases=['SKS','SKKS'],outfile='split_results'):
+def run_sheba(station,path='/Users/ja17375/DiscrePy',phases=['SKS','SKKS'],outfile='split_results'):
     """
     Function that holds the guts of the workflow for preparing SAC files and running sheba
     """
@@ -229,7 +229,7 @@ class Interface:
             traveltime = model.get_travel_times((self.BHN[0].stats.sac.evdp/1000),self.BHN[0].stats.sac.gcarc,[phase])[0].time
         elif self.BHN[0].stats.sac.evdp == 0: # Theres an event where the event data couldnt be found so evdp was set to be 0
             # Having a depth of zero will give us problems so NOW change it to 10.0km exactly (these traveltimes could be very dodgy)
-            err_out = open('/Users/ja17375/Shear_Wave_Splitting/Sheba/Events_with_evdp_of_0.txt','w+')
+            err_out = open('/Users/ja17375/DiscrePy/Sheba/Events_with_evdp_of_0.txt','w+')
             err_out.write('Station: {}, has event starting at {} with an evdp of 0!\n'.format(self.station,self.BHN[0].stats.starttime))
 
             traveltime = model.get_travel_times(10,self.BHN[0].stats.sac.gcarc,[phase])[0].time
