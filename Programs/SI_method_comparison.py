@@ -27,8 +27,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 #######################################
 
-sks_raw = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_SKS_sheba_results.sdb',delim_whitespace=True)
-skks_raw = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SI_proj/SI_proj_SKKS_sheba_results.sdb',delim_whitespace=True)
+sks_raw = pd.read_csv('/Users/ja17375/DiscrePy/Sheba/Results/SI_proj/SI_proj_SKS_sheba_results.sdb',delim_whitespace=True)
+skks_raw = pd.read_csv('/Users/ja17375/DiscrePy/Sheba/Results/SI_proj/SI_proj_SKKS_sheba_results.sdb',delim_whitespace=True)
 
 sks = sks_raw[sks_raw.SNR > 5]
 skks = skks_raw[skks_raw.SNR > 5]
@@ -96,7 +96,7 @@ ax6.set_xlim([-1 ,1])
 # Adjust space between figures so there is enough room
 fig1.subplots_adjust(hspace=0.25)
 # Save figure properly
-fig1.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SI_Pr_v_Pa_6panel.eps',dpi = 400, format = 'png')
+fig1.savefig('/Users/ja17375/DiscrePy/Figures/SI_Pr_v_Pa_6panel.eps',dpi = 400, format = 'png')
 ######## END FIG1    ###########
 
 ######## START FIG2  ###########
@@ -111,14 +111,14 @@ ax.legend()
 ax.set_ylim([-4,4])
 ax.set_xlim([-4,4])
 # Save figure
-fig2.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SI_Pr_v_Pa.png',dpi = 400, format = 'png')
+fig2.savefig('/Users/ja17375/DiscrePy/Figures/SI_Pr_v_Pa.png',dpi = 400, format = 'png')
 ######## END FIG 2   ##########
 
 ######## Start Fig 3 ##########
-pairs = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_05.pairs',delim_whitespace=True)
-diff = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_05_diffs_l2.pairs',delim_whitespace=True)
-match = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_05_matches_l2.pairs',delim_whitespace=True)
-nulls = pd.read_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/E_pacific/E_pacific_05_nulls.pairs',delim_whitespace=True)
+pairs = pd.read_csv('/Users/ja17375/DiscrePy/Sheba/Results/E_pacific/E_pacific_05.pairs',delim_whitespace=True)
+diff = pd.read_csv('/Users/ja17375/DiscrePy/Sheba/Results/E_pacific/E_pacific_05_diffs_l2.pairs',delim_whitespace=True)
+match = pd.read_csv('/Users/ja17375/DiscrePy/Sheba/Results/E_pacific/E_pacific_05_matches_l2.pairs',delim_whitespace=True)
+nulls = pd.read_csv('/Users/ja17375/DiscrePy/Sheba/Results/E_pacific/E_pacific_05_nulls.pairs',delim_whitespace=True)
 ## Plot sks, skks Lambda 2 values and Delta SI values
 fig3 = plt.figure(figsize=(8,16))
 gs = gridspec.GridSpec(3,2)
@@ -197,7 +197,7 @@ ax5.set_xlim([0,0.25]) #0.25 for all pairs
 ax6.set_xlim([0,0.25])
 
 fig3.subplots_adjust(hspace=0.25)
-fig3.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SI_comp_null_pairs.png',dpi=400,format='png')
+fig3.savefig('/Users/ja17375/DiscrePy/Figures/SI_comp_null_pairs.png',dpi=400,format='png')
 ########## END FIG3 ###########
 
 ######### START FIG4 ##########
@@ -214,5 +214,5 @@ ax1.set_xlabel(r'$|SI(Pa) - SI(Pr)|$ SKS')
 ax2.set_xlabel(r'$|SI(Pa) - SI(Pr)|$ SKKS')
 # ax.set_ylim([,4])
 # ax.set_xlim([-4,4])
-fig4.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SI_Pr_Pa_difference_histograms.png',dpi=400,format='png')
+fig4.savefig('/Users/ja17375/DiscrePy/Figures/SI_Pr_Pa_difference_histograms.png',dpi=400,format='png')
 plt.show()
