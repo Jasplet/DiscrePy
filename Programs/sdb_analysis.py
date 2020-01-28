@@ -29,7 +29,7 @@ class Builder:
     def __init__(self,p,RunDir,sdb_stem,snr=5.0,syn=False):
 
         self.path = p # Path to Results directory
-        self.path_stk = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/{}'.format(RunDir)
+        self.path_stk = '/Users/ja17375/DiscrePy/Sheba/Runs/{}'.format(RunDir)
         self.sdb_stem = sdb_stem
         self.fpath =     '{}/{}_{:02d}.pairs'.format(self.path,self.sdb_stem,int(snr))
         self.lam2_bar = [ ] # Variabel to hold lambda2 values returned from stacking routine
@@ -86,7 +86,7 @@ class Builder:
             self.pp = pd.read_csv('{}.pp'.format(self.fpath.split('.')[0]),delim_whitespace=True)
         else:
             print('Pierce Points file {}.pp doesnt not exist, calling pierce.sh'.format(self.fpath.split('.')[0]))
-            p = call(shlex.split('/Users/ja17375/Shear_Wave_Splitting/Sheba/Programs/pierce.sh {}'.format(self.fpath)))
+            p = call(shlex.split('/Users/ja17375/DiscrePy/Sheba/Programs/pierce.sh {}'.format(self.fpath)))
             self.pp = pd.read_csv('{}.pp'.format(self.fpath.split('.')[0]),delim_whitespace=True)
         # Load SDB and PP (pierce points data for a set of SKS-SKKS pairs)
 
@@ -169,10 +169,10 @@ class Builder:
         ext ='lamR'
         print('Stacking')
         rd = self.path_stk.split('/')[-1]
-        out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/Stacks'.format(rd) # For Filt 03/05 casesed need to hardcode in Combined/ directory
+        out = '/Users/ja17375/DiscrePy/Sheba/Results/{}/Stacks'.format(rd) # For Filt 03/05 casesed need to hardcode in Combined/ directory
         if os.path.isdir(out) is False:
             print('{} does not exist, creating'.format(out))
-            os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/{}/Stacks'.format(rd))
+            os.mkdir('/Users/ja17375/DiscrePy/Sheba/Results/{}/Stacks'.format(rd))
 
         for i,f in enumerate(self.P.DATE.values):
             # print(len(self.P))
@@ -449,7 +449,7 @@ class Pairs:
                     leading zeros in date and time will be applied
         fname [str] - Full path to (and including) the pairs file your want to read in.
         '''
-        self.rpath = '/Users/ja17375/Shear_Wave_Splitting/'
+        self.rpath = '/Users/ja17375/DiscrePy/'
         self.syn = syn # [Bool] - is data synthetics or not?
         if self.syn == True:
             self.syn1 = syn1
@@ -601,7 +601,7 @@ class Pairs:
         [self.T,self.F] = np.meshgrid(np.linspace(0,self.lag_max,num=self.nlag),np.arange(-90,91,1)) ;
         return
 
-    def package(self,outdir,mypath='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'):
+    def package(self,outdir,mypath='/Users/ja17375/DiscrePy/Sheba/SAC'):
         '''
         Function to package the SAC files for the observations made into a new directory (for sharing data and results)
         '''
@@ -611,7 +611,7 @@ class Pairs:
 
         def mk_sacfiles(path,stat,date,time):
             '''Function to generate sacfile names'''
-            #path='/Users/ja17375/Shear_Wave_Splitting/Sheba/SAC'
+            #path='/Users/ja17375/DiscrePy/Sheba/SAC'
             return '{}/{}/{}_{}_{}*BH?.sac'.format(path,stat,stat,date,time)
 
         def cp_sacfile(sacfile,path,outdir):
@@ -622,7 +622,7 @@ class Pairs:
             call('cp {} {}/{}/SAC/'.format(sacfile,path,outdir),shell=True)
             print('cp {} {}/{}/SAC/'.format(sacfile,path,outdir))
 
-        mk_sacfiles_mypath = lambda stat,date,time : mk_sacfiles('/Users/ja17375/Shear_Wave_Splitting/Data/SAC_files',stat,date,time)
+        mk_sacfiles_mypath = lambda stat,date,time : mk_sacfiles('/Users/ja17375/DiscrePy/Data/SAC_files',stat,date,time)
         cp_sacfiles_mypath = lambda sacfile: cp_sacfile(sacfile,mypath,outdir)
         sacfiles = list(map(mk_sacfiles_mypath,self.P.STAT,self.P.DATE,self.P.TIME))
 
@@ -650,11 +650,11 @@ class Pairs:
         if save is True:
             dir = input('Enter Directory you want to save stacked surfaces to > ')
 
-            if os.path.isdir('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}'.format(dir)) is False:
+            if os.path.isdir('/Users/ja17375/DiscrePy/Figures/Stacked_Surfaces/{}'.format(dir)) is False:
                 make_d = input('Directory {} does not exist, do you want to create it? (y/n)'.format(dir))
                 if make_d =='y':
                     print('Ok, creating directory {}'.format(dir))
-                    os.mkdir('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}'.format(dir))
+                    os.mkdir('/Users/ja17375/DiscrePy/Figures/Stacked_Surfaces/{}'.format(dir))
                 else:
                     print('Exiting....')
                     sys.exit()
@@ -734,7 +734,7 @@ class Pairs:
             ax2.set_title(r'$ \bar{\Lambda_2} (\phi,\delta t)$')
             if save is True:
                 # dir = input('Enter Directory you want to save stacked surfaces to > ')
-                plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.eps'.format(dir,lam2,stat),format='eps',dpi=600,transparent=True)
+                plt.savefig('/Users/ja17375/DiscrePy/Figures/Stacked_Surfaces/{}/LAM2_{:4.4f}_STAT_{}.eps'.format(dir,lam2,stat),format='eps',dpi=600,transparent=True)
                 plt.close()
             elif save is False:
                 plt.show()
@@ -932,7 +932,7 @@ class Pairs:
         ax1.legend((f1,f2),('Model from Data','Model from Synthetics'))
 
         if save is True:
-            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/{}.eps'.format(fname),format='eps',dpi=1000)
+            plt.savefig('/Users/ja17375/DiscrePy/Figures/{}.eps'.format(fname),format='eps',dpi=1000)
         plt.show()
 
     def l2_dSI_SNR(self,fname=None,save=False):
@@ -961,7 +961,7 @@ class Pairs:
         ax2.set_ylabel(r'$\Delta$ SI')
         ax2.set_title('SKKS')
         if save is True:
-            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/{}.eps'.format(fname),format='eps',dpi=1000)
+            plt.savefig('/Users/ja17375/DiscrePy/Figures/{}.eps'.format(fname),format='eps',dpi=1000)
         plt.show()
 
     def l2_dSI_hist(self,save=False):
@@ -984,7 +984,7 @@ class Pairs:
         ax2.set_xlim([0,np.around(self.df.D_SI_Pr.max(),decimals=1)])
         # ax2.set_ylim([0,4.0])
         if save is True:
-            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/hist_and_dVs.png',format='png',dpi=1000)
+            plt.savefig('/Users/ja17375/DiscrePy/Figures/hist_and_dVs.png',format='png',dpi=1000)
 
         plt.show()
 
@@ -1055,10 +1055,10 @@ class Pairs:
         cbar4.set_label(r'$\Delta SI$',rotation=270)
 
         if save is True:
-            fig1.savefig('/Users/ja17375/Shear_Wave_Splitting/Sheba/Figures/diff_v_dist_Lambda.eps',format='eps',transparent=True,dpi=400)
-            fig2.savefig('/Users/ja17375/Shear_Wave_Splitting/Sheba/Figures/delfast_v_deltlag_Lambda.eps',format='eps',transparent=True,dpi=400)
-            fig3.savefig('/Users/ja17375/Shear_Wave_Splitting/Sheba/Figures/diff_v_dist_DSI.eps',format='eps',transparent=True,dpi=400)
-            fig4.savefig('/Users/ja17375/Shear_Wave_Splitting/Sheba/Figures/delfast_v_deltlag_DSI.eps',format='eps',transparent=True,dpi=400)
+            fig1.savefig('/Users/ja17375/DiscrePy/Sheba/Figures/diff_v_dist_Lambda.eps',format='eps',transparent=True,dpi=400)
+            fig2.savefig('/Users/ja17375/DiscrePy/Sheba/Figures/delfast_v_deltlag_Lambda.eps',format='eps',transparent=True,dpi=400)
+            fig3.savefig('/Users/ja17375/DiscrePy/Sheba/Figures/diff_v_dist_DSI.eps',format='eps',transparent=True,dpi=400)
+            fig4.savefig('/Users/ja17375/DiscrePy/Sheba/Figures/delfast_v_deltlag_DSI.eps',format='eps',transparent=True,dpi=400)
 
             plt.close('all')
         else:
@@ -1182,7 +1182,7 @@ class Pairs:
         ax.legend(fontsize='medium')
         #plt.colorbar(C)\
         if save == True:
-            plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/Lam2bar_v_Lam2sum_l2_dsi.png',format='eps',transparent=True,dpi=400) # /Users/ja17375/Shear_Wave_Splitting/Figures/
+            plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/Lam2bar_v_Lam2sum_l2_dsi.png',format='eps',transparent=True,dpi=400) # /Users/ja17375/DiscrePy/Figures/
             plt.show()
         else:
             plt.show()
@@ -1212,7 +1212,7 @@ class Pairs:
         ax.legend(fontsize='medium')
         #plt.colorbar(C)\
         if save == True:
-            # plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/Lam2bar_v_Lam2sum_l2_only.png',format='png',transparent=True,dpi=400) # /Users/ja17375/Shear_Wave_Splitting/Figures/
+            # plt.savefig('/Users/ja17375/Thesis/Lambda2_Paper/Figs/Lam2bar_v_Lam2sum_l2_only.png',format='png',transparent=True,dpi=400) # /Users/ja17375/DiscrePy/Figures/
             plt.show()
         else:
             plt.show()
@@ -1267,7 +1267,7 @@ class Pairs:
         ax1.set_ylim([0, 35])
         ax2.set_ylim([0, 1.6])
         ax1.set_title('Fast Direction and Lag time for Pairs in E. Pac.')
-        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Phi_dt_v_Long_Lat_sq.png',dpi=400)
+        plt.savefig('/Users/ja17375/DiscrePy/Figures/Phi_dt_v_Long_Lat_sq.png',dpi=400)
         plt.show()
 
     def phi_dt_diff_lat(self):
@@ -1319,7 +1319,7 @@ class Pairs:
         ax3.set_xlim([-90,90])
         ax4.set_xlim([0,4.0])
         ax1.set_title('Fast Direction and Lag time for Pairs in E. Pac.')
-        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Phi_dt_v_Lat.png',dpi=400)
+        plt.savefig('/Users/ja17375/DiscrePy/Figures/Phi_dt_v_Lat.png',dpi=400)
         plt.show()
 
     def DSI_LAM2_lat(self):
@@ -1382,7 +1382,7 @@ class Pairs:
         ax2.set_ylabel(r'Latitude $(\degree)$')
         ax1.legend()
         plt.suptitle(r'Latitude v Discrepancy parameters for N-S trending SKS-SKKS pairs')
-        plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Lat_v_splitting_params.png',dpi = 400,transparent=True)
+        plt.savefig('/Users/ja17375/DiscrePy/Figures/Lat_v_splitting_params.png',dpi = 400,transparent=True)
         plt.show()
 
 
