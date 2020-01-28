@@ -163,10 +163,10 @@ class Synth:
         #     if f[self.a_ind] < 0:
         #         # print(abs(f[self.a_ind]))
         #         plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.png'.format(self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
-        #         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
+        #         plt.savefig('/Users/ja17375/DiscrePy/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_N{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='eps',transparent=True,dpi=400)
         #     else:
         #         plt.savefig('/Users/ja17375/Presentations/{}_A_{:2.2f}_{:03.0f}_dSI_grid.png'.format(self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
-        #         plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
+        #         plt.savefig('/Users/ja17375/DiscrePy/Figures/SynthStacks/Noise025/{}/{}_A_{:2.2f}_{:03.0f}_dSI_grid.eps'.format(self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='eps',transparent=True,dpi=400)
         #     # plt.close('a')
         # plt.show()
 
@@ -293,16 +293,16 @@ class Synth:
                 # print(abs(f[self.a_ind]))
                 if self.TwoLayer is True:
                     plt.suptitle('Two Layer Synthetics')
-                    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/TwoLayer/{}_A_{:2.2f}_N{:03.0f}_4panel_2layer.png'.format(self.noise_lvl,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',dpi=400)
+                    plt.savefig('/Users/ja17375/DiscrePy/Figures/SynthStacks/{}/TwoLayer/{}_A_{:2.2f}_N{:03.0f}_4panel_2layer.png'.format(self.noise_lvl,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',dpi=400)
                 else:
                     # plt.suptitle('Two Layer Synthetics')
-                    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
+                    plt.savefig('/Users/ja17375/DiscrePy/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_N{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],abs(f[self.a_ind])),format='png',transparent=True,dpi=400)
             else:
                 if self.TwoLayer is True:
                     plt.suptitle('Two Layer Synthetics')
-                    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/TwoLayer/{}_A_{:2.2f}_{:03.0f}_4panel_2layer.png'.format(self.noise_lvl,self.spol,l[self.a_ind],f[self.a_ind]),format='png',dpi=400)
+                    plt.savefig('/Users/ja17375/DiscrePy/Figures/SynthStacks/{}/TwoLayer/{}_A_{:2.2f}_{:03.0f}_4panel_2layer.png'.format(self.noise_lvl,self.spol,l[self.a_ind],f[self.a_ind]),format='png',dpi=400)
                 else:
-                    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
+                    plt.savefig('/Users/ja17375/DiscrePy/Figures/SynthStacks/{}/{}/{}_A_{:2.2f}_{:03.0f}_4panel.png'.format(self.noise_lvl,self.spol,self.spol,l[self.a_ind],f[self.a_ind]),format='png',transparent=True,dpi=400)
 
             # plt.close('all')
 
@@ -386,7 +386,7 @@ class Synth:
         ax.set_xlim([-4,4])
         ax.set_ylim([-4,4])
         if save is True:
-            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Synthetics_SI_Pr_v_Ap.eps',dpi=400)
+            plt.savefig('/Users/ja17375/DiscrePy/Figures/Synthetics_SI_Pr_v_Ap.eps',dpi=400)
 
         plt.show()
 
@@ -395,7 +395,7 @@ class Synth:
         Plots a given raw lamR surface, to allow for comparison to the stacked synthetics grids (so we can see if the shape of the gridded lambda2 bar surfaces match
         the grid search output from SHEBA).
         '''
-        lamR = np.loadtxt('/Users/Shear_Wave_Splitting/Sheba/Results/SYNTH/Stacks/{}'.format(file))
+        lamR = np.loadtxt('/Users/DiscrePy/Sheba/Results/SYNTH/Stacks/{}'.format(file))
         L,F = np.meshgrid(np.linspace(0,4,num=lamR.shape[0]),np.linspace(-90,90,num=lamR.shape[1]))
         fig = plt.figure(figsize=(10,8))
         ax = fig.add_subplot(111)
@@ -408,8 +408,8 @@ class Synth:
         ax.set_xlabel(r'$\delta t$ (s)')
         if save == True:
             out = input('Input output file name (extension will be added) >')
-            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}.eps'.format(out),format='eps',transparent=True,dpi=400)
-            print('Saved to /Users/ja17375/Shear_Wave_Splitting/Figures/SynthStacks/{}.eps'.format(out))
+            plt.savefig('/Users/ja17375/DiscrePy/Figures/SynthStacks/{}.eps'.format(out),format='eps',transparent=True,dpi=400)
+            print('Saved to /Users/ja17375/DiscrePy/Figures/SynthStacks/{}.eps'.format(out))
         plt.show()
 
     def plot_in_v_out_joined(self,save=False):
@@ -445,7 +445,7 @@ class Synth:
         ax.set_ylabel(r'$\Phi $ ( $\degree$)')
         if save is True:
             fname = input('Enter output filename (eps extenstion will be added) > ')
-            plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/{}.eps'.format(fname),format='eps',dpi=600)
+            plt.savefig('/Users/ja17375/DiscrePy/Figures/{}.eps'.format(fname),format='eps',dpi=600)
 
         plt.show()
 
@@ -475,7 +475,7 @@ class Synth:
         ax3.set_ylabel(r'$\phi$ ($\degree$)',fontsize=14)
         ax3.set_xlabel(r'$\delta t$ (s)',fontsize=14)
         plt.colorbar(s)
-        fig.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Synth_SI_comp.png',dpi=400, transparent=True)
+        fig.savefig('/Users/ja17375/DiscrePy/Figures/Synth_SI_comp.png',dpi=400, transparent=True)
 
         plt.show()
 
@@ -512,16 +512,16 @@ class Synth:
 
         for i,k in enumerate(b):
             if self.TwoLayer is True:
-                f1 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/TwoLayer/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,(a[i]+1)) # Add 1 to indecides becuase python goes from 0 628
-                f2 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/TwoLayer/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,(b[i]+1)) # Whilst in the naing from BASH it goes from 1 to 629
+                f1 = '/Users/ja17375/DiscrePy/Sheba/Runs/SYNTH/TwoLayer/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,(a[i]+1)) # Add 1 to indecides becuase python goes from 0 628
+                f2 = '/Users/ja17375/DiscrePy/Sheba/Runs/SYNTH/TwoLayer/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,(b[i]+1)) # Whilst in the naing from BASH it goes from 1 to 629
                 print(f1)
                 print(f2)
             elif self.TwoLayer is False:
-                f1 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,self.spol,(a[i]+1)) # Add 1 to indecides becuase python goes from 0 628
-                f2 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/{}/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,self.spol,(b[i]+1)) # Whilst in the naing from BASH it goes from 1 to 629
+                f1 = '/Users/ja17375/DiscrePy/Sheba/Runs/SYNTH/{}/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,self.spol,(a[i]+1)) # Add 1 to indecides becuase python goes from 0 628
+                f2 = '/Users/ja17375/DiscrePy/Sheba/Runs/SYNTH/{}/{}/{}_3{:03d}001_120000_SYNTH.lamR'.format(self.noise_lvl,self.spol,self.spol,(b[i]+1)) # Whilst in the naing from BASH it goes from 1 to 629
                 print(f1)
                 print(f2)
-            out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/Stacks'.format(self.spol)
+            out = '/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/Stacks'.format(self.spol)
             outfile = '{}_3{:03d}{:03d}'.format(self.spol,a[i],b[i])
             Stk = Stacker(f1,f2,out,outfile)
             self.lam2bar.append(Stk.lam2_bar)
@@ -599,15 +599,15 @@ class Synth:
             if f[self.a_ind] < 0:
                 if self.TwoLayer is True:
                     UM = input('Enter which Upper Mantle this is (UM1,UM2,UM3): ')
-                    self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/TwoLayer/{}/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.noise_lvl,UM,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
+                    self.pairs.to_csv('/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/TwoLayer/{}/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.noise_lvl,UM,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
                 else:
-                    self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
+                    self.pairs.to_csv('/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_N{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
             else:
                 if self.TwoLayer is True:
                     UM = input('Enter which Upper Mantle this is (UM1,UM2,UM3): ')
-                    self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/TwoLayer/{}/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.noise_lvl,UM,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
+                    self.pairs.to_csv('/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/TwoLayer/{}/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.noise_lvl,UM,self.spol,self.T.ravel()[self.a_ind],abs(self.F.ravel()[self.a_ind])),sep=' ',index=False)
                 else:
-                    self.pairs.to_csv('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ',index=False)
+                    self.pairs.to_csv('/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/{}/{}/{}_A_{:2.2f}_{:03.0f}.pairs'.format(self.noise_lvl,self.spol,self.spol,self.T.ravel()[self.a_ind],self.F.ravel()[self.a_ind]),sep=' ',index=False)
         else:
             pass
             # self.grid_dSI()
@@ -663,12 +663,12 @@ class Synth:
 
 def synth_l2_v_snr():
 
-    pairs_p1_p1 = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P1_P1.pairs').pairs
-    pairs_p1_p2 = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P1_P2.pairs').pairs
-    pairs_p1_p3 = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P1_P3.pairs').pairs
-    pairs_p2_p2 = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P2_P2.pairs').pairs
-    pairs_p2_p3 = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P2_P3.pairs').pairs
-    pairs_p2_match = Synth('/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P2_match.pairs').pairs
+    pairs_p1_p1 = Synth('/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P1_P1.pairs').pairs
+    pairs_p1_p2 = Synth('/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P1_P2.pairs').pairs
+    pairs_p1_p3 = Synth('/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P1_P3.pairs').pairs
+    pairs_p2_p2 = Synth('/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P2_P2.pairs').pairs
+    pairs_p2_p3 = Synth('/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P2_P3.pairs').pairs
+    pairs_p2_match = Synth('/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/SNR_test/SP30_SNR_range_test_P2_match.pairs').pairs
     fig,(ax1,ax3) = plt.subplots(1,2,figsize= (12,6))
     #for pairs in pairs_list:
 
@@ -718,7 +718,7 @@ def synth_l2_v_snr():
     ax3.set_xlim([1,55])
     ax3.legend([f1,f2],['Model for Perfect Matches',r'$\bar{\lambda _2} = A. SNR^{-b} + \kappa_{\bar{\lambda_2}}$ Model'])
     #f4 = ax3.plot(snr_mod,y_mod,'k-')
-    #plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/LAM2_v_SNR_w_models.eps',format='eps',dpi=400)
+    #plt.savefig('/Users/ja17375/DiscrePy/Figures/LAM2_v_SNR_w_models.eps',format='eps',dpi=400)
     #plt.savefig('LAM2_v_SNR_matches.eps',format='eps',dpi=400)
     plt.show()
 
@@ -756,7 +756,7 @@ def synth_l2bar_v_l2(self):
     ax.set_ylim([0,0.2])
     ax.set_xlim([0,0.2])
     # Add label detailing the splitting parmeters
-    plt.savefig('/Users/ja17375/Shear_Wave_Splitting/Figures/Lam2bar_v_lam2sum_synthetics.eps',format='eps',dpi=400)
+    plt.savefig('/Users/ja17375/DiscrePy/Figures/Lam2bar_v_lam2sum_synthetics.eps',format='eps',dpi=400)
     plt.show()
 
 def mk_syn_pairs(a,b):
@@ -787,12 +787,12 @@ def synth_stack(a):
      lam2_P1 = [ ]
      lam2_P2 = [ ]
      for i,k in enumerate(a):
-         f1 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/SNR_test/P3/SP30_{}_120000_SYNTH.lamR'.format(a[i]) # Select synth with correct date from direcotry P1
-         f2 = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Runs/SYNTH/SNR_test/P3/SP30_{}_120000_SYNTH.lamR'.format(a[i])  # Select synth from P2
+         f1 = '/Users/ja17375/DiscrePy/Sheba/Runs/SYNTH/SNR_test/P3/SP30_{}_120000_SYNTH.lamR'.format(a[i]) # Select synth with correct date from direcotry P1
+         f2 = '/Users/ja17375/DiscrePy/Sheba/Runs/SYNTH/SNR_test/P3/SP30_{}_120000_SYNTH.lamR'.format(a[i])  # Select synth from P2
          print(f1)
          print(f2)
 
-         out = '/Users/ja17375/Shear_Wave_Splitting/Sheba/Results/SYNTH/SNR_test/Stacks'
+         out = '/Users/ja17375/DiscrePy/Sheba/Results/SYNTH/SNR_test/Stacks'
          outfile = 'SP30_{:07d}'.format(a[i])
          Stk = Stacker(f1,f2,out,outfile)
          lam2_bar.append(Stk.lam2_bar)
