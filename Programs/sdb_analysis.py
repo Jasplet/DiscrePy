@@ -332,15 +332,15 @@ class Builder:
         null_pairs.to_csv('{}/{}_{:02d}_nulls.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         ns_match.to_csv('{}/{}_{:02d}_matches_null_split.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         ns_diff.to_csv('{}/{}_{:02d}_diffs_null_split.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
-        match.to_csv('{}/{}_{:02d}_matches_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
-        diff.to_csv('{}/{}_{:02d}_diffs_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        match.to_csv('{}/{}_{:02d}_matches.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
+        diff.to_csv('{}/{}_{:02d}_diffs.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         match_dsi.to_csv('{}/{}_{:02d}_matches_dsi.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         diff_dsi.to_csv('{}/{}_{:02d}_diffs_dsi.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         uID.to_csv('{}/{}_{:02d}_uID_l2.pairs'.format(self.path,self.sdb_stem,int(self.snr)),index=False,sep=' ')
         # Open up mspp files
         print('Writing to {}/{}_{:02d}'.format(self.path,self.sdb_stem,int(self.snr)))
-        mspp_match = open('{}/{}_{:02d}_matches_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
-        mspp_diff = open('{}/{}_{:02d}_diffs_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+        mspp_match = open('{}/{}_{:02d}_matches.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
+        mspp_diff = open('{}/{}_{:02d}_diffs.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
         # mspp_match_dsi = open('{}/{}_{:02d}_matches_dsi.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
         # mspp_diff_dsi = open('{}/{}_{:02d}_diffs_dsi.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
         mspp_uID = open('{}/{}_{:02d}_uID_l2.mspp'.format(self.path,self.sdb_stem,int(self.snr)),'w+')
@@ -462,8 +462,8 @@ class Pairs:
             self.df = pd.read_csv(fname,delim_whitespace=True,converters=date_time_convert)
             try:
                 # Now read in new match,diffs made using lam2/dSI test
-                pmatch_l2 = '{}_matches_l2.pairs'.format(fname.split('.')[0])
-                pdiff_l2 ='{}_diffs_l2.pairs'.format(fname.split('.')[0])
+                pmatch_l2 = '{}_matches.pairs'.format(fname.split('.')[0])
+                pdiff_l2 ='{}_diffs.pairs'.format(fname.split('.')[0])
                 pmatch_dsi = '{}_matches_dsi.pairs'.format(fname.split('.')[0])
                 pdiff_dsi = '{}_diffs_dsi.pairs'.format(fname.split('.')[0])
                 self.matches = pd.read_csv(pmatch_l2,delim_whitespace=True,converters=date_time_convert)
@@ -853,8 +853,8 @@ class Pairs:
         ax2.set_xlabel('Epicentral Distrance (Deg)')
         ax2.set_ylabel(R'$\Delta SI $')
 
-        ax3.plot(self.matches_l2.DIST,self.matches_l2.LAM2_BAR,marker='.',color='blue',label='Matching')
-        ax3.plot(self.diffs_l2.DIST,self.diffs_l2.LAM2_BAR,marker='.',color='darkorange',label='Discrepant')
+        ax3.plot(self.matches.DIST,self.matches.LAM2_BAR,marker='.',color='blue',label='Matching')
+        ax3.plot(self.diffs.DIST,self.diffs.LAM2_BAR,marker='.',color='darkorange',label='Discrepant')
         ax3.set_xlim([105, 140])
         ax3.set_ylim([0, np.around(self.df.LAM2_BAR.max(),decimals=1)])
         ax3.set_xlabel('Epicentral Distance (Deg)')
@@ -862,8 +862,8 @@ class Pairs:
         ax3.set_title(r'Match/Diff according to $\bar{lambda _2} / \Delta SI $ test')
         ax3.legend()
 
-        ax4.plot(self.matches_l2.DIST,self.matches_l2.D_SI_Pr,marker='.',color='blue',label='Matching')
-        ax4.plot(self.diffs_l2.DIST,self.diffs_l2.D_SI_Pr,marker='.',color='darkorange',label='Discrepant')
+        ax4.plot(self.matches.DIST,self.matches.D_SI_Pr,marker='.',color='blue',label='Matching')
+        ax4.plot(self.diffs.DIST,self.diffs.D_SI_Pr,marker='.',color='darkorange',label='Discrepant')
         ax4.set_xlim([105,140])
         ax4.set_ylim([0,np.around(self.df.D_SI_Pr.max(),decimals=1)])
         ax4.set_xlabel('Epicentral Distrance (Deg)')
@@ -879,8 +879,8 @@ class Pairs:
         ax1.plot(self.df.SPOL_SKS,self.df.BAZ,marker='.',color='blue')
         ax1.plot(self.df.SPOL_SKKS,self.df.BAZ,marker='x',color='blue')
         # ax1.set_xlim()
-        ax2.plot(self.diffs_l2.SPOL_SKS,self.diffs_l2.BAZ,marker='.',color='darkorange',linestyle='None')
-        ax2.plot(self.matches_l2.SPOL_SKKS,self.matches_l2.BAZ,marker='x',color='darkorange')
+        ax2.plot(self.diffs.SPOL_SKS,self.diffs.BAZ,marker='.',color='darkorange',linestyle='None')
+        ax2.plot(self.matches.SPOL_SKKS,self.matches.BAZ,marker='x',color='darkorange')
 
 
         plt.show()
@@ -1071,32 +1071,32 @@ class Pairs:
         fig,((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2,figsize=(14,6),sharex=True)#,sharey=True)
 
         # C1 = ax1.scatter(self.df.Q_SKS,self.df.LAM2,c=self.df.SNR_SKS,marker='.',vmin=2,vmax=20)
-        ax1.plot(self.matches_l2.Q_SKS,self.matches_l2.LAM2_BAR,marker='.',color='blue',ls='None')
-        ax1.plot(self.diffs_l2.Q_SKS,self.diffs_l2.LAM2_BAR,marker='.',color='darkorange',ls='None')
+        ax1.plot(self.matches.Q_SKS,self.matches.LAM2_BAR,marker='.',color='blue',ls='None')
+        ax1.plot(self.diffs.Q_SKS,self.diffs.LAM2_BAR,marker='.',color='darkorange',ls='None')
         ax1.set_xlabel('SKS Q factor')
         ax1.set_ylabel(r'$\bar{\lambda _2}$')
         ax1.set_xlim([-1,1])
         ax1.set_ylim([0,np.around(self.df.LAM2_BAR.max(),decimals=1)])
         # plt.colorbar(C1,ax=ax1)
 
-        ax2.plot(self.matches_l2.Q_SKKS,self.matches_l2.LAM2_BAR,marker='.',color='blue',ls='None')
-        ax2.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.LAM2_BAR,marker='.',color='darkorange',ls='None')
-        #ax2.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.LAM2,marker='.',color='darkorange',ls='None')
+        ax2.plot(self.matches.Q_SKKS,self.matches.LAM2_BAR,marker='.',color='blue',ls='None')
+        ax2.plot(self.diffs.Q_SKKS,self.diffs.LAM2_BAR,marker='.',color='darkorange',ls='None')
+        #ax2.plot(self.diffs.Q_SKKS,self.diffs.LAM2,marker='.',color='darkorange',ls='None')
         ax2.set_xlabel('SKKS Q factor')
         ax2.set_xlim([-1,1])
         ax2.set_ylim([0,np.around(self.df.LAM2_BAR.max(),decimals=1)])
 
-        ax3.plot(self.matches_l2.Q_SKS,self.matches_l2.D_SI,marker='.',color='blue',ls='None')
-        ax3.plot(self.diffs_l2.Q_SKS,self.diffs_l2.D_SI,marker='.',color='darkorange',ls='None')
-        #ax3.plot(self.diffs_l2.Q_SKS,self.diffs_l2.D_SI,marker='.',color='darkorange',ls='None')
+        ax3.plot(self.matches.Q_SKS,self.matches.D_SI,marker='.',color='blue',ls='None')
+        ax3.plot(self.diffs.Q_SKS,self.diffs.D_SI,marker='.',color='darkorange',ls='None')
+        #ax3.plot(self.diffs.Q_SKS,self.diffs.D_SI,marker='.',color='darkorange',ls='None')
         ax3.set_xlabel('SKS Q factor')
         ax3.set_ylabel(r'$\Delta SI$')
         ax3.set_xlim([-1,1])
         ax3.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
 
-        ax4.plot(self.matches_l2.Q_SKKS,self.matches_l2.D_SI,marker='.',color='blue',ls='None')
-        ax4.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.D_SI,marker='.',color='darkorange',ls='None')
-        #ax4.plot(self.diffs_l2.Q_SKKS,self.diffs_l2.D_SI,marker='.',color='darkorange',ls='None')
+        ax4.plot(self.matches.Q_SKKS,self.matches.D_SI,marker='.',color='blue',ls='None')
+        ax4.plot(self.diffs.Q_SKKS,self.diffs.D_SI,marker='.',color='darkorange',ls='None')
+        #ax4.plot(self.diffs.Q_SKKS,self.diffs.D_SI,marker='.',color='darkorange',ls='None')
         ax4.set_xlabel('SKKS Q factor')
         ax4.set_xlim([-1,1])
         ax4.set_ylim([0,np.around(self.df.D_SI.max(),decimals=1)])
@@ -1158,7 +1158,7 @@ class Pairs:
         We only plto null split and split pairs
         '''
         fig,ax = plt.subplots(1,1,figsize=(7,7))
-        splits = self.diffs_l2.append(self.matches_l2)
+        splits = self.diffs.append(self.matches)
         m_splits = self.matches[(self.matches.Q_SKS > 0.5) & (self.matches.Q_SKKS > 0.5)]
         d_splits = self.diffs[(self.diffs.Q_SKS > 0.5) & (self.diffs.Q_SKKS > 0.5)]
         #Plot split pairs
@@ -1166,8 +1166,8 @@ class Pairs:
         # ax.scatter((d_splits.LAM2_SKS + d_splits.LAM2_SKKS),d_splits.LAM2_BAR,marker='.',label=r'$2 \sigma$ discrepant')
         # ax.scatter((self.df.LAM2_SKS + self.df.LAM2_SKKS),self.df.LAM2_BAR,marker='.',label='All pairs')
         # ax.scatter((splits.LAM2_SKS + splits.LAM2_SKKS),splits.LAM2_BAR,marker='.',label='Split Pairs')
-        ax.scatter((self.matches_l2.LAM2_SUM),self.matches_l2.LAM2_BAR,marker='.',label=r'$\bar{\lambda_2} $ Matching')
-        ax.scatter((self.diffs_l2.LAM2_SUM),self.diffs_l2.LAM2_BAR,marker='x',label=r'$\bar{\lambda_2} $ Discrepant')
+        ax.scatter((self.matches.LAM2_SUM),self.matches.LAM2_BAR,marker='.',label=r'$\bar{\lambda_2} $ Matching')
+        ax.scatter((self.diffs.LAM2_SUM),self.diffs.LAM2_BAR,marker='x',label=r'$\bar{\lambda_2} $ Discrepant')
         ax.scatter((self.null_split_matches.LAM2_SUM),self.null_split_matches.LAM2_BAR,marker='.',label=r'$\bar{\lambda_2} $ Matching Null-Split')
         ax.scatter((self.null_split_diffs.LAM2_SUM),self.null_split_diffs.LAM2_BAR,marker='x',label=r'$\bar{\lambda_2} $ Discrepant Null-Split')
         #Plot null - split pairs
@@ -1194,8 +1194,8 @@ class Pairs:
         We only plto null split and split pairs
         '''
         # Find pairs in the region of interest (Longitdinally anyway)
-        d = self.diffs_l2[(self.diffs_l2.SKS_PP_LON > -170) & (self.diffs_l2.SKS_PP_LON < -80) & (self.diffs_l2.SKKS_PP_LON > -170) & (self.diffs_l2.SKS_PP_LON < -80)]
-        m = self.matches_l2[(self.matches_l2.SKS_PP_LON > -170) & (self.matches_l2.SKS_PP_LON < -80) & (self.matches_l2.SKKS_PP_LON > -170) & (self.matches_l2.SKS_PP_LON < -80)]
+        d = self.diffs[(self.diffs.SKS_PP_LON > -170) & (self.diffs.SKS_PP_LON < -80) & (self.diffs.SKKS_PP_LON > -170) & (self.diffs.SKS_PP_LON < -80)]
+        m = self.matches[(self.matches.SKS_PP_LON > -170) & (self.matches.SKS_PP_LON < -80) & (self.matches.SKKS_PP_LON > -170) & (self.matches.SKS_PP_LON < -80)]
 
         fig,ax = plt.subplots(1,1,figsize=(7,7))
         ax.scatter(m.LAM2_BAR,m.D_SI_Pr,marker='.',label=r'$\bar{\lambda_2} $ Matching')
@@ -1222,8 +1222,8 @@ class Pairs:
         fig,(ax1,ax2) = plt.subplots(1,2,figsize=(12,6))
         ax1.plot(self.diffs_dsi.LAM2_BAR,self.diffs_dsi.D_SI_Pr,'k.',label='Discrepant')
         ax1.plot(self.matches_dsi.LAM2_BAR,self.matches_dsi.D_SI_Pr,'kx',label='Matching')
-        ax2.plot(self.diffs_l2.LAM2_BAR,self.diffs_l2.D_SI_Pr,'k.',label='Discrepant')
-        ax2.plot(self.matches_l2.LAM2_BAR,self.matches_l2.D_SI_Pr,'kx',label='Matching')
+        ax2.plot(self.diffs.LAM2_BAR,self.diffs.D_SI_Pr,'k.',label='Discrepant')
+        ax2.plot(self.matches.LAM2_BAR,self.matches.D_SI_Pr,'kx',label='Matching')
         ax1.set_xlabel(r'$\bar{\lambda_2} $ value', fontsize=14)
         ax1.set_ylabel(r'$\Delta SI$ value',fontsize=14)
         ax2.set_xlabel(r'$\bar{\lambda_2} $ value', fontsize=14)
@@ -1244,9 +1244,9 @@ class Pairs:
         '''
         fig,(ax1,ax2) = plt.subplots(2,1,sharex=True,figsize=(8,12))
         # Set up Regional Section of pairs
-        d = self.diffs_l2[(self.diffs_l2.SKS_PP_LON > -160) & (self.diffs_l2.SKS_PP_LON < -80)]
+        d = self.diffs[(self.diffs.SKS_PP_LON > -160) & (self.diffs.SKS_PP_LON < -80)]
         ns = self.null_split[(self.null_split.SKS_PP_LON > -160) & (self.null_split.SKS_PP_LON < -80)]
-        m = self.matches_l2[(self.matches_l2.SKS_PP_LON > -160) & (self.matches_l2.SKS_PP_LON < -80)]
+        m = self.matches[(self.matches.SKS_PP_LON > -160) & (self.matches.SKS_PP_LON < -80)]
 
         latlon_diff = np.sqrt(((d.SKS_PP_LON.values+d.SKKS_PP_LON.values)/2)**2 + ((d.SKS_PP_LAT.values+d.SKKS_PP_LAT.values)/2)**2)
         latlon_match = np.sqrt(((m.SKS_PP_LON.values+m.SKKS_PP_LON.values)/2)**2 + ((m.SKS_PP_LAT.values+m.SKKS_PP_LAT.values)/2)**2)
@@ -1276,10 +1276,10 @@ class Pairs:
         '''
         fig,((ax1,ax3),(ax2,ax4)) = plt.subplots(2,2,sharey=True,figsize=(8,12))
         # Set up Regional Section of pairs
-        d = self.diffs_l2[(self.diffs_l2.SKS_PP_LON < -130)]
+        d = self.diffs[(self.diffs.SKS_PP_LON < -130)]
         ns_sks = self.null_split[(self.null_split.SKS_PP_LON < -130)  & (self.null_split.Q_SKS > 0.5)]
         ns_skks = self.null_split[(self.null_split.SKS_PP_LON < -130)  & (self.null_split.Q_SKKS > 0.5)]
-        m = self.matches_l2[(self.matches_l2.SKS_PP_LON < -130) ]
+        m = self.matches[(self.matches.SKS_PP_LON < -130) ]
 
         lat_diff = (d.SKS_PP_LAT + d.SKKS_PP_LAT)/2
         lat_match = (m.SKS_PP_LAT + m.SKKS_PP_LAT)/2
@@ -1340,14 +1340,14 @@ class Pairs:
         matplotlib.rcParams.update(params)
 
         # Set up Regional Section of pairs
-        d1 = self.diffs_l2[(self.diffs_l2.SKS_PP_LON < -125) & (self.diffs_l2.SKS_PP_LON >= -140) ]
+        d1 = self.diffs[(self.diffs.SKS_PP_LON < -125) & (self.diffs.SKS_PP_LON >= -140) ]
         ns1 = self.null_split[(self.null_split.SKS_PP_LON < -125) &  (self.null_split.SKS_PP_LON >= -140)]
 
-        m1 = self.matches_l2[(self.matches_l2.SKS_PP_LON < -125) & (self.matches_l2.SKS_PP_LON >= -140)]
+        m1 = self.matches[(self.matches.SKS_PP_LON < -125) & (self.matches.SKS_PP_LON >= -140)]
 
-        d2 = self.diffs_l2[(self.diffs_l2.SKS_PP_LON >= -125)]
+        d2 = self.diffs[(self.diffs.SKS_PP_LON >= -125)]
         ns2 = self.null_split[(self.null_split.SKS_PP_LON >= -125)]
-        m2 = self.matches_l2[(self.matches_l2.SKS_PP_LON >= -125) ]
+        m2 = self.matches[(self.matches.SKS_PP_LON >= -125) ]
 
         lat_diff1 = (d1.SKS_PP_LAT + d1.SKKS_PP_LAT)/2
         lat_match1 = (m1.SKS_PP_LAT + m1.SKKS_PP_LAT)/2
