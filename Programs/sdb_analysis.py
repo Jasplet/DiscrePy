@@ -64,7 +64,7 @@ class Builder:
             self.add_lam2()
             #Now test for matching and disrecpent pairs
             print('Apply 2-sigma test for discrepancy')
-            self.match()
+            # self.match_sig2()
             print(r'Apply $\bar{\lambda_2}$ & $\Delta SI$ test')
             self.match_l2()
             # print('{} pairs'.format(len(self.P)))
@@ -240,7 +240,7 @@ class Builder:
             print('Added piercepoints')
         else:
             print('Dimension mismatch, not adding piercepoints')
-    def match(self,sigma=2):
+    def match_sig2(self,sigma=2):
         """
         Funntion to see if the SKS and SKKS splititng measurements for a pair of measurements match within error
         file - the filename you want for the output files
