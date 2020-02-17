@@ -11,6 +11,8 @@
 ####################################
 import obspy as ob
 import pandas as pd
+import timeit
+import sys
 import numpy as np
 import obspy.core.utcdatetime
 import os.path
@@ -21,6 +23,7 @@ from obspy.core import AttribDict
 from obspy.clients import iris
 import time
 from multiprocessing import Pool, current_process
+from functools import partial
 import contextlib
 ####################################
 def main(mode,outdir,event_list=None,stat_list=None,batch=False):
@@ -43,44 +46,48 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
     start = time.time()
     # Reads our event list as a pandas datatframe
     # The converters kwarg fr TIME will stop pandas from stripping off the leading zeros (but time is now a string)
+
+    df = pd.read_csv(event_list,delim_whitespace=True,converters={'TIME': lambda x: str(x)})
     (attempts,dwn,fdsnx,ts,ex) = 0,0,0,0,0
     sum = []
-    df = pd.read_csv(event_list,delim_whitespace=True,converters={'TIME': lambda x: str(x)})
     if mode is 'single':
 
         stations = df.STAT.unique() # Identify the unique stations provided in the event staton list
         if batch is True:
-            for station in stations:
-                data = df[(df['STAT'] == station)]
-                data = data.reset_index()
-                del data['index']
+            # for station in stations:
+            dwn = partial(run_download,df=df,ext=ext,out=outdir) # make partial fucntion so we can sue map to parrallise
 
-                (a,d,fd,t,x)= run_download(data,station,ext,outdir)
-                attempts += a # counter for number of attmepts
-                dwn += d # count number of downloads
-                fdsnx += fd # coutn number of fdsn exceptions
-                ts += t # count numbers of streams that were too short (ideally 0)
-                ex += x # numbers of files that already existed
-                # sum.append(s[0])
+            with contextlib.closing( Pool(processes = 4) ) as pool:
+            #           Iterate over stations in the station list.
+                (a,d,fd,t,x,s) = pool.map(dwn, stations) # Map list of unique stations to downloader
+
+            # (a,d,fd,t,x,s)= run_download(df,station,ext,outdir)
+            attempts += a # counter for number of attmepts
+            dwn += d # count number of downloads
+            fdsnx += fd # coutn number of fdsn exceptions
+            ts += t # count numbers of streams that were too short (ideally 0)
+            ex += x # numbers of files that already existed
+            sum.append(s[0])
+
         elif batch is False:
             station = input('Input Station Name > ')
             (attempts,dwn,fdsnx,ts,ex,sum) = run_download(df,station,ext,outdir)
     elif mode is 'sep':
         #If event and station lists are seperate
         #We dont need to filter df by station and instead can pass it straight in
-        sdf= pd.read_csv(stat_list)
+        sdf= pd.read_csv(stat_list,delim_whitespace=True)
         # print(sdf)
         stations = sdf.STAT
         for station in stations:
 
-            (a,d,fd,t,x)= run_download(df,station,ext,outdir,sep=True)
+            (a,d,fd,t,x,s)= run_download(df,station,ext,outdir,sep=True,sdf=sdf[sdf['STAT'] == station])
             attempts += a
             dwn += d
             fdsnx += fd
             ts += t
             ex += x
             # print(s)
-            # sum.append(s[0])
+            sum.append(s[0])
     print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} have already been downloaded'.format(attempts,dwn,fdsnx,ts,ex))
     print(sum)
     with open('{}/{}_downloaded_streams.txt'.format(outdir,outdir.split('/')[-1]),'w+') as writer:
@@ -91,18 +98,21 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
     print('Runtime was {}\n'.format(runtime))
 
 
-def run_download(df,station,ext,out,sep=False):
+def run_download(station,df,ext,out,sep=False,sdf=None):
     """
     Function that runs the downloading process for a given station (or stations)
     """
-
-    Instance = Downloader(df,station,out)
+    data = df[(df['STAT'] == station)]
+    data = data.reset_index()
+    del data['index']
+    (attempts,dwn,fdsnx,ts,ex) = 0,0,0,0,0
+    sum = []
+    print('Begin download of data from station {}'.format(station))
+    Instance = Downloader(data,station,out)
     if Instance.attempts == 0:
         ''' i.e is this the first attempt?  '''
         # print(Instance.attempts)
         Instance.outfile = open('/{}/{}/{}_downloaded_streams_{}.txt'.format(out,station,station,ext),'w+')
-
-
 
     stat_found = Instance.download_station_data()
     if stat_found is True:
@@ -118,11 +128,12 @@ def run_download(df,station,ext,out,sep=False):
                 Instance.download_traces(channel)
 
     else:
-
         print('Station {} could not be found'.format(station))
+
     Instance.outfile.close()
-    print('It {}, stat {}'.format(Instance.attempts,station))
-    return(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex)#Instance.summary
+    print('Dowloads for station {} complete, {} events downloaded'.format(station,Instance.dwn))
+    return(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex,Instance.summary)
+
 class Downloader:
 
     def __init__(self,df,station,outdir):
@@ -130,7 +141,7 @@ class Downloader:
         self.station = station
         self.data = df
         self.out = outdir
-        # self.summary = [] # list to hold all tr_ids
+        self.summary = [] # list to hold all tr_ids
         # print(self.data)
 #           Resets indexing of DataFrame
 
@@ -161,10 +172,12 @@ class Downloader:
         """
         try:
             stat =  self.fdsnclient.get_stations(channel='BH?',station='{}'.format(self.station))
-            self.network = stat.networks[0].code
+            self.networks = stat.networks
             self.stla = stat.networks[0].stations[0].latitude
             self.stlo = stat.networks[0].stations[0].longitude
             # print(self.network)
+            if len(stat.networks) > 1:
+                print('More than one network code found!')
             return True
         except FDSNNoDataException:
             return False
@@ -175,73 +188,76 @@ class Downloader:
         """
         self.evla = self.data.EVLA[i]
         self.evlo = self.data.EVLO[i]
-        if sep is False:
+        # if sep is False:
 
-            self.date = self.data.DATE[i]
+        self.date = self.data.DATE[i]
+        if 'TIME' in self.data.columns:
+            self.time = self.data.TIME[i]
+        else:
+            self.time = '0000'
+
+        datetime = str(self.date) + "T" + self.time #Combined date and time inputs for converstion t UTCDateTime object
+        self.start = obspy.core.UTCDateTime(datetime)
+
+        try:
             if 'TIME' in self.data.columns:
-                self.time = self.data.TIME[i]
+                end = self.start + 60
+                print('Search starts {} , ends at {}'.format(self.start,end))
+                cat = self.fdsnclient_evt.get_events(starttime=self.start,endtime=self.start+86400 ,latitude=self.evla,longitude=self.evlo,maxradius=0.25,minmag=5.5) #Get event in order to get more accurate event times.
+                # self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
             else:
-                self.time = '0000'
+                # No Time so we need to search over the whole day
+                end = self.start + 86400
 
-            datetime = str(self.date) + "T" + self.time #Combined date and time inputs for converstion t UTCDateTime object
-            self.start = obspy.core.UTCDateTime(datetime)
+                print('Search starts {} , ends at {}'.format(self.start,end))
+                cat = self.fdsnclient_evt.get_events(starttime=self.start,endtime=self.start+86400 ,latitude=self.evla,longitude=self.evlo,maxradius=0.25,minmag=5.5) #Get event in order to get more accurate event times.
+            if len(cat) > 1:
+                print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
+                print('Selecting Event with the largest magnitude')
+                # Select biggest magnitude
+                max_mag = max([cat[j].magnitudes[0].mag for j in [i for i,c in enumerate(cat)]])
+                cat = cat.filter('magnitude >= {}'.format(max_mag))
+                print(cat)
 
-            try:
-                if 'TIME' in self.data.columns:
-                    end = self.start + 60
-                    print('Search starts {} , ends at {}'.format(self.start,end))
-                    cat = self.fdsnclient_evt.get_events(starttime=self.start,endtime=self.start+86400 ,latitude=self.evla,longitude=self.evlo,maxradius=0.25,minmag=5.5) #Get event in order to get more accurate event times.
-                    # self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
-                else:
-                    # No Time so we need to search over the whole day
-                    end = self.start + 86400
+            self.date = '{:04d}{:03d}'.format(cat[0].origins[0].time.year,cat[0].origins[0].time.julday)
+            self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
 
-                    print('Search starts {} , ends at {}'.format(self.start,end))
-                    cat = self.fdsnclient_evt.get_events(starttime=self.start,endtime=self.start+86400 ,latitude=self.evla,longitude=self.evlo,maxradius=0.25,minmag=5.5) #Get event in order to get more accurate event times.
-                if len(cat) > 1:
-                    print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
-                    print('Selecting Event with the largest magnitude')
-                    # Select biggest magnitude
-                    max_mag = max([cat[j].magnitudes[0].mag for j in [i for i,c in enumerate(cat)]])
-                    cat = cat.filter('magnitude >= {}'.format(max_mag))
-                    print(cat)
+            self.start.minute = cat[0].origins[0].time.minute
+            self.start.hour = cat[0].origins[0].time.hour
+            print(self.time)
 
-                self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
-                self.start.minute = cat[0].origins[0].time.minute
-                self.start.hour = cat[0].origins[0].time.hour
-                print(self.time)
+            self.start.second = cat[0].origins[0].time.second
 
-                self.start.second = cat[0].origins[0].time.second
+            # Lines commented out as they are only needed if TIME is prvoided as hhmm (For Deng's events there is
+            # no TIME provided so we just have to used the event time downloaded)
+            # if self.start.minute != cat[0].origins[0].time.minute:
+            #     self.time = self.time[:2] + str(cat[0].origins[0].time.minute) # Time is hhmm so we subtract the old minute value and add the new one
 
-                # Lines commented out as they are only needed if TIME is prvoided as hhmm (For Deng's events there is
-                # no TIME provided so we just have to used the event time downloaded)
-                # if self.start.minute != cat[0].origins[0].time.minute:
-                #     self.time = self.time[:2] + str(cat[0].origins[0].time.minute) # Time is hhmm so we subtract the old minute value and add the new one
+            dep = cat[0].origins[0].depth
+            if dep is not None:
+                self.evdp = dep/1000.0 # divide by 1000 to convert depth to [km[]
+            else:
+                self.evdp = 10.0 #Hard code depth to 10.0 km if evdp cannot be found
+        except FDSNNoDataException:
+            print("No Event Data Available")
+            self.evdp = 0
+        except FDSNException:
+            print("FDSNException for get_events")
+            # pass
+        # elif sep is True:
+        #     self.start = obspy.core.UTCDateTime('{}'.format(self.data.DATE[i])) #iso8601=True
+        #     self.date = '{:04d}{:03d}'.format(self.start.year,self.start.julday)
+        #     self.time = '{:02d}{:02d}{:02d}'.format(self.start.hour,self.start.minute,self.start.second)
+        #     self.evdp = self.data.EVDP[i]
 
-                dep = cat[0].origins[0].depth
-                if dep is not None:
-                    self.evdp = dep/1000.0 # divide by 1000 to convert depth to [km[]
-                else:
-                    self.evdp = 10.0 #Hard code depth to 10.0 km if evdp cannot be found
-            except FDSNNoDataException:
-                print("No Event Data Available")
-                self.evdp = 0
-            except FDSNException:
-                print("FDSNException for get_events")
-                # pass
-        elif sep is True:
-            self.start = obspy.core.UTCDateTime('{}'.format(self.data.DATE[i])) #iso8601=True
-            self.date = '{:04d}{:03d}'.format(self.start.year,self.start.julday)
-            self.time = '{:02d}{:02d}{:02d}'.format(self.start.hour,self.start.minute,self.start.second)
-            self.evdp = self.data.EVDP[i]
-
-    def download_traces(self,ch):
+    def download_traces(self,ch,n=0):
         """
         Function that downloads the traces for a given event and station
         """
         # if len(self.time) is 6:
         print('Start: {}. self.time: {}'.format(self.start,self.time))
         tr_id = "{}/{}/{}_{}_{}_{}.sac".format(self.out,self.station,self.station,self.date,self.time,ch)
+        print('Network code is {}, n is {}'.format(self.networks[n].code,n))
         # elif len(self.time) is 4:
             # tr_id = "{}/{}/{}_{}_{}{}_{}.sac".format(self.out,self.station,self.station,self.date,self.time,self.start.second,ch)
         # print("Looking for :", tr_id)
@@ -256,18 +272,18 @@ class Downloader:
             if ch == 'BHE':
                 out_id = '_'.join(tr_id.split('_')[0:-1])
                 self.outfile.write('{}_\n'.format(out_id))
-                # self.summary.append(out_id)
+                self.summary.append(out_id)
                 self.ex += 1
         else:
             # print("It doesnt exists. Download attempted")
             st = obspy.core.stream.Stream() # Initialises our stream variable
 
-            if self.network is 'BK':
+            if self.networks[n] is 'BK':
                 download_client = obspy.clients.fdsn.Client('NCEDC')
             else:
                 download_client = obspy.clients.fdsn.Client('IRIS')
             try:
-                st = download_client.get_waveforms(self.network,self.station,'??',ch,self.start,self.start + 3000,attach_response=True)
+                st = download_client.get_waveforms(self.networks[n].code,self.station,'*',ch,self.start,self.start + 3000,attach_response=True)
                 # print(st)
                 if len(st) > 3:
                     print("WARNING: More than three traces downloaded for event ", tr_id)
@@ -278,8 +294,9 @@ class Downloader:
                 print('STLA {} STLO {} EVLA {} EVLO {}'.format(self.stla,self.stlo,self.evla,self.evlo))
                 self.d = dist_client.distaz(stalat=self.stla,stalon=self.stlo,evtlat=self.evla,evtlon=self.evlo)
                 print('Source-Reciever distance is {}'.format(self.d['distance']))
-                if (self.d['distance'] >= 85.0) or (self.d['distance'] >=145.0):
-                
+                # if (self.d['distance'] >= 85.0) or (self.d['distance'] >=145.0): # For SKS, SKKS data
+                if (self.d['distance'] >= 50.0) or (self.d['distance'] >=85.0): # For ScS data
+
                         if st[0].stats.endtime - st[0].stats.starttime >= 2000:
                             # print('Record length is {}, which is ok'.format(st[0].stats.endtime - st[0].stats.starttime))
                             self.write_st(st,tr_id)
@@ -288,7 +305,7 @@ class Downloader:
                                 self.dwn += 1
                                 out_id = '_'.join(tr_id.split('_')[0:-1])
                                 self.outfile.write('{}_\n'.format(out_id))
-                                # self.summary.append(out_id)
+                                self.summary.append(out_id)
 
                         else:
                             print('Record length is {}, which is too short'.format(st[0].stats.endtime - st[0].stats.starttime))
@@ -299,6 +316,12 @@ class Downloader:
                     if ch == 'BHE':
                         self.ts += 1
             except FDSNException:
+                if (n > 0) and (n < len(self.networks)):
+                    n +=1 # counter for network ID use
+                    # Try to download again
+                    print('No data, but multiple network codes. So trying again (for the {}th time)'.format(n))
+                    self.download_traces(ch,n)
+
                 print('No Data Exception??')
                 if ch == 'BHE':
                     self.fdsnx += 1
@@ -308,9 +331,9 @@ class Downloader:
 
         """
         # print('Writing {}'.format(tr_id))
-        st[0].write('holder.sac', format='SAC',) # Writes traces as SAC files
+        st[0].write('holder_{}.sac'.format(current_process().pid), format='SAC',) # Writes traces as SAC files
         #st.plot()
-        st_2 = obspy.core.read('holder.sac')
+        st_2 = obspy.core.read('holder_{}.sac'.format(current_process().pid))
         #sac = AttribDict() # Creates a dictionary sacd to contain all the header information I want.
         ## Set origin times
         st_2[0].stats.sac.nzyear = self.start.year
@@ -336,15 +359,19 @@ class Downloader:
         st_2[0].stats.sac.az = self.d['azimuth'] # Azimuth (Source - Receiver)
         st_2[0].write(tr_id, format='SAC',byteorder=1)
 
-# PsuedoCode - For developoment
+if __name__ == '__main__':
+    # This block allows this mess of code to be run outside of ipython as a script
+    start = timeit.default_timer()
+    print('You are running sac_download from the command line. I am assuming there is a signle event list (e.g. RDB, SDB etc) list to work from')
+    print('If you have seperate event and station lists, a) Why? b) You will have to use ipython')
+    out = sys.argv[1]
+    evts = sys.argv[2]
 
-# read list of events as daatframe
-#    for unique stations:
-#       get network/location code information
-#       for events in df.stat=stat:
-#           get accurate event time
-#               for BHN,BHE.BHZ:
-#                   request download of trace of set length
-#                   save to holder
-#                   read holder and add desired sac headers
-#
+    main(mode='single',outdir=out,event_list=evts,batch=True)
+
+    ######################################################################################
+    # End Timing of run
+    ######################################################################################
+    end = timeit.default_timer()
+    runtime = end - start
+    print('The runtime of main is {} minutes'.format(runtime/60))
