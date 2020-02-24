@@ -57,7 +57,7 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
             # for station in stations:
             dwn = partial(run_download,df=df,ext=ext,out=outdir) # make partial fucntion so we can sue map to parrallise
 
-            with contextlib.closing( Pool(processes = 4) ) as pool:
+            with contextlib.closing( Pool(processes = 1) ) as pool:
             #           Iterate over stations in the station list.
                 (a,d,fd,t,x,s) = pool.map(dwn, stations) # Map list of unique stations to downloader
 
