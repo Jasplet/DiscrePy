@@ -57,17 +57,17 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
             # for station in stations:
             dwn = partial(run_download,df=df,ext=ext,out=outdir) # make partial fucntion so we can sue map to parrallise
 
-            with contextlib.closing( Pool(processes = 1) ) as pool:
+            with contextlib.closing( Pool(processes = 4) ) as pool:
             #           Iterate over stations in the station list.
-                (a,d,fd,t,x,s) = pool.map(dwn, stations) # Map list of unique stations to downloader
+                pool.map(dwn, stations) # Map list of unique stations to downloader
 
-            # (a,d,fd,t,x,s)= run_download(df,station,ext,outdir)
-            attempts += a # counter for number of attmepts
-            dwn += d # count number of downloads
-            fdsnx += fd # coutn number of fdsn exceptions
-            ts += t # count numbers of streams that were too short (ideally 0)
-            ex += x # numbers of files that already existed
-            sum.append(s[0])
+                # (a,d,fd,t,x,s)= run_download(df=df,station=station,ext=ext,out=outdir)
+                # attempts += a # counter for number of attmepts
+                # dwn += d # count number of downloads
+                # fdsnx += fd # coutn number of fdsn exceptions
+                # ts += t # count numbers of streams that were too short (ideally 0)
+                # ex += x # numbers of files that already existed
+                # # sum.append(s[0])
 
         elif batch is False:
             station = input('Input Station Name > ')
@@ -116,9 +116,9 @@ def run_download(station,df,ext,out,sep=False,sdf=None):
 
     stat_found = Instance.download_station_data()
     if stat_found is True:
-        print(Instance.data)
+        # print(Instance.data)
         for i in range(0,len(Instance.data)):
-            print(station, Instance.data.DATE[i])
+            # print(station, Instance.data.DATE[i])
         #Loop over events for the given station Instance
 
             Instance.set_event_data(i,sep)
@@ -132,6 +132,7 @@ def run_download(station,df,ext,out,sep=False,sdf=None):
 
     Instance.outfile.close()
     print('Dowloads for station {} complete, {} events downloaded'.format(station,Instance.dwn))
+    print(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex,Instance.summary)
     return(Instance.attempts,Instance.dwn,Instance.fdsnx,Instance.ts,Instance.ex,Instance.summary)
 
 class Downloader:
@@ -188,13 +189,15 @@ class Downloader:
         """
         self.evla = self.data.EVLA[i]
         self.evlo = self.data.EVLO[i]
-        # if sep is False:
 
         self.date = self.data.DATE[i]
         if 'TIME' in self.data.columns:
             self.time = self.data.TIME[i]
         else:
             self.time = '0000'
+#       get windows (if they exist). we will need these when generating the sac files
+        self.wbeg = self.data.WBEG[i]
+        self.wend = self.data.WEND[i]
 
         datetime = str(self.date) + "T" + self.time #Combined date and time inputs for converstion t UTCDateTime object
         self.start = obspy.core.UTCDateTime(datetime)
@@ -217,14 +220,14 @@ class Downloader:
                 # Select biggest magnitude
                 max_mag = max([cat[j].magnitudes[0].mag for j in [i for i,c in enumerate(cat)]])
                 cat = cat.filter('magnitude >= {}'.format(max_mag))
-                print(cat)
+                # print(cat)
 
             self.date = '{:04d}{:03d}'.format(cat[0].origins[0].time.year,cat[0].origins[0].time.julday)
             self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
 
             self.start.minute = cat[0].origins[0].time.minute
             self.start.hour = cat[0].origins[0].time.hour
-            print(self.time)
+            # print(self.time)
 
             self.start.second = cat[0].origins[0].time.second
 
@@ -285,22 +288,22 @@ class Downloader:
             try:
                 st = download_client.get_waveforms(self.networks[n].code,self.station,'*',ch,self.start,self.start + 3000,attach_response=True)
                 # print(st)
-                if len(st) > 3:
-                    print("WARNING: More than three traces downloaded for event ", tr_id)
+                if len(st) % 3 != 0:
+                    if ch == 'BHE':
+                        print("WARNING: Unxecpected number of traces {} (not a multiple of 3) downloaded for event tr_id {}, skipping".format(len(st),tr_id))
+                    # Continue onto the next event
                 elif len(st) < 3:
                     self.ts += 1
-
-                dist_client = iris.Client() # Creates client to calculate event - station distance
-                print('STLA {} STLO {} EVLA {} EVLO {}'.format(self.stla,self.stlo,self.evla,self.evlo))
-                self.d = dist_client.distaz(stalat=self.stla,stalon=self.stlo,evtlat=self.evla,evtlon=self.evlo)
-                print('Source-Reciever distance is {}'.format(self.d['distance']))
-                # if (self.d['distance'] >= 85.0) or (self.d['distance'] >=145.0): # For SKS, SKKS data
-                if (self.d['distance'] >= 50.0) or (self.d['distance'] >=85.0): # For ScS data
-
+                elif len(st) % 3 == 0:
+                    dist_client = iris.Client() # Creates client to calculate event - station distance
+                    print('STLA {} STLO {} EVLA {} EVLO {}'.format(self.stla,self.stlo,self.evla,self.evlo))
+                    self.d = dist_client.distaz(stalat=self.stla,stalon=self.stlo,evtlat=self.evla,evtlon=self.evlo)
+                    print('Source-Reciever distance is {}'.format(self.d['distance']))
+                    # if (self.d['distance'] >= 85.0) or (self.d['distance'] >=145.0): # For SKS, SKKS data
+                    if (self.d['distance'] >= 50.0) or (self.d['distance'] >=85.0): # For ScS data
                         if st[0].stats.endtime - st[0].stats.starttime >= 2000:
                             # print('Record length is {}, which is ok'.format(st[0].stats.endtime - st[0].stats.starttime))
                             self.write_st(st,tr_id)
-
                             if ch == 'BHE':
                                 self.dwn += 1
                                 out_id = '_'.join(tr_id.split('_')[0:-1])
@@ -311,12 +314,17 @@ class Downloader:
                             print('Record length is {}, which is too short'.format(st[0].stats.endtime - st[0].stats.starttime))
                             if ch == 'BHE':
                                 self.ts += 1
+                    else:
+                        print("Source Reciever Distance is too small")
+                        if ch == 'BHE':
+                            self.ts += 1
                 else:
-                    print("Source Reciever Distance is too small")
-                    if ch == 'BHE':
-                        self.ts += 1
+                    raise Exception('len(st) is not less than, equalt to or greater than 3!')
             except FDSNException:
-                if (n > 0) and (n < len(self.networks)):
+                print(n+1, len(self.networks))
+                if (len(self.networks) > 1) and (n+1 < len(self.networks)):
+                    # Here we are testing if there is more than one network code (becuase if theres only 1 then this is no use
+                    # and if there are any untried network codes
                     n +=1 # counter for network ID use
                     # Try to download again
                     print('No data, but multiple network codes. So trying again (for the {}th time)'.format(n))
@@ -358,6 +366,13 @@ class Downloader:
         st_2[0].stats.sac.baz = self.d['backazimuth'] # Backzimuth (Reciever - SOurce)
         st_2[0].stats.sac.az = self.d['azimuth'] # Azimuth (Source - Receiver)
         st_2[0].write(tr_id, format='SAC',byteorder=1)
+
+        # Perturb the pre-existing windows slightly (as they are for long-period data)
+        # This is so we can use nwind in SHEBA later...
+        st_2[0].stats.sac.user0 = self.wbeg - 2.5
+        st_2[0].stats.sac.user1 = self.wbeg + 2.5
+        st_2[0].stats.sac.user2 = self.wbeg - 2.5
+        st_2[0].stats.sac.user3 = self.wend + 2.5
 
 if __name__ == '__main__':
     # This block allows this mess of code to be run outside of ipython as a script
