@@ -37,6 +37,7 @@ from functools import partial
 import contextlib
 from glob import glob
 import Picker
+import argparse
 ############################################################################################
 # Define Functions and Classes
 ############################################################################################
@@ -157,8 +158,8 @@ def run_sheba(runpath,filepath,phases=['SKS','SKKS']):
             #print(phase)
             label = '{}'.format(filepath.split('/')[-1]) # Extract the event label STAT_DATE_TIME so I can use it to label output stremas from sheba
             # print('Label is {}'.format(label))
-            # st_id = '{}BH?.sac'.format(filepath)
-            st_id = '{}.BX?'.format(filepath) # .BX? for SPECFeM SYNTHETICS
+            st_id = '{}BH?.sac'.format(filepath)
+            # st_id = '{}.BX?'.format(filepath) # .BX? for SPECFeM SYNTHETICS
             st = ob.read(st_id)
             station = st[0].stats.station
             f_check = '{}/{}/{}/{}{}_sheba.final_result'.format(runpath,station,phase,label,phase)
@@ -517,12 +518,21 @@ if __name__ == '__main__':
     # Setup Paths, Constants and sort out input Arguements #############
     #####################################################################################
     # Set full path to station list
-    evt_list = sys.argv[1] # A .events file containing a list of filestems to al the data we want to measure
-    rundir=sys.argv[2] # The run directory that you want to house the output files
-    run_mode = sys.argv[3] # par is wanting to run in parallel, ser if running serially
-    mode=sys.argv[4] # data if using real data, syn is using synthetics
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-e","--events",action="store",required=True,help="File name for the .events file containing the filestems you want to processes")
+    parser.add_argument("-r","--rundir",action="store",required=True,help="The run directory that you wish to work in")
+    parser.add_argument("-p","--parallel",action="store_true",default=False,help="Swtich for whether you want sheba to run in parallel")
+    parser.add_argument("-nc","--ncores",action="store",type=int,help="Number of Cores requested for a parallel job")
+    parser.add_argument("-s","--syn",action="store_true",default=False,help="Indicates that the data to be processed is synthetics, which can required a slightly different treatment")
+    args = parser.parse_args()
+
+    print(args)
+    # evt_list = sys.argv[1] # A .events file containing a list of filestems to al the data we want to measure
+    # rundir=sys.argv[2] # The run directory that you want to house the output files
+    # run_mode = sys.argv[3] # par is wanting to run in parallel, ser if running serially
+    # mode=sys.argv[4] # data if using real data, syn is using synthetics
     # print(mode,type(mode))
-    file_list ='/Users/ja17375/DiscrePy/Data/{}'.format(evt_list)
+    file_list ='/Users/ja17375/DiscrePy/Data/{}'.format(args.events)
     # echo out where I expect the staiton list to be
     print('Processing Data from the Downloaded Event List {}'.format(file_list))
     files = []
@@ -539,19 +549,21 @@ if __name__ == '__main__':
     ######################################################################################
     ############### Run Sheba - using parallel processing with Pool ######################
     ######################################################################################
-    runpath ='/Users/ja17375/DiscrePy/Sheba/Runs/{}'.format(rundir)
+    runpath ='/Users/ja17375/DiscrePy/Sheba/Runs/{}'.format(args.rundir)
     print('Runpath is :',runpath)
-    if mode == 'data':
+    if args.syn is False:
         # runpath ='/Users/ja17375/DiscrePy/Sheba/Runs/{}'.format(rundir)
         runner = partial(run_sheba,runpath)
-        if run_mode == 'par':
-            with contextlib.closing( Pool(processes = 2) ) as pool:
+        if args.parallel is True:
+            print("Parallel job. {} cores requested".format(args.ncores))
+            with contextlib.closing( Pool(processes = args.ncores) ) as pool:
             #           Iterate over stations in the station list.
                 pool.map(runner,files)
             #               pool.map(tidyup,stations) ??? Maybe this would work???
     #       Tidy up results
             print('Sheba run complete, time to tidy up')
-        elif run_mode == 'ser':
+        else:
+            print("Running Serial Job")
             #Run in serial mode (booooo)
             for file in files:
                 # print(file)
@@ -559,15 +571,14 @@ if __name__ == '__main__':
 
         for phase in phases:
             """ Loop over phases process and tidyup results """
-            tidy_path = '/Users/ja17375/DiscrePy/Sheba/Runs/{}'.format(rundir)
+            tidy_path = '/Users/ja17375/DiscrePy/Sheba/Runs/{}'.format(args.rundir)
             outfile = '{}_{}_sheba_results.sdb'.format(out_pre,phase)
             # outdir = tidy_path.split('/')[-1]
-            tidyup(tidy_path,phase,outfile,rundir)
+            tidyup(tidy_path,phase,outfile,args.rundir)
 
 
-    elif mode == 'syn':
+    elif args.syn is True:
         phase='SYNTH'
-
         runner = partial(run_synth,runpath)
         # As all the synthetics files are in the same directory (They share a "station") we cannot run in parralel with all the synthetics being stored in the same directory.
         # This occurs as my sythetics are all stored under one station directory, so we cannot keep each worker looking at a different station
@@ -577,17 +588,15 @@ if __name__ == '__main__':
         # with contextlib.closing( Pool(processes = 8) ) as pool:
         #           Iterate over stations in the station list.
             # pool.map(runner,files)
-#
         for file in files:
             runner(file)
-
         #Tidyup results
         print('Sheba run complete, time to tidy up')
         """ Loop over phases process and tidyup results """
-        tidy_path = '/Users/ja17375/DiscrePy/Sheba/Runs/{}'.format(rundir)
+        tidy_path = '/Users/ja17375/DiscrePy/Sheba/Runs/{}'.format(args.rundir)
         outfile = '{}_SYNTH_sheba_results.sdb'.format(out_pre)
         # outdir = rundir.split('/')[0]
-        tidyup(tidy_path,phase,outfile,rundir)
+        tidyup(tidy_path,phase,outfile,args.rundir)
 
     # print('Sheba run complete, time to tidy up')
     ######################################################################################
