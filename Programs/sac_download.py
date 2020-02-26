@@ -88,7 +88,7 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
             ex += x
             # print(s)
             sum.append(s[0])
-    print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} have already been downloaded'.format(attempts,dwn,fdsnx,ts,ex))
+    # print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} have already been downloaded'.format(attempts,dwn,fdsnx,ts,ex))
     print(sum)
     with open('{}/{}_downloaded_streams.txt'.format(outdir,outdir.split('/')[-1]),'w+') as writer:
         [writer.write('{}\n'.format(id)) for id in sum]
@@ -287,14 +287,11 @@ class Downloader:
                 download_client = obspy.clients.fdsn.Client('IRIS')
             try:
                 st = download_client.get_waveforms(self.networks[n].code,self.station,'*',ch,self.start,self.start + 3000,attach_response=True)
-                # print(st)
-                if len(st) % 3 != 0:
-                    if ch == 'BHE':
-                        print("WARNING: Unxecpected number of traces {} (not a multiple of 3) downloaded for event tr_id {}, skipping".format(len(st),tr_id))
-                    # Continue onto the next event
-                elif len(st) < 3:
-                    self.ts += 1
-                elif len(st) % 3 == 0:
+                print(len(st))
+                if len(st) > 1 :
+                    print("WARNING: Unxecpected number of traces {} (more than one trace per channel) downloaded for event tr_id {}, skipping".format(len(st),tr_id))
+                    
+                else:
                     dist_client = iris.Client() # Creates client to calculate event - station distance
                     print('STLA {} STLO {} EVLA {} EVLO {}'.format(self.stla,self.stlo,self.evla,self.evlo))
                     self.d = dist_client.distaz(stalat=self.stla,stalon=self.stlo,evtlat=self.evla,evtlon=self.evlo)
@@ -318,8 +315,7 @@ class Downloader:
                         print("Source Reciever Distance is too small")
                         if ch == 'BHE':
                             self.ts += 1
-                else:
-                    raise Exception('len(st) is not less than, equalt to or greater than 3!')
+
             except FDSNException:
                 print(n+1, len(self.networks))
                 if (len(self.networks) > 1) and (n+1 < len(self.networks)):
