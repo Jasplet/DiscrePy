@@ -1,0 +1,17 @@
+*.eigm
+*.o
+*.pyc
+*.sac
+*.png
+*.jpeg
+*.in
+*.sgf
+Measurements/*
+Eigm_Files
+*.txt
+*.pp
+*_tmp
+*.ipynb*
+gmt.history
+.DS_Store
+Data/
