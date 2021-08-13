@@ -7,13 +7,12 @@ import shlex
 from subprocess import call
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib
 import numpy as np
 from stack import Stacker
 from time import ctime
 from glob import glob
-from scipy import stats
+from l2stats import ftest
 import obspy
 import obspy.taup
 
@@ -77,7 +76,8 @@ class Builder:
 
 
     def gen_pp(self):
-        ''' Fucntion to test for whether the .pp file exists and if not call TauP to generate it and the corresponding mspp files '''
+        ''' Fucntion to test for whether the .pp file exists and if not call TauP to generate it and the corresponding 
+        files '''
 
         print('Looking for pp file {}.pp'.format(self.fpath.split('.')[0]))
         if os.path.isfile('{}.pp'.format(self.fpath.split('.')[0])):
@@ -146,33 +146,16 @@ class Builder:
         # del self.P['INTENS_x']
         # del self.P['INTENS_y']
 
-    def ftest(self,lam2min,ndf,alpha=0.05):
-        """
-        returns lambda2 value at 100(1-alpha)% confidence interval
-        by default alpha = 0.05 = 95% confidence interval
-        following Silver and Chan (1991)
-        As we are dealing with traces that have alreayd been passed through SHEBA,
-        we do not need to check (or calculate) degrees of freedom as this has alreay
-        been done.
-
-        Needed for pair_stack to calc lam2alpha for SKS and SKKS
-        """
-
-        k = 2 # two parameters, phi and dt.
-        F = stats.f.ppf(1-alpha,k,ndf)
-        lam2alpha = lam2min * ( 1 + (k/(ndf-k)) * F)
-        return lam2alpha
-
     def pair_stack(self):
         ''' Runs Stacker for all the desired pairs (a .pairs file)'''
 
         ext ='lamR'
         print('Stacking')
         rd = self.path_stk.split('/')[-1]
-        out = '/Users/ja17375/DiscrePy/Sheba/Results/{}/Stacks'.format(rd) # For Filt 03/05 casesed need to hardcode in Combined/ directory
+        out = '/Users/ja17375/DiscrePy/Sheba/Results/Combined/{}/Stacks'.format(rd) # For Filt 03/05 casesed need to hardcode in Combined/ directory
         if os.path.isdir(out) is False:
             print('{} does not exist, creating'.format(out))
-            os.mkdir('/Users/ja17375/DiscrePy/Sheba/Results/{}/Stacks'.format(rd))
+            os.mkdir('/Users/ja17375/DiscrePy/Sheba/Results/Combined/{}/Stacks'.format(rd))
 
         for i,f in enumerate(self.P.DATE.values):
             # print(len(self.P))
@@ -185,36 +168,36 @@ class Builder:
             # print(lam2_stem)
             print('{}/{}/SKS/{}??_SKS.lamR'.format(self.path_stk,stat,fstem))
             print('{}/{}/SKKS/{}??_SKKS.{}'.format(self.path_stk,stat,fstem,ext))
-            if len(lam2_stem) is not 0:
+            if len(lam2_stem) != 0:
                 # I.e if glob has managed to find the sks lam2 surface file
                 sks_lam2 = glob('{}/{}/SKS/{}??_SKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
                 skks_lam2 = glob('{}/{}/SKKS/{}??_SKKS.{}'.format(self.path_stk,stat,fstem,ext))[0]
                 Stk = Stacker(sks_lam2,skks_lam2,out)
                 self.lam2_bar.append(Stk.lam2_bar)
-            elif len(glob('{}/{}/SKS/{}_{}_*_SKS.{}'.format(self.path_stk,stat,stat,date,ext))) is not 0 :
+                ndf_sks, ndf_skks = self.P.NDF_SKS[i],self.P.NDF_SKKS[i]
+                self.lam2alpha_sks.append(ftest(Stk.lam2_sks,ndf_sks)) # Calc Lam2 Alpha and append it to list for SKS and SKKS
+                self.lam2alpha_skks.append(ftest(Stk.lam2_skks,ndf_skks))
+            elif len(glob('{}/{}/SKS/{}_{}_*_SKS.{}'.format(self.path_stk,stat,stat,date,ext))) !=0 :
                 fstem2 = '{}_{}'.format(stat,date)
                 # print('fstem2')
                 # print('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))
                 sks_lam2 = glob('{}/{}/SKS/{}_*_SKS.{}'.format(self.path_stk,stat,fstem2,ext))[0]
                 skks_lam2 = glob('{}/{}/SKKS/{}_*_SKKS.{}'.format(self.path_stk,stat,fstem2,ext))[0]
                 # Now for a sanity check
-                if (len(sks_lam2) is not 0) or (len(skks_lam2) is not 0):
+                if (len(sks_lam2) != 0) or (len(skks_lam2) != 0):
                     Stk = Stacker(sks_lam2,skks_lam2,out)
                     self.lam2_bar.append(Stk.lam2_bar)
+                    ndf_sks, ndf_skks = self.P.NDF_SKS[i],self.P.NDF_SKKS[i]
+                    self.lam2alpha_sks.append(ftest(Stk.lam2_sks,ndf_sks)) # Calc Lam2 Alpha and append it to list for SKS and SKKS
+                    self.lam2alpha_skks.append(ftest(Stk.lam2_skks,ndf_skks))
                 else:
                     print('lam2 surfaces cannot be found, skipping')
                     pass
             else:
-                print("try bodge for Anulas stuff")
-                sks_lam2 = glob('{}/{}/SKS/{}SKS.{}'.format(self.path_stk,stat,stat,ext))[0]
-                skks_lam2 = glob('{}/{}/SKKS/{}SKKS.{}'.format(self.path_stk,stat,stat,ext))[0]
-                Stk = Stacker(sks_lam2,skks_lam2,out)
-                self.lam2_bar.append(Stk.lam2_bar)
-
+                print('Glob returns no files, see:')
+                print(glob('{}/{}/SKS/{}_{}_*_SKS.{}'))
             # Now calulate LAM2ALPHA  for SKS and SKKS
-            ndf_sks, ndf_skks = self.P.NDF_SKS[i],self.P.NDF_SKKS[i]
-            self.lam2alpha_sks.append(self.ftest(Stk.lam2_sks,ndf_sks)) # Calc Lam2 Alpha and append it to list for SKS and SKKS
-            self.lam2alpha_skks.append(self.ftest(Stk.lam2_skks,ndf_skks))
+
 
     def add_lam2(self):
         '''
@@ -416,13 +399,13 @@ class Builder:
         for i,row in self.P.iterrows():
             if row.SNR_SKS > self.snr and row.SNR_SKKS > self.snr:
                 #Test to see if Signal-to-Noise is too high
-                # if abs(row.BAZ%180 - row.SPOL_SKS%180) <  10 and abs(row.BAZ%180 - row.SPOL_SKKS%180) < 10:
-                # # Test to see if there is a asignficiant difference between source polarisation and back azimuth abs
-                #     print('Event accepted')
-                self.accepted_i.append(i)
-                # else:
-                #     print('SPOL-BAZ difference greater than 10, reject')
-                #     self.baz_spol_fail.append(i)
+                if abs(row.BAZ%180 - row.SPOL_SKS%180) <  10 and abs(row.BAZ%180 - row.SPOL_SKKS%180) < 10:
+                # Test to see if there is a asignficiant difference between source polarisation and back azimuth abs
+                    print('Event accepted')
+                    self.accepted_i.append(i)
+                else:
+                    print('SPOL-BAZ difference greater than 10, reject')
+                    self.baz_spol_fail.append(i)
 
             else:
                 print('SNR for SKS or SKKS less than {:02}, auto-reject'.format(self.snr))
@@ -1125,13 +1108,14 @@ class Pairs:
         print('Max S/N SKS: ', self.df.SNR_SKS.max())
         print('Max S/N SKKS: ', self.df.SNR_SKKS.max())
         fig, (ax1,ax2) = plt.subplots(1,2,figsize=(14,7))
-        ax1.hist(self.df.SNR_SKS,bins=np.arange(0,50,5),histtype='bar')
+        ax1.hist(self.df.SNR_SKS,bins=np.arange(0,100,5),histtype='bar')
         ax1.set_xlabel('S/N ratio (SKS)')
         ax1.set_ylabel('Count')
-
-        ax2.hist(self.df.SNR_SKKS,bins=np.arange(0,50,5),histtype='bar')
+        ax1.set_xlim([0, 100])
+        ax2.hist(self.df.SNR_SKKS,bins=np.arange(0,100,5),histtype='bar')
         ax2.set_xlabel('S/N ratio (SKKS)')
         ax2.set_ylabel('Count')
+        ax2.set_xlim([0, 100])
         plt.show()
 
     def plot_SNR_v_l2(self):

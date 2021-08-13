@@ -50,8 +50,7 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
     df = pd.read_csv(event_list,delim_whitespace=True,converters={'TIME': lambda x: str(x)})
     (attempts,dwn,fdsnx,ts,ex) = 0,0,0,0,0
     sum = []
-    if mode is 'single':
-
+    if mode == 'single':
         stations = df.STAT.unique() # Identify the unique stations provided in the event staton list
         if batch is True:
             # for station in stations:
@@ -72,7 +71,7 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
         elif batch is False:
             station = input('Input Station Name > ')
             (attempts,dwn,fdsnx,ts,ex,sum) = run_download(df,station,ext,outdir)
-    elif mode is 'sep':
+    elif mode == 'sep':
         #If event and station lists are seperate
         #We dont need to filter df by station and instead can pass it straight in
         sdf= pd.read_csv(stat_list,delim_whitespace=True)
@@ -277,6 +276,14 @@ class Downloader:
                 self.outfile.write('{}_\n'.format(out_id))
                 self.summary.append(out_id)
                 self.ex += 1
+#           Append Windows to SAC files
+            st_2 = obspy.read(tr_id)
+            st_2[0].stats.sac.user0 = self.wbeg - 2.5
+            st_2[0].stats.sac.user1 = self.wbeg + 2.5
+            st_2[0].stats.sac.user2 = self.wend - 2.5
+            st_2[0].stats.sac.user3 = self.wend + 2.5
+            st_2[0].write(tr_id, format='SAC',byteorder=1)
+
         else:
             # print("It doesnt exists. Download attempted")
             st = obspy.core.stream.Stream() # Initialises our stream variable
@@ -290,7 +297,7 @@ class Downloader:
                 print(len(st))
                 if len(st) > 1 :
                     print("WARNING: Unxecpected number of traces {} (more than one trace per channel) downloaded for event tr_id {}, skipping".format(len(st),tr_id))
-                    
+
                 else:
                     dist_client = iris.Client() # Creates client to calculate event - station distance
                     print('STLA {} STLO {} EVLA {} EVLO {}'.format(self.stla,self.stlo,self.evla,self.evlo))
@@ -361,14 +368,15 @@ class Downloader:
         st_2[0].stats.sac.dist = self.d['distancemeters']/1000 # Distnace in kilometers
         st_2[0].stats.sac.baz = self.d['backazimuth'] # Backzimuth (Reciever - SOurce)
         st_2[0].stats.sac.az = self.d['azimuth'] # Azimuth (Source - Receiver)
+        st_2[0].stats.sac.user0 = self.wbeg - 2.5
+        st_2[0].stats.sac.user1 = self.wbeg + 2.5
+        st_2[0].stats.sac.user2 = self.wend - 2.5
+        st_2[0].stats.sac.user3 = self.wend + 2.5
         st_2[0].write(tr_id, format='SAC',byteorder=1)
 
         # Perturb the pre-existing windows slightly (as they are for long-period data)
         # This is so we can use nwind in SHEBA later...
-        st_2[0].stats.sac.user0 = self.wbeg - 2.5
-        st_2[0].stats.sac.user1 = self.wbeg + 2.5
-        st_2[0].stats.sac.user2 = self.wbeg - 2.5
-        st_2[0].stats.sac.user3 = self.wend + 2.5
+
 
 if __name__ == '__main__':
     # This block allows this mess of code to be run outside of ipython as a script
