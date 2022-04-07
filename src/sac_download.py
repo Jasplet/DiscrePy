@@ -52,7 +52,7 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
     sum = []
     if mode == 'single':
         stations = df.STAT.unique() # Identify the unique stations provided in the event staton list
-        if batch is True:
+        if batch == True:
             # for station in stations:
             dwn = partial(run_download,df=df,ext=ext,out=outdir) # make partial fucntion so we can sue map to parrallise
 
@@ -68,7 +68,7 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
                 # ex += x # numbers of files that already existed
                 # # sum.append(s[0])
 
-        elif batch is False:
+        elif batch == False:
             station = input('Input Station Name > ')
             (attempts,dwn,fdsnx,ts,ex,sum) = run_download(df,station,ext,outdir)
     elif mode == 'sep':
@@ -111,10 +111,10 @@ def run_download(station,df,ext,out,sep=False,sdf=None):
     if Instance.attempts == 0:
         ''' i.e is this the first attempt?  '''
         # print(Instance.attempts)
-        Instance.outfile = open('/{}/{}/{}_downloaded_streams_{}.txt'.format(out,station,station,ext),'w+')
+        Instance.outfile = open('/{}/{}_downloaded_streams_{}.txt'.format(out,station,ext),'w+')
 
     stat_found = Instance.download_station_data()
-    if stat_found is True:
+    if stat_found == True:
         # print(Instance.data)
         for i in range(0,len(Instance.data)):
             # print(station, Instance.data.DATE[i])
@@ -148,7 +148,8 @@ class Downloader:
         # print('{}/{}_downloaded_streams.txt'.format(outdir,outdir.split('/')[-1]))
         try:
             #print('Make /Users/ja17375/Shear_Wave_Splitting/Data/SAC_files/{}'.format(station))
-            os.mkdir('{}/{}'.format(self.out,station))
+            # os.mkdir('{}/{}'.format(self.out,station))
+            os.mkdir('{}'.format(self.out))
         except FileExistsError:
             print('It already exists, Hooray! Less work for me!')
 
@@ -258,13 +259,11 @@ class Downloader:
         """
         # if len(self.time) is 6:
         print('Start: {}. self.time: {}'.format(self.start,self.time))
-        tr_id = "{}/{}/{}_{}_{}_{}.sac".format(self.out,self.station,self.station,self.date,self.time,ch)
+        tr_id = f'{self.out}/{self.station}_{self.date}_{self.time}.{ch}'
         print('Network code is {}, n is {}'.format(self.networks[n].code,n))
         # elif len(self.time) is 4:
             # tr_id = "{}/{}/{}_{}_{}{}_{}.sac".format(self.out,self.station,self.station,self.date,self.time,self.start.second,ch)
-        # print("Looking for :", tr_id)
-
-
+        print("Looking for :", tr_id)
         if ch == 'BHE':
             self.attempts += 1 # Counts the number of traces that downloads are attempted for
 
@@ -288,7 +287,7 @@ class Downloader:
             # print("It doesnt exists. Download attempted")
             st = obspy.core.stream.Stream() # Initialises our stream variable
 
-            if self.networks[n] is 'BK':
+            if self.networks[n] == 'BK':
                 download_client = obspy.clients.fdsn.Client('NCEDC')
             else:
                 download_client = obspy.clients.fdsn.Client('IRIS')
@@ -310,9 +309,9 @@ class Downloader:
                             self.write_st(st,tr_id)
                             if ch == 'BHE':
                                 self.dwn += 1
-                                out_id = '_'.join(tr_id.split('_')[0:-1])
-                                self.outfile.write('{}_\n'.format(out_id))
-                                self.summary.append(out_id)
+                                # out_id = '_'.join(tr_id.split('_')[0:-1])
+                                self.outfile.write(f'{tr_id}\n')
+                                self.summary.append(tr_id)
 
                         else:
                             print('Record length is {}, which is too short'.format(st[0].stats.endtime - st[0].stats.starttime))
