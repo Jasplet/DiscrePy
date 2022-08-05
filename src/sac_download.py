@@ -199,20 +199,20 @@ class Downloader:
         self.wbeg = self.data.WBEG[i]
         self.wend = self.data.WEND[i]
 
-        datetime = str(self.date) + "T" + self.time #Combined date and time inputs for converstion t UTCDateTime object
+        datetime = str(self.date) + "T" + str(self.time) #Combined date and time inputs for converstion t UTCDateTime object
         self.start = obspy.core.UTCDateTime(datetime)
 
         try:
             if 'TIME' in self.data.columns:
                 end = self.start + 60
-                print('Search starts {} , ends at {}'.format(self.start,end))
+                #print('Search starts {} , ends at {}'.format(self.start,end))
                 cat = self.fdsnclient_evt.get_events(starttime=self.start,endtime=self.start+86400 ,latitude=self.evla,longitude=self.evlo,maxradius=0.25,minmag=5.5) #Get event in order to get more accurate event times.
                 # self.time = '{:02d}{:02d}{:02d}'.format(cat[0].origins[0].time.hour,cat[0].origins[0].time.minute,cat[0].origins[0].time.second)
             else:
                 # No Time so we need to search over the whole day
                 end = self.start + 86400
 
-                print('Search starts {} , ends at {}'.format(self.start,end))
+                #print('Search starts {} , ends at {}'.format(self.start,end))
                 cat = self.fdsnclient_evt.get_events(starttime=self.start,endtime=self.start+86400 ,latitude=self.evla,longitude=self.evlo,maxradius=0.25,minmag=5.5) #Get event in order to get more accurate event times.
             if len(cat) > 1:
                 print("WARNING: MORE THAN ONE EVENT OCCURS WITHIN 5km Search!!")
@@ -258,7 +258,7 @@ class Downloader:
         Function that downloads the traces for a given event and station
         """
         # if len(self.time) is 6:
-        print('Start: {}. self.time: {}'.format(self.start,self.time))
+        #print('Start: {}. self.time: {}'.format(self.start,self.time))
         tr_id = f'{self.out}/{self.station}_{self.date}_{self.time}.{ch}'
         #print('Network code is {}, n is {}'.format(self.networks[n].code,n))
         # elif len(self.time) is 4:
@@ -294,15 +294,15 @@ class Downloader:
                 download_client = obspy.clients.fdsn.Client('IRIS')
             try:
                 st = download_client.get_waveforms(self.networks[n].code,self.station,'*',ch,self.start,self.start + 3000,attach_response=True)
-                print(len(st))
+                #print(len(st))
                 if len(st) > 1 :
                     print("WARNING: Unxecpected number of traces {} (more than one trace per channel) downloaded for event tr_id {}, skipping".format(len(st),tr_id))
 
                 else:
                     dist_client = iris.Client() # Creates client to calculate event - station distance
-                    print('STLA {} STLO {} EVLA {} EVLO {}'.format(self.stla,self.stlo,self.evla,self.evlo))
+                    #print('STLA {} STLO {} EVLA {} EVLO {}'.format(self.stla,self.stlo,self.evla,self.evlo))
                     self.d = dist_client.distaz(stalat=self.stla,stalon=self.stlo,evtlat=self.evla,evtlon=self.evlo)
-                    print('Source-Reciever distance is {}'.format(self.d['distance']))
+                    #print('Source-Reciever distance is {}'.format(self.d['distance']))
                     # if (self.d['distance'] >= 85.0) or (self.d['distance'] >=145.0): # For SKS, SKKS data
                     if (self.d['distance'] >= 50.0) or (self.d['distance'] >=85.0): # For ScS data
                         if st[0].stats.endtime - st[0].stats.starttime >= 2000:
