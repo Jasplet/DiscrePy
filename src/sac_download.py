@@ -88,9 +88,9 @@ def main(mode,outdir,event_list=None,stat_list=None,batch=False):
             # print(s)
             sum.append(s[0])
     # print('{:03d} download attempts were made, {:02d} were successful, {:02d} hit FDSNNoDataExceptions, {:02} were incomplete and {:02d} have already been downloaded'.format(attempts,dwn,fdsnx,ts,ex))
-    print(sum)
-    with open('{}/{}_downloaded_streams.txt'.format(outdir,outdir.split('/')[-1]),'w+') as writer:
-        [writer.write('{}\n'.format(id)) for id in sum]
+    # print(sum)
+    # with open('{}/{}_downloaded_streams.txt'.format(outdir,outdir.split('/')[-1]),'w+') as writer:
+    #     [writer.write('{}\n'.format(id)) for id in sum]
 
     end = time.time()
     runtime = end - start
@@ -260,7 +260,7 @@ class Downloader:
         # if len(self.time) is 6:
         print('Start: {}. self.time: {}'.format(self.start,self.time))
         tr_id = f'{self.out}/{self.station}_{self.date}_{self.time}.{ch}'
-        print('Network code is {}, n is {}'.format(self.networks[n].code,n))
+        #print('Network code is {}, n is {}'.format(self.networks[n].code,n))
         # elif len(self.time) is 4:
             # tr_id = "{}/{}/{}_{}_{}{}_{}.sac".format(self.out,self.station,self.station,self.date,self.time,self.start.second,ch)
         print("Looking for :", tr_id)
@@ -271,8 +271,9 @@ class Downloader:
             print("{} exists. It was not downloaded".format(tr_id)) # File does not exist
 
             if ch == 'BHE':
-                out_id = '_'.join(tr_id.split('_')[0:-1])
-                self.outfile.write('{}_\n'.format(out_id))
+                out_id = tr_id.split('.')[0]
+                print(out_id)
+                self.outfile.write('{}\n'.format(out_id))
                 self.summary.append(out_id)
                 self.ex += 1
 #           Append Windows to SAC files
